@@ -10,6 +10,8 @@ const actions:Record<string,string>={profile_verified:'Profil vérifié',verific
 const statuses:Record<string,string>={confirmed:'Confirmé',cancelled:'Annulé',completed:'Terminé'};
 export default function AdminConsole({account,logout}:{account:Account;logout:()=>void}){
  const [data,setData]=useState<Data|null>(null),[section,setSection]=usePanel('Vue d’ensemble',['Vue d’ensemble','Comptes','Vérifications','Rendez-vous','Journal d’actions','Paramètres']),[query,setQuery]=useState(''),[filter,setFilter]=useState('Tous'),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[mobile,setMobile]=useState(false),[person,setPerson]=useState<Person|null>(null),[decision,setDecision]=useState<{action:string;title:string;target:Person;values:Record<string,unknown>}|null>(null),[settings,setSettings]=useState<Data['settings']|null>(null);
+ useEffect(()=>{setMobile(false)},[section]);
+ useEffect(()=>{const close=()=>setMobile(false);const key=(e:KeyboardEvent)=>{if(e.key==='Escape')close()};addEventListener('popstate',close);addEventListener('keydown',key);return()=>{removeEventListener('popstate',close);removeEventListener('keydown',key)}},[]);
  const load=async()=>{setError('');try{const d=await api<Data>('admin');setData(d);setSettings(d.settings)}catch(e){setError((e as Error).message)}};
  useEffect(()=>{load()},[]);
  const nav=[['Vue d’ensemble',LayoutDashboard],['Comptes',Users],['Vérifications',ShieldCheck],['Rendez-vous',CalendarDays],['Journal d’actions',Activity],['Paramètres',Settings]] as const;

@@ -1,5 +1,10 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import Portal from './Portal';
+import {MobileSplash} from './Experience';
 import './style.css';
-createRoot(document.getElementById('root')!).render(<Portal/>);
+import './public.css';
+import './connected.css';
+import './admin.css';
+import './experience.css';
+createRoot(document.getElementById('root')!).render(<><Portal/><MobileSplash/></>);
