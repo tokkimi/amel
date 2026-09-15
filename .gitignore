@@ -5,3 +5,7 @@ dist
 .vercel
 *.tsbuildinfo
 .vercel
+.env*
+.agents/
+skills-lock.json
+.test-account.json
