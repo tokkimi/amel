@@ -129,6 +129,9 @@ export type BusinessDocument = {
   note: string;
   created_at: string;
   payment_provider: string;
+  payment_method?: string;
+  insurance_amount?: number;
+  payment_details?: string;
   payment_url: string;
   pdf_data: string;
   pdf_name: string;
@@ -160,6 +163,8 @@ export type Mission = {
   updated_at: string;
 };
 export type Dashboard = {
+  permissions?: string[];
+  isOwner?: boolean;
   account: Account;
   profile: Profile;
   appointments: Appointment[];

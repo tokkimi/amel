@@ -117,6 +117,11 @@ CREATE TABLE IF NOT EXISTS missions (
 CREATE INDEX IF NOT EXISTS missions_owner ON missions(owner_id,updated_at DESC);
 
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS document_id uuid REFERENCES business_documents(id) ON DELETE SET NULL;
+ALTER TABLE business_documents ADD COLUMN IF NOT EXISTS payment_method text NOT NULL DEFAULT 'sur_place';
+ALTER TABLE business_documents ADD COLUMN IF NOT EXISTS insurance_amount numeric(10,2) NOT NULL DEFAULT 0;
+ALTER TABLE business_documents ADD COLUMN IF NOT EXISTS payment_details text NOT NULL DEFAULT '';
+ALTER TABLE missions ADD COLUMN IF NOT EXISTS shared_by uuid REFERENCES accounts(id);
+ALTER TABLE missions ADD COLUMN IF NOT EXISTS location_expires_at timestamptz;
 
 CREATE TABLE IF NOT EXISTS dental_media (
  id uuid PRIMARY KEY, owner_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -141,6 +146,13 @@ CREATE TABLE IF NOT EXISTS clinic_members (
  created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(owner_id,member_id)
 );
 CREATE INDEX IF NOT EXISTS clinic_members_owner ON clinic_members(owner_id,active);
+ALTER TABLE clinic_members ADD COLUMN IF NOT EXISTS accepted boolean NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+ id uuid PRIMARY KEY, account_id uuid NOT NULL REFERENCES accounts(id), subject text NOT NULL,
+ body text NOT NULL, status text NOT NULL DEFAULT 'open', admin_reply text NOT NULL DEFAULT '',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+);
 
 UPDATE platform_settings SET name='SmilePec' WHERE id=1 AND name='Amelib';
 UPDATE platform_settings SET support_email='contact@smilepec.fr' WHERE id=1 AND support_email='';

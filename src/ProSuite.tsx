@@ -31,6 +31,7 @@ import {
   Users,
   Wallet,
   X,
+  Menu,
 } from "lucide-react";
 import {
   api,
@@ -49,6 +50,11 @@ import {
 } from "./client";
 import { usePanel } from "./usePanel";
 import DentalChart from "./DentalChart";
+import DocumentEditor from './DocumentEditor';
+import {downloadSharedDocument} from './documents';
+import TeamPanel from './TeamPanel';
+import LiveTracking from './LiveTracking';
+import SupportPanel from './SupportPanel';
 
 const pages = [
   "Agenda",
@@ -58,6 +64,8 @@ const pages = [
   "Courses",
   "Tâches",
   "Mon profil",
+  "Équipe",
+  "SmilePec",
 ];
 const statusLabels: Record<string, string> = {
   planned: "Planifiée",
@@ -114,50 +122,7 @@ async function downloadDocument(
   profile: Profile,
   proName: string,
 ) {
-  const { jsPDF } = await import("jspdf");
-  const pdf = new jsPDF();
-  pdf.setTextColor(66, 82, 120);
-  pdf.setFontSize(24);
-  pdf.text("SmilePec", 20, 22);
-  pdf.setFontSize(18);
-  pdf.text(doc.doc_type === "quote" ? "DEVIS" : "FACTURE", 145, 22);
-  pdf.setFontSize(10);
-  pdf.text(
-    `${doc.number}\nÉmis le ${new Date(doc.issue_date).toLocaleDateString("fr-FR")}\n${proName}\n${profile.address || ""}`,
-    20,
-    40,
-  );
-  pdf.text(`Destinataire\n${doc.patient_name}\n${doc.patient_email}`, 120, 40);
-  let y = 76;
-  pdf.setFillColor(237, 241, 251);
-  pdf.rect(20, y - 7, 170, 11, "F");
-  pdf.text("Prestation", 23, y);
-  pdf.text("Qté", 120, y);
-  pdf.text("Prix", 140, y);
-  pdf.text("Total", 170, y);
-  y += 13;
-  for (const item of doc.items) {
-    pdf.text(item.label.slice(0, 50), 23, y);
-    pdf.text(String(item.quantity), 122, y);
-    pdf.text(money(item.unitPrice), 140, y);
-    pdf.text(
-      money(item.quantity * item.unitPrice * (1 + item.vat / 100)),
-      170,
-      y,
-    );
-    y += 10;
-  }
-  pdf.line(20, y, 190, y);
-  y += 12;
-  pdf.text(`Sous-total : ${money(Number(doc.subtotal))}`, 120, y);
-  pdf.text(`TVA : ${money(Number(doc.tax))}`, 120, y + 8);
-  pdf.setFontSize(14);
-  pdf.text(`Total : ${money(Number(doc.total))}`, 120, y + 19);
-  if (doc.note) {
-    pdf.setFontSize(9);
-    pdf.text(doc.note.slice(0, 300), 20, y + 34, { maxWidth: 165 });
-  }
-  pdf.save(`${doc.number}.pdf`);
+  await downloadSharedDocument(doc.id);
 }
 
 function Avatar({
@@ -214,6 +179,7 @@ export default function ProSuite({
   account: Account;
   logout: () => void;
 }) {
+  const [editingDocument,setEditingDocument]=useState<BusinessDocument|null>(null);
   const [data, setData] = useState<Dashboard | null>(null),
     [page, setPage] = usePanel("Agenda", pages),
     [menu, setMenu] = useState(false),
@@ -233,7 +199,8 @@ export default function ProSuite({
   const [patientTab, setPatientTab] = useState("Synthèse");
   const load = async () => {
     try {
-      setData(await api<Dashboard>("dashboard"));
+      const next=await api<Dashboard>("dashboard");setData(next);
+      setPatient(old=>old?next.patients.find(p=>p.patient_id===old.patient_id)||old:null);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -320,6 +287,8 @@ export default function ProSuite({
     ["Courses", Navigation],
     ["Tâches", Kanban],
     ["Mon profil", Settings],
+    ["Équipe", Users],
+    ["SmilePec", Heart],
   ] as const;
   const photoInput = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -338,6 +307,7 @@ export default function ProSuite({
   };
   return (
     <div className="pro-suite">
+      {menu&&<button className="pro-menu-shade" aria-label="Fermer le menu" onClick={()=>setMenu(false)}/>}
       <aside className={`pro-sidebar ${menu ? "open" : ""}`}>
         <a className="brand" href="/">
           SmilePec<span>.</span>
@@ -371,6 +341,7 @@ export default function ProSuite({
       </aside>
       <div className="pro-main">
         <header className="pro-topbar">
+          <button className="icon-button pro-menu-toggle" aria-label="Tous les outils" aria-expanded={menu} onClick={()=>setMenu(!menu)}><Menu/></button>
           <button className="text-button" onClick={() => go("Agenda")}>
             <ArrowLeft size={15} />
             Aujourd’hui
@@ -404,6 +375,7 @@ export default function ProSuite({
           </div>
         </header>
         <main>
+          <nav className="pro-shortcuts" aria-label="Outils du cabinet"><button onClick={()=>go('Équipe')}><Users size={16}/>Équipe & rôles</button><button onClick={()=>go('Mon profil')}><Settings size={16}/>Cabinet & horaires</button><button onClick={()=>go('Tâches')}><Kanban size={16}/>Tâches</button><button onClick={()=>go('SmilePec')}><Heart size={16}/>SmilePec</button>{account.role==='admin'&&<a href="/admin">Administration</a>}</nav>
           {error && <p className="form-error">{error}</p>}
           {notice && (
             <div className="save-notice">
@@ -796,6 +768,7 @@ export default function ProSuite({
                         </small>
                       </div>
                       <b>{money(Number(d.total))}</b>
+                      <button className="secondary" onClick={()=>{setEditingDocument(d);setModal("edit-document")}}>Modifier</button>
                       <select
                         value={d.status}
                         aria-label="Statut"
@@ -990,7 +963,8 @@ export default function ProSuite({
                 </button>,
               )}
               <div className="mission-layout">
-                <section className="glass mission-map">
+                <LiveTracking missions={data.missions}/>
+                <section className="glass mission-map" hidden>
                   <div className="fake-map">
                     <div className="map-road one" />
                     <div className="map-road two" />
@@ -1134,6 +1108,8 @@ export default function ProSuite({
             </>
           )}
 
+          {page === 'Équipe' && <TeamPanel/>}
+          {page === 'SmilePec' && <SupportPanel/>}
           {page === "Mon profil" && (
             <>
               {heading(
@@ -1482,7 +1458,7 @@ export default function ProSuite({
                   </button>
                 </form>
               </div>
-              <section className="glass panel team-panel">
+              <section className="glass panel team-panel" hidden>
                 <div className="section-title">
                   <div>
                     <h2>Équipe & droits d’accès</h2>
@@ -1583,6 +1559,7 @@ export default function ProSuite({
         </nav>
       </div>
 
+      {modal === "edit-document" && editingDocument && <Modal title="Modifier le document" close={()=>setModal("")}><DocumentEditor doc={editingDocument} onSaved={()=>{setModal("");load()}}/></Modal>}
       {modal === "slot" && (
         <Modal title="Ouvrir un créneau" close={() => setModal("")}>
           <form
@@ -2186,6 +2163,9 @@ function DocumentForm({
           due_date: f.get("due_date"),
           note: f.get("note"),
           payment_url: f.get("payment_url"),
+          payment_method: f.get('payment_method'),
+          insurance_amount: Number(f.get('insurance_amount')||0),
+          payment_details: f.get('payment_details'),
           items,
         });
       }}
@@ -2234,7 +2214,10 @@ function DocumentForm({
             placeholder="https://pay.qonto.com/…"
           />
         </label>
+        <label>Modalité de règlement<select name="payment_method"><option value="sur_place">Sur place au cabinet</option><option value="mutuelle">Mutuelle / complémentaire</option><option value="tiers_payant">Tiers payant partiel ou total</option><option value="carte_cabinet">Carte bancaire au cabinet</option><option value="virement">Virement bancaire</option><option value="qonto">Lien de paiement Qonto</option><option value="cheque">Chèque</option><option value="especes">Espèces</option></select></label>
+        <label>Prise en charge prévue (€)<input name="insurance_amount" type="number" min="0" max={total} step="0.01" defaultValue="0"/></label>
       </div>
+      <label>Précisions du règlement<textarea name="payment_details" rows={2} placeholder="Organisme, accord attendu, acompte, échéancier, reste à charge…"/></label>
       <h3>Lignes</h3>
       {items.map((item, i) => (
         <div className="doc-line" key={i}>
@@ -2621,3 +2604,4 @@ function MissionForm({
     </form>
   );
 }
+

@@ -1,5 +1,8 @@
+import {downloadSharedDocument} from './documents';
 import React, { useEffect, useState } from "react";
 import { usePanel } from "./usePanel";
+import LiveTracking from './LiveTracking';
+import SupportPanel from './SupportPanel';
 import {
   ArrowLeft,
   ArrowRight,
@@ -42,7 +45,7 @@ export default function Workspace({
     [page, setPage] = usePanel(
       "Accueil",
       account.role === "patient"
-        ? ["Accueil", "Rendez-vous", "Messages", "Mon profil"]
+        ? ["Accueil", "Rendez-vous", "Messages", "Mon profil", "Suivi", "Assistance"]
         : [
             "Accueil",
             "Rendez-vous",
@@ -138,6 +141,7 @@ export default function Workspace({
       : []),
     ["Messages", MessageCircle],
     ["Mon profil", Settings],
+    ...(!pro ? [["Suivi",MapPin],["Assistance",MessageCircle]] : []),
     ...(account.role === "admin" ? [["Administration", ShieldCheck]] : []),
   ] as const;
   const heading = (title: string, subtitle: string) => (
@@ -608,6 +612,7 @@ export default function Workspace({
                               }
                             >
                               {m.body}
+                              {m.document_id && <button className="secondary" onClick={()=>downloadSharedDocument(m.document_id).catch(e=>setError(e.message))}>Télécharger le PDF</button>}
                               <small>
                                 {m.name} · {dateFormat(m.created_at)}
                               </small>
@@ -995,6 +1000,8 @@ export default function Workspace({
               )}
             </>
           )}
+          {!pro&&page==='Suivi'&&<LiveTracking patient/>}
+          {!pro&&page==='Assistance'&&<SupportPanel/>}
         </main>
         <nav
           className="workspace-dock"

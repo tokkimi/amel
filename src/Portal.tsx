@@ -924,14 +924,9 @@ export default function Portal() {
                   organisation.
                 </p>
               </div>
-              <a
-                className="secondary"
-                href="https://smilepec.fr/"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Découvrir SmilePec <ArrowUpRight size={15} />
-              </a>
+              <button className="secondary" onClick={() => auth("signup", "professional")}>
+                Inscrire mon cabinet <ArrowUpRight size={15} />
+              </button>
             </div>
             <div className="smilepec-service-grid">
               {[
@@ -953,7 +948,6 @@ export default function Portal() {
                 },
               ].map((s, i) => (
                 <article className="glass" key={s.title}>
-                  <span>0{i + 1}</span>
                   <h3>{s.title}</h3>
                   <p>{s.text}</p>
                 </article>
@@ -1034,7 +1028,6 @@ export default function Portal() {
                 <article key={s.title}>
                   <div className="how-icon">
                     <s.icon size={24} />
-                    <span>0{i + 1}</span>
                   </div>
                   <h3>{s.title}</h3>
                   <p>{s.text}</p>

@@ -1,5 +1,7 @@
-import { useMemo, useState } from "react";
-import { Rotate3D, Save } from "lucide-react";
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Save } from "lucide-react";
+
+const JawViewer = lazy(() => import("./JawViewer"));
 
 type Tooth = { status: string; note: string };
 const upper = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -25,7 +27,6 @@ export default function DentalChart({
 }) {
   const [chart, setChart] = useState<Record<string, Tooth>>(value || {});
   const [selected, setSelected] = useState("11");
-  const [rotation, setRotation] = useState(0);
   const tooth = chart[selected] || { status: "Sain", note: "" };
   const count = useMemo(
     () =>
@@ -44,18 +45,20 @@ export default function DentalChart({
             Dossier dentaire · {count} dent{count > 1 ? "s" : ""} à suivre
           </h3>
         </div>
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => setRotation((r) => (r + 20) % 360)}
-        >
-          <Rotate3D /> Pivoter
-        </button>
       </div>
-      <div
-        className="dental-stage"
-        style={{ transform: `perspective(900px) rotateY(${rotation}deg)` }}
+      <Suspense
+        fallback={
+          <div className="dental-loading" role="status">
+            Préparation de la mâchoire 3D…
+          </div>
+        }
       >
+        <JawViewer selected={selected} chart={chart} onSelect={setSelected} />
+      </Suspense>
+      <p className="dental-flat-label">
+        Schéma de suivi · Sélection synchronisée avec la mâchoire
+      </p>
+      <div className="dental-stage">
         {[upper, lower].map((row, i) => (
           <div className={`tooth-row ${i ? "lower" : "upper"}`} key={i}>
             {row.map((n) => (
@@ -63,6 +66,8 @@ export default function DentalChart({
                 type="button"
                 key={n}
                 className={`tooth ${selected === String(n) ? "selected" : ""} status-${(chart[n]?.status || "sain").toLowerCase()}`}
+                aria-label={`Dent ${n}`}
+                aria-pressed={selected === String(n)}
                 onClick={() => setSelected(String(n))}
               >
                 <span className="tooth-shape" />

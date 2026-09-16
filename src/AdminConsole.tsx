@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { usePanel } from "./usePanel";
+import SupportPanel from './SupportPanel';
+import AdminCabinets from './AdminCabinets';
 import {
   Activity,
   ArrowLeft,
@@ -86,6 +88,8 @@ export default function AdminConsole({
       "Rendez-vous",
       "Journal d’actions",
       "Paramètres",
+      "Cabinets & équipes",
+      "Demandes SmilePec",
     ]),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("Tous"),
@@ -136,6 +140,8 @@ export default function AdminConsole({
     ["Rendez-vous", CalendarDays],
     ["Journal d’actions", Activity],
     ["Paramètres", Settings],
+    ["Cabinets & équipes", Users],
+    ["Demandes SmilePec", FileCheck],
   ] as const;
   const go = (s: string) => {
     setSection(s);
@@ -691,6 +697,8 @@ export default function AdminConsole({
               )}
             </>
           )}
+          {section==='Cabinets & équipes'&&<AdminCabinets/>}
+          {section==='Demandes SmilePec'&&<SupportPanel admin/>}
         </main>
         <nav className="admin-mobile-dock">
           {nav.slice(0, 3).map(([n, I]) => (

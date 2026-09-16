@@ -1,3 +1,4 @@
+[hidden] { display: none !important; }
 .pro-suite {
   min-height: 100vh;
   background:
@@ -1304,3 +1305,5 @@
     max-width: none;
   }
 }
+.pro-menu-toggle{display:none}.pro-menu-shade{position:fixed;inset:0;background:#17223866;backdrop-filter:blur(4px);z-index:55;border:0}.pro-shortcuts{display:flex;gap:8px;overflow-x:auto;margin-bottom:24px;padding:4px 0 10px;}.pro-shortcuts button,.pro-shortcuts a{flex-shrink:0;display:flex;align-items:center;gap:7px;border:1px solid #dddfe7;border-radius:999px;padding:10px 13px;background:#ffffffb0;color:#59637b;font-size:12px;text-decoration:none}.team-invitation,.support-ticket,.cabinet-editor{border:1px solid #e1e4ed;border-radius:18px;padding:20px;margin:18px 0;background:#ffffff91}.live-map{height:300px;border-radius:18px;isolation:isolate}.gps-avatar{height:44px;width:44px;border:3px solid white;border-radius:50%;background:#695e99;color:white;display:grid;place-items:center;box-shadow:0 2px 10px #0004;overflow:hidden}.gps-avatar img{width:100%;height:100%;object-fit:cover}.sharing-actions{display:grid;gap:12px}.sharing-actions small{color:#657086}.live-tracking{min-width:0}.live-tracking p{font-size:13px;line-height:1.6}.support-ticket p{white-space:pre-wrap}.member-list small{display:block}.modal .form-error{position:sticky;top:0;z-index:5;background:#ffedef;padding:12px}.bubble{white-space:pre-wrap}.bubble a{overflow-wrap:anywhere}.team-panel form .secondary{margin-left:8px}
+@media(max-width:850px){.pro-menu-toggle{display:flex}.pro-sidebar.open{max-height:80dvh;overflow:auto;bottom:80px}.pro-sidebar.open .pro-identity{margin:12px 0;padding:8px}.pro-sidebar.open nav{display:grid;grid-template-columns:1fr 1fr}.pro-sidebar.open .brand{font-size:24px}.pro-sidebar.open .logout{margin-top:12px}.pro-topbar{padding:0 12px}.pro-shortcuts{margin-bottom:14px}.pro-shortcuts button,.pro-shortcuts a{font-size:11px}.mission-layout{grid-template-columns:1fr}.live-map{height:260px}}

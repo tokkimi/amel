@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { workspaceAction } from "../server/workspace.mjs";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   hash,
@@ -183,7 +184,7 @@ export default async function handler(req, res) {
     if (!account)
       throw fail(401, "Connectez-vous pour accéder à votre espace.");
     const [membership] = ["professional", "worker"].includes(account.role)
-      ? await sql`SELECT owner_id,permissions FROM clinic_members WHERE member_id=${account.id} AND active ORDER BY created_at DESC LIMIT 1`
+      ? await sql`SELECT owner_id,permissions FROM clinic_members WHERE member_id=${account.id} AND active AND accepted ORDER BY created_at DESC LIMIT 1`
       : [];
     const workspaceId = membership?.owner_id || account.id;
     const can = (permission) =>
@@ -210,10 +211,13 @@ export default async function handler(req, res) {
       "mission-save": "tasks",
       "mission-status": "tasks",
       "message-send": "messages",
+      messages: "messages",
+      cancel: "agenda",
     };
     if (permissionByAction[action] && !can(permissionByAction[action]))
       throw fail(403, "Votre rôle dans le cabinet ne permet pas cette action.");
     if (req.method === "POST") await limit("write:" + account.id, 150);
+    if(await workspaceAction({action,req,b,sql,account,workspaceId,membership,can,send})) return;
     if (action === "logout" && req.method === "POST") {
       await sql`DELETE FROM sessions WHERE token_hash=${hash(token)}`;
       cookie("", 0);
@@ -248,6 +252,8 @@ export default async function handler(req, res) {
           : [[], [], [], [], [], []];
       return send({
         account: safeAccount(account),
+        permissions: membership?.permissions || ['agenda','patients_admin','clinical','billing','messages','tasks'],
+        isOwner: !membership,
         profile,
         appointments:
           !membership || can("agenda") || can("messages") || can("clinical")
@@ -257,12 +263,12 @@ export default async function handler(req, res) {
         ledger: can("billing") ? ledger : [],
         patients:
           !membership || can("patients_admin") || can("clinical")
-            ? patients
+            ? patients.map(p=>can('clinical')?p:{...p,notes:'',tags:'',medical_alerts:'',allergies:'',medications:'',dental_chart:{},media:[],visits:[]})
             : [],
         services: can("billing") ? services : [],
         documents: can("billing") ? documents : [],
         tasks: can("tasks") ? tasks : [],
-        missions: can("tasks") ? missions : [],
+        missions: can("tasks") ? missions.map(m=>({...m,latitude:new Date(m.location_expires_at)>new Date()?m.latitude:null,longitude:new Date(m.location_expires_at)>new Date()?m.longitude:null})) : [],
         members: membership ? [] : members,
       });
     }
@@ -470,6 +476,8 @@ export default async function handler(req, res) {
       roleCheck(account, "professional", "worker", "admin");
       if (!uuid(b.patient_id) || !clean(b.title, 180))
         throw fail(400, "Renseignez le rendez-vous et son titre.");
+      const [linked]=await sql`SELECT id FROM appointments WHERE patient_id=${b.patient_id} AND professional_id=${workspaceId} AND (${b.appointment_id||null}::uuid IS NULL OR id=${b.appointment_id||null}::uuid) LIMIT 1`;
+      if(!linked)throw fail(403,'Rendez-vous non lié à votre patientèle.');
       const tooth =
         b.tooth_data && typeof b.tooth_data === "object" ? b.tooth_data : {};
       await sql`INSERT INTO visit_notes(id,owner_id,patient_id,appointment_id,title,clinical_note,treatment_plan,tooth_data) VALUES(${randomUUID()},${workspaceId},${b.patient_id},${uuid(b.appointment_id) ? b.appointment_id : null},${clean(b.title, 180)},${clean(b.clinical_note, 8000)},${clean(b.treatment_plan, 8000)},${JSON.stringify(tooth)}::jsonb)`;
@@ -573,18 +581,19 @@ export default async function handler(req, res) {
           String(Date.now()).slice(-6),
         id = randomUUID();
       await sql`INSERT INTO business_documents(id,owner_id,patient_id,appointment_id,doc_type,number,due_date,items,subtotal,tax,total,note,payment_provider,payment_url) VALUES(${id},${workspaceId},${b.patient_id},${uuid(b.appointment_id) ? b.appointment_id : null},${type},${number},${b.due_date || null},${JSON.stringify(items)}::jsonb,${subtotal},${tax},${total},${clean(b.note, 2500)},${safeUrl(b.payment_url) ? "Qonto" : ""},${safeUrl(b.payment_url)})`;
+      await sql`UPDATE business_documents SET payment_method=${['sur_place','mutuelle','tiers_payant','virement','qonto','cheque','especes','carte_cabinet'].includes(b.payment_method)?b.payment_method:'sur_place'},insurance_amount=${Math.min(total,Math.max(0,Number(b.insurance_amount)||0))},payment_details=${clean(b.payment_details,1500)} WHERE id=${id}`;
       return send({ id, number });
     }
     if (action === "document-send" && req.method === "POST") {
       roleCheck(account, "professional", "worker", "admin");
       if (!uuid(b.id)) throw fail(400, "Document invalide.");
       const [doc] =
-        await sql`UPDATE business_documents SET status='sent',sent_at=now() WHERE id=${b.id} AND owner_id=${workspaceId} RETURNING *`;
+        await sql`UPDATE business_documents SET status='sent',sent_at=now() WHERE id=${b.id} AND owner_id=${workspaceId} AND status IN ('draft','sent') RETURNING *`;
       if (!doc) throw fail(404, "Document introuvable.");
       const [ap] =
         await sql`SELECT id FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${doc.patient_id} ORDER BY created_at DESC LIMIT 1`;
       if (ap)
-        await sql`INSERT INTO messages(id,appointment_id,sender_id,body,document_id) VALUES(${randomUUID()},${ap.id},${account.id},${doc.doc_type === "quote" ? "Devis" : "Facture"}+' '+doc.number+' · '+Number(doc.total).toFixed(2)+' €',${doc.id})`;
+        await sql`INSERT INTO messages(id,appointment_id,sender_id,body,document_id) VALUES(${randomUUID()},${ap.id},${account.id},${(doc.doc_type === 'quote'?'Devis':'Facture')+' '+doc.number+' · '+Number(doc.total).toFixed(2)+' €\nRèglement : '+({sur_place:'Sur place',mutuelle:'Mutuelle',tiers_payant:'Tiers payant',virement:'Virement',qonto:'Lien Qonto',cheque:'Chèque',especes:'Espèces',carte_cabinet:'Carte au cabinet'}[doc.payment_method]||'Sur place')+'\nPrise en charge prévue : '+Number(doc.insurance_amount||0).toFixed(2)+' €\n'+(doc.payment_details||'')+(doc.payment_url?'\nLien de paiement : '+doc.payment_url:'')},${doc.id})`;
       return send({ ok: true, appointment_id: ap?.id || null });
     }
     if (action === "document-status" && req.method === "POST") {
@@ -604,7 +613,7 @@ export default async function handler(req, res) {
       const pdf = b.pdf_data ? safeFile(b.pdf_data) : null;
       if (b.pdf_data && !pdf)
         throw fail(400, "Le PDF dépasse 3 Mo ou son format est invalide.");
-      await sql`UPDATE business_documents SET status=${b.status},issue_date=${b.issue_date || new Date().toISOString().slice(0, 10)},due_date=${b.due_date || null},payment_provider=${safeUrl(b.payment_url) ? "Qonto" : ""},payment_url=${safeUrl(b.payment_url)},pdf_data=coalesce(${pdf},pdf_data),pdf_name=CASE WHEN ${pdf} IS NULL THEN pdf_name ELSE ${clean(b.pdf_name, 180)} END,note=${clean(b.note, 2500)} WHERE id=${b.id} AND owner_id=${workspaceId}`;
+      await sql`UPDATE business_documents SET status=${b.status},issue_date=${b.issue_date || new Date().toISOString().slice(0, 10)},due_date=${b.due_date || null},payment_provider=${safeUrl(b.payment_url) ? "Qonto" : ""},payment_url=${safeUrl(b.payment_url)},pdf_data=coalesce(${pdf},pdf_data),pdf_name=CASE WHEN ${pdf} IS NULL THEN pdf_name ELSE ${clean(b.pdf_name, 180)} END,note=${clean(b.note, 2500)},payment_method=${['sur_place','mutuelle','tiers_payant','virement','qonto','cheque','especes','carte_cabinet'].includes(b.payment_method)?b.payment_method:'sur_place'},insurance_amount=least(total,greatest(0,${Number(b.insurance_amount)||0})),payment_details=${clean(b.payment_details,1500)} WHERE id=${b.id} AND owner_id=${workspaceId}`;
       return send({ ok: true });
     }
     if (action === "task-save" && req.method === "POST") {
