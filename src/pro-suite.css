@@ -732,6 +732,7 @@
 }
 .pro-modal.wide {
   width: min(850px, 95vw);
+  overflow-x: hidden;
 }
 .document-preview-head {
   display: flex;
@@ -1087,12 +1088,15 @@
   box-shadow: inset 0 0 40px #bda99b55;
   transition: transform 0.5s ease;
   transform-style: preserve-3d;
+  overflow-x: auto;
+  max-width: 100%;
 }
 .tooth-row {
   display: flex;
   justify-content: center;
   gap: 5px;
   margin: 4px 0;
+  min-width: 390px;
 }
 .tooth {
   border: 0;
@@ -1273,6 +1277,7 @@
   }
   .dental-stage {
     padding: 24px 4px;
+    overscroll-behavior-x: contain;
   }
   .tooth-row {
     gap: 1px;
