@@ -200,6 +200,13 @@ button:disabled { opacity: .45; }
   .hero-quote p { font-size: 12px; }
 }
 
+/* SmilePec uses the modern sans-serif wordmark language throughout the interface. */
+h1, h2, h3, .splash-content h1, .hero-quote p {
+  font-family: Montserrat, "DM Sans", sans-serif !important;
+  font-style: normal !important;
+  font-weight: 600 !important;
+}
+
 /* Logged-in assistant: one floating, movable bubble that opens a proper chat surface. */
 .smilepec-assistant-float { position: fixed; right: 26px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 82px)); z-index: 95; }
 .smilepec-assistant-trigger { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; overflow: hidden; border-radius: 50% !important; background: radial-gradient(circle at 31% 24%, rgba(255,255,255,.72), rgba(255,255,255,.15) 42%, rgba(198,162,125,.22)) !important; box-shadow: inset 0 2px 2px rgba(255,255,255,.98), inset -7px -10px 18px rgba(115,83,54,.12), 0 13px 30px rgba(78,61,50,.20) !important; color: var(--sp-ink) !important; cursor: grab; touch-action: none; backdrop-filter: blur(16px) saturate(125%); -webkit-backdrop-filter: blur(16px) saturate(125%); }
