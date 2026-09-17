@@ -57,7 +57,6 @@ import TeamPanel from './TeamPanel';
 import LiveTracking from './LiveTracking';
 import SupportPanel from './SupportPanel';
 import NotificationCenter from "./NotificationCenter";
-import SmilePecAssistant from "./SmilePecAssistant";
 
 const pages = [
   "Agenda",
@@ -426,7 +425,6 @@ export default function ProSuite({
                   </div>
                 ))}
               </div>
-              <SmilePecAssistant />
               <section className="glass panel priority-planner">
                 <div className="section-title"><div><h2>Mes priorités de pose</h2><p>Les dates renseignées dans les fiches patient, dans l’ordre d’échéance.</p></div><button className="text-button" onClick={()=>go("Patients")}>Voir les dossiers</button></div>
                 {prosthesisPriorities.length ? prosthesisPriorities.map((p) => {

@@ -1,54 +1,107 @@
-/* Loaded after every feature stylesheet so the shared glass surfaces stay consistent. */
-:root { --ink:#4e3d32; --muted:#807064; }
-.public-site .public-header,
-.public-site .public-announcement,
-.public-site .pro-banner,
-.public-site .smilepec-callout {
-  background:linear-gradient(120deg,rgba(255,255,255,.32),rgba(255,255,255,.06)) !important;
-  border:1px solid rgba(255,255,255,.82) !important;
-  backdrop-filter:blur(22px) saturate(115%) !important;
-  -webkit-backdrop-filter:blur(22px) saturate(115%) !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 32px rgba(78,61,50,.06) !important;
-  color:#4e3d32 !important;
-}
-.public-site .smilepec-services,.public-site .public-section:not(.pro-banner) { background:transparent; box-shadow:none; }
-.public-site .smilepec-service-grid article { background:linear-gradient(125deg,rgba(255,255,255,.30),rgba(255,255,255,.07)); }
-.primary,.secondary,.dark-button,.public-site .primary,.public-site .secondary {
-  background:linear-gradient(120deg,rgba(255,255,255,.35),rgba(255,255,255,.06)) !important;
-  color:#4e3d32 !important;
-  border:1px solid rgba(255,255,255,.85) !important;
-  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+/* SmilePec's shared surface system: reflection and depth without drawn outlines. */
+:root {
+  --sp-ink: #4e3d32;
+  --sp-muted: #807064;
+  --sp-glass: linear-gradient(135deg, rgba(255,255,255,.20), rgba(255,255,255,.025) 48%, rgba(255,255,255,.12));
+  --sp-glow: inset 0 1px 1px rgba(255,255,255,.92), inset 0 -10px 24px rgba(255,255,255,.025), 0 12px 34px rgba(78,61,50,.10);
 }
 
-/* Clear glass: translucent white reflections, with no coloured fill. */
-.public-site .public-header,
-.public-site .pro-banner,
-.public-site .smilepec-callout,
-.public-app-dock,.pro-dock,.workspace-dock,.admin-mobile-dock,.bottom-nav,
-.topbar,.pro-topbar {
-  background:linear-gradient(135deg,rgba(255,255,255,.20),rgba(255,255,255,.015) 45%,rgba(255,255,255,.09)) !important;
-  border:1px solid rgba(255,255,255,.85) !important;
-  backdrop-filter:blur(14px) saturate(110%) !important;
-  -webkit-backdrop-filter:blur(14px) saturate(110%) !important;
-  box-shadow:inset 0 2px 2px rgba(255,255,255,.95),inset 1px 0 1px rgba(255,255,255,.65),inset 0 -2px 3px rgba(78,61,50,.10),0 8px 24px rgba(78,61,50,.10),0 1px 2px rgba(78,61,50,.08) !important;
+:is(.public-header, .pro-banner, .smilepec-callout, .public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav, .topbar, .pro-topbar, .admin-topbar) {
+  background: var(--sp-glass) !important;
+  border: 0 !important;
+  backdrop-filter: blur(24px) saturate(118%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(118%) !important;
+  box-shadow: var(--sp-glow) !important;
+  color: var(--sp-ink) !important;
 }
-button:not(.pro-menu-shade),.primary,.secondary,.dark-button,
-.public-site .primary,.public-site .secondary {
-  background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.025) 55%,rgba(255,255,255,.12)) !important;
-  border:1px solid rgba(255,255,255,.78) !important;
-  color:#4e3d32 !important;
-  box-shadow:inset 0 1px 1px #ffffffed,inset 0 -1px 2px #4e3d3212,0 3px 10px #4e3d3209;
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+
+:is(.public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav) {
+  border-radius: 28px 28px 0 0 !important;
 }
-button:focus-visible,a:focus-visible {outline:2px solid #8c7a6b;outline-offset:3px}
-button:disabled{opacity:.45}
-button[aria-selected="true"],button.active,button.selected{box-shadow:inset 0 0 0 1px #8c7a6b, inset 0 2px 3px #fff!important;font-weight:700}
-.brand .brand-full-logo{display:block;width:88px;height:88px;object-fit:contain;flex-shrink:0}
-.public-header .brand{align-self:center}
-.splash-logo{width:220px!important;height:220px!important;background:transparent!important;box-shadow:none!important;border:0!important}
-.splash-logo img{width:100%!important;height:100%!important;object-fit:contain}
-@media(max-width:850px){
- .brand .brand-full-logo{width:64px;height:64px}
- .public-header{min-height:76px;padding-top:6px!important;padding-bottom:6px!important}
- .public-app-dock,.pro-dock,.workspace-dock,.admin-mobile-dock,.bottom-nav{border-radius:25px 25px 0 0!important}
+
+/* Reset the earlier broad button decorations. Only actionable calls get a soft glass treatment. */
+button:not(.pro-menu-shade) {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--sp-ink) !important;
+}
+
+:is(.primary, .secondary, .dark-button, .public-site .primary, .public-site .secondary):not(.text-button) {
+  background: var(--sp-glass) !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  box-shadow: var(--sp-glow) !important;
+  color: var(--sp-ink) !important;
+  backdrop-filter: blur(16px) saturate(116%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(116%) !important;
+}
+
+:is(.text-button, .icon-button, .public-links button, .public-links a, .pro-sidebar nav button, .admin-sidebar nav button, .workspace-mobile-nav button, .pro-dock button, .workspace-dock button, .admin-mobile-dock button, .bottom-nav button) {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:is(.nav-item.active, .pro-sidebar nav button.active, .admin-sidebar nav .active, .workspace-dock .active, .admin-mobile-dock .active, .bottom-nav button.active, .pro-dock button.active, .workspace-mobile-nav button.selected) {
+  background: rgba(255,255,255,.15) !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.88), 0 6px 18px rgba(78,61,50,.08) !important;
+  color: var(--sp-ink) !important;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid rgba(116,91,70,.72); outline-offset: 3px; }
+button:disabled { opacity: .45; }
+
+/* Mobile sheets and menus read as a single rounded water-glass surface, never as boxed tiles. */
+:is(.public-links.expanded, .pro-sidebar.open, .admin-sidebar.shown, .workspace-mobile-nav.expanded, .notification-popover) {
+  background: linear-gradient(140deg, rgba(255,255,255,.31), rgba(255,255,255,.07)) !important;
+  border: 0 !important;
+  border-radius: 28px !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.95), 0 20px 48px rgba(78,61,50,.16) !important;
+  backdrop-filter: blur(28px) saturate(118%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(118%) !important;
+}
+.public-links.expanded > *, .workspace-mobile-nav.expanded > *, .pro-sidebar.open nav > *, .admin-sidebar.shown nav > * {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 18px !important;
+}
+.pro-sidebar.open nav, .admin-sidebar.shown nav { display: flex !important; flex-direction: column !important; grid-template-columns: none !important; }
+
+.public-site .smilepec-services, .public-site .public-section:not(.pro-banner) { background: transparent; box-shadow: none; }
+.public-site .smilepec-service-grid article { background: linear-gradient(125deg, rgba(255,255,255,.26), rgba(255,255,255,.055)); }
+.brand .brand-full-logo { display: block; width: 88px; height: 88px; object-fit: contain; flex-shrink: 0; }
+.public-header .brand { align-self: center; }
+.splash-logo { width: 220px !important; height: 220px !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
+.splash-logo img { width: 100% !important; height: 100% !important; object-fit: contain; }
+
+/* Logged-in assistant: one floating, movable bubble that opens a proper chat surface. */
+.smilepec-assistant-float { position: fixed; right: 26px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 82px)); z-index: 95; }
+.smilepec-assistant-trigger { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; border-radius: 50% !important; background: radial-gradient(circle at 31% 24%, rgba(255,255,255,.72), rgba(255,255,255,.15) 42%, rgba(198,162,125,.22)) !important; box-shadow: inset 0 2px 2px rgba(255,255,255,.98), inset -7px -10px 18px rgba(115,83,54,.12), 0 13px 30px rgba(78,61,50,.20) !important; color: var(--sp-ink) !important; cursor: grab; touch-action: none; backdrop-filter: blur(16px) saturate(125%); -webkit-backdrop-filter: blur(16px) saturate(125%); }
+.smilepec-assistant-float.is-dragging .smilepec-assistant-trigger { cursor: grabbing; transform: scale(.97); }
+.assistant-pulse { position: absolute; right: 3px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #c9aa87; box-shadow: 0 0 0 4px rgba(255,255,255,.42); }
+.smilepec-assistant-panel { position: absolute; right: 0; bottom: 76px; width: min(360px, calc(100vw - 32px)); max-height: min(570px, calc(100vh - 136px)); overflow: auto; padding: 19px; border: 0; border-radius: 27px; background: linear-gradient(145deg, rgba(255,255,255,.48), rgba(255,255,255,.13)); box-shadow: inset 0 1px 1px rgba(255,255,255,.96), inset 0 -12px 28px rgba(255,255,255,.05), 0 24px 56px rgba(78,61,50,.20); backdrop-filter: blur(30px) saturate(118%); -webkit-backdrop-filter: blur(30px) saturate(118%); color: var(--sp-ink); touch-action: auto; }
+.smilepec-assistant-panel header { display: flex; align-items: center; gap: 10px; }
+.smilepec-assistant-panel header > div { min-width: 0; flex: 1; }
+.smilepec-assistant-panel h2 { margin: 2px 0 0; font-size: 20px; color: var(--sp-ink); }
+.assistant-orb { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; background: rgba(255,255,255,.25); box-shadow: inset 0 1px 1px rgba(255,255,255,.85), 0 5px 12px rgba(78,61,50,.08); color: #806147; }
+.assistant-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50% !important; color: var(--sp-ink) !important; }
+.assistant-intro { margin: 13px 0 14px; font-size: 12px; line-height: 1.55; color: var(--sp-muted); }
+.assistant-prompts { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 13px; }
+.assistant-prompts button { padding: 8px 10px; border-radius: 999px !important; background: rgba(255,255,255,.20) !important; box-shadow: inset 0 1px rgba(255,255,255,.72), 0 4px 12px rgba(78,61,50,.05) !important; font-size: 10px; line-height: 1.25; text-align: left; }
+.assistant-answer { margin: 0 0 13px; padding: 13px 14px; border-radius: 19px; background: rgba(255,255,255,.19); box-shadow: inset 0 1px rgba(255,255,255,.75); font-size: 12px; line-height: 1.55; }
+.assistant-answer strong { font-size: 11px; }
+.assistant-answer p { margin: 5px 0; }
+.assistant-answer small { display: block; color: var(--sp-muted); font-size: 10px; }
+.assistant-form { display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 13px; border-radius: 999px; background: rgba(255,255,255,.22); box-shadow: inset 0 1px rgba(255,255,255,.88), 0 6px 16px rgba(78,61,50,.06); }
+.assistant-form input { min-width: 0; flex: 1; min-height: 40px; margin: 0; padding: 8px 0; border: 0 !important; border-radius: 0; background: transparent !important; box-shadow: none !important; color: var(--sp-ink); font-size: 16px; }
+.assistant-form input:focus { outline: 0; }
+.assistant-send { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border-radius: 50% !important; background: rgba(255,255,255,.28) !important; box-shadow: inset 0 1px rgba(255,255,255,.88), 0 4px 11px rgba(78,61,50,.08) !important; }
+
+@media (max-width: 850px) {
+  .brand .brand-full-logo { width: 64px; height: 64px; }
+  .public-header { min-height: 76px; padding-top: 6px !important; padding-bottom: 6px !important; }
+  .smilepec-assistant-float { right: 18px; bottom: max(87px, calc(env(safe-area-inset-bottom) + 72px)); }
+  .smilepec-assistant-panel { position: fixed; right: 16px; left: 16px; bottom: max(92px, calc(env(safe-area-inset-bottom) + 78px)); width: auto; max-height: min(570px, calc(100vh - 128px)); }
 }

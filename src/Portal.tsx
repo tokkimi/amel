@@ -36,6 +36,7 @@ import Workspace from "./Workspace";
 import ProSuite from "./ProSuite";
 import ToolsPage, { ToolsPreview } from "./Experience";
 import AdminConsole from "./AdminConsole";
+import SmilePecAssistant from "./SmilePecAssistant";
 
 function Logo() {
   return (
@@ -699,13 +700,16 @@ export default function Portal() {
           </section>
         </div>
       );
-    return account.role === "admin" && path !== "/pro" ? (
-      <AdminConsole account={account} logout={logout} />
-    ) : account.role === "patient" ? (
-      <Workspace account={account} logout={logout} />
-    ) : (
-      <ProSuite account={account} logout={logout} />
-    );
+    return <>
+      {account.role === "admin" && path !== "/pro" ? (
+        <AdminConsole account={account} logout={logout} />
+      ) : account.role === "patient" ? (
+        <Workspace account={account} logout={logout} />
+      ) : (
+        <ProSuite account={account} logout={logout} />
+      )}
+      <SmilePecAssistant role={account.role} />
+    </>;
   }
   return (
     <div className="public-site">
