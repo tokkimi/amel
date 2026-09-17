@@ -921,8 +921,9 @@ export default function Portal() {
                 { title: "Dossiers dentaires", text: "Fiches patients, schéma dentaire, photos, radios, mutuelle et suivi des soins.", note: "TOUT CENTRALISER", icon: Folder },
                 { title: "Agenda de cabinet", text: "Vos rendez-vous sont centralisés avec vos disponibilités et vos outils de prise de rendez-vous.", note: "GAGNER DU TEMPS", icon: CalendarDays },
                 { title: "Pilotage financier", text: "Devis, factures, règlements, tiers payant et exports comptables au même endroit.", note: "PLUS DE CLARTÉ", icon: ChartNoAxesCombined },
-              ].map(({ title, text, note, icon: Icon }) => <article className="glass practitioner-card cabinet-method-card" key={title}><span className="cabinet-card-icon"><Icon size={25}/></span><span className="cabinet-card-arrow"><ArrowRight size={20}/></span><h3>{title}</h3><p>{text}</p><small>{note}</small></article>)}
+              ].map(({ title, text, note, icon: Icon }, index) => <article className={`glass practitioner-card cabinet-method-card cabinet-method-card-${index}`} key={title}><span className="cabinet-card-icon"><Icon size={25}/></span><span className="cabinet-card-arrow"><ArrowRight size={20}/></span><h3>{title}</h3><p>{text}</p><span className="cabinet-card-illustration" aria-hidden="true"/><small>{note}</small></article>)}
             </div>
+            <p className="cabinet-method-signoff"><span />UN OUTIL PENSÉ POUR LES PROFESSIONNELS, PAR DES PROFESSIONNELS<span /></p>
           </section>
           <ToolsPreview />
           <section className="how-section public-section" id="accompagnement">

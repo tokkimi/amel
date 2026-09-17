@@ -130,6 +130,27 @@ button:disabled { opacity: .45; }
   .public-site > .public-header { inset: 10px 10px auto !important; min-height: 70px; padding: 4px 15px !important; border-radius: 24px !important; }
   .public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 0; }
 }
+
+/* The public glass stays clear: light, edge and reflection instead of frosted blur. */
+.public-site > .public-header,
+.public-site .public-hero,
+.public-site .hero-benefits,
+.public-site .hero-quote,
+.public-site .cabinet-method-card,
+.public-site .cabinet-method-section .text-button,
+.public-site .primary,
+.public-site .secondary {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.public-site .cabinet-method-card { background: linear-gradient(135deg, rgba(255,255,255,.09), rgba(255,255,255,.012) 57%, rgba(255,246,234,.07)) !important; }
+.public-site .hero-benefits { background: linear-gradient(110deg, rgba(255,255,255,.14), rgba(255,255,255,.015) 52%, rgba(255,255,255,.10)) !important; }
+.public-site .hero-quote { background: linear-gradient(135deg, rgba(255,255,255,.17), rgba(255,255,255,.025)) !important; }
+.public-site .primary, .public-site .secondary, .cabinet-method-section .text-button { background: linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.025)) !important; }
+.public-site .public-hero { max-width: none; border-radius: 0; box-shadow: none !important; background: linear-gradient(90deg, rgba(247,241,235,.72) 0%, rgba(246,238,231,.46) 38%, rgba(245,237,230,.08) 66%, transparent 100%) !important; }
+@media (max-width: 850px) {
+  :is(.public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav) { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
 .brand .brand-full-logo { display: block; width: 88px; height: 88px; object-fit: contain; flex-shrink: 0; }
 .public-header .brand { align-self: center; }
 .splash-logo { width: 220px !important; height: 220px !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
@@ -168,12 +189,13 @@ button:disabled { opacity: .45; }
 .public-site .hero-benefits span { color: #685a4e; font-size: 11px; }
 .public-site .hero-benefits strong { color: #8a7563; }
 .cabinet-method-section { padding-top: 94px !important; padding-bottom: 78px !important; }
+.public-site .public-section, .public-site .smilepec-services, .public-site .tools-preview, .public-site .how-section { background: transparent !important; border: 0 !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 .cabinet-method-section .public-section-heading { align-items: flex-end; margin-bottom: 32px; }
 .cabinet-method-section .public-section-heading h2 { max-width: 520px; font-size: clamp(42px, 4.25vw, 66px); line-height: 1.03; font-family: "Playfair Display", serif; font-weight: 600; letter-spacing: -2.6px; }
 .cabinet-method-section .public-section-heading p { max-width: 630px; font-size: 16px; line-height: 1.55; color: #75675b; }
 .cabinet-method-section .text-button { padding: 15px 24px; border-radius: 999px; background: rgba(255,255,255,.20) !important; box-shadow: inset 0 1px rgba(255,255,255,.96), 0 9px 22px rgba(78,61,50,.10) !important; }
 .cabinet-method-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; overflow: visible !important; padding: 0 !important; }
-.public-site .cabinet-method-card { position: relative; min-height: 350px; padding: 28px 38px 30px !important; overflow: hidden; border: 1px solid rgba(255,255,255,.92) !important; border-radius: 28px !important; background: linear-gradient(135deg, rgba(255,255,255,.31), rgba(255,255,255,.075) 57%, rgba(255,246,234,.24)) !important; box-shadow: inset 0 1px rgba(255,255,255,1), inset 0 -20px 35px rgba(255,255,255,.055), 0 18px 42px rgba(78,61,50,.12), 0 0 27px rgba(255,248,235,.32) !important; backdrop-filter: blur(20px) saturate(145%); -webkit-backdrop-filter: blur(20px) saturate(145%); }
+.public-site .cabinet-method-card { position: relative; min-height: 350px; padding: 28px 38px 30px !important; overflow: hidden; border: 1px solid rgba(255,255,255,.94) !important; border-radius: 28px !important; background: linear-gradient(135deg, rgba(255,255,255,.17), rgba(255,255,255,.035) 57%, rgba(255,246,234,.12)) !important; box-shadow: inset 0 1px rgba(255,255,255,1), inset 0 -20px 35px rgba(255,255,255,.025), 0 18px 42px rgba(78,61,50,.12), 0 0 27px rgba(255,248,235,.42) !important; backdrop-filter: blur(12px) saturate(145%); -webkit-backdrop-filter: blur(12px) saturate(145%); }
 .public-site .cabinet-method-card::before { content: ""; position: absolute; width: 230px; height: 230px; right: -72px; bottom: -98px; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.72), rgba(255,237,214,.13) 38%, transparent 70%); filter: blur(7px); pointer-events: none; }
 .cabinet-card-icon, .cabinet-card-arrow { position: relative; z-index: 1; display: grid; place-items: center; width: 66px; height: 66px; border: 1px solid rgba(255,255,255,.90); border-radius: 20px; color: #5e5044; background: linear-gradient(135deg, rgba(255,255,255,.59), rgba(255,255,255,.14)); box-shadow: inset 0 1px rgba(255,255,255,1), 0 10px 22px rgba(78,61,50,.08); }
 .cabinet-card-arrow { position: absolute; top: 27px; right: 28px; width: 54px; height: 54px; border-radius: 50%; }
@@ -181,7 +203,14 @@ button:disabled { opacity: .45; }
 .cabinet-method-card h3 { margin: 20px 0 14px; font-family: "Playfair Display", serif; font-size: 30px; font-weight: 600; letter-spacing: -1px; }
 .cabinet-method-card p { max-width: 315px; color: #76685c; font-size: 14px; line-height: 1.55; }
 .cabinet-method-card small { position: absolute; bottom: 30px; left: 38px; color: #9a8774; font-size: 9px; font-weight: 700; letter-spacing: 1.7px; }
-@media (max-width: 850px) { .cabinet-method-section { padding-top: 65px !important; padding-bottom: 46px !important; } .cabinet-method-section .public-section-heading { align-items: flex-start; } .cabinet-method-section .public-section-heading h2 { font-size: 42px; } .cabinet-method-section .public-section-heading p { font-size: 14px; } .cabinet-method-grid { gap: 12px; } .public-site .cabinet-method-card { min-height: 270px; padding: 20px 18px !important; } .cabinet-card-icon { width: 54px; height: 54px; border-radius: 17px; } .cabinet-card-arrow { top: 19px; right: 18px; width: 44px; height: 44px; } .cabinet-method-card h3 { margin: 17px 0 10px; font-size: 23px; } .cabinet-method-card p { font-size: 12px; } .cabinet-method-card small { left: 18px; bottom: 19px; font-size: 8px; } }
+.cabinet-card-illustration { position: absolute; z-index: 0; right: 14px; bottom: 16px; width: 166px; height: 158px; background-image: url("/smilepec-cabinet-tools.png"); background-repeat: no-repeat; background-size: 304% auto; pointer-events: none; filter: drop-shadow(0 12px 14px rgba(144,109,72,.10)); }
+.cabinet-method-card-0 .cabinet-card-illustration { background-position: 0 48%; }
+.cabinet-method-card-1 .cabinet-card-illustration { background-position: 50% 48%; }
+.cabinet-method-card-2 .cabinet-card-illustration { background-position: 100% 48%; }
+.cabinet-method-signoff { display: flex; align-items: center; justify-content: center; gap: 20px; margin: 42px 0 0; color: #927e69; font-size: 9px; font-weight: 700; letter-spacing: 2px; text-align: center; }
+.cabinet-method-signoff span { width: 105px; height: 1px; background: linear-gradient(90deg, transparent, rgba(118,93,69,.58)); }
+.cabinet-method-signoff span:last-child { background: linear-gradient(90deg, rgba(118,93,69,.58), transparent); }
+@media (max-width: 850px) { .cabinet-method-section { padding-top: 65px !important; padding-bottom: 46px !important; } .cabinet-method-section .public-section-heading { align-items: flex-start; } .cabinet-method-section .public-section-heading h2 { font-size: 42px; } .cabinet-method-section .public-section-heading p { font-size: 14px; } .cabinet-method-grid { gap: 12px; } .public-site .cabinet-method-card { min-height: 270px; padding: 20px 18px !important; } .cabinet-card-icon { width: 54px; height: 54px; border-radius: 17px; } .cabinet-card-arrow { top: 19px; right: 18px; width: 44px; height: 44px; } .cabinet-method-card h3 { margin: 17px 0 10px; font-size: 23px; } .cabinet-method-card p { font-size: 12px; } .cabinet-method-card small { left: 18px; bottom: 19px; font-size: 8px; } .cabinet-card-illustration { right: 4px; bottom: 8px; width: 116px; height: 110px; } .cabinet-method-signoff { gap: 10px; margin-top: 26px; font-size: 7px; letter-spacing: 1px; } .cabinet-method-signoff span { width: 35px; } }
 .hero-quote { position: absolute; z-index: 3; right: clamp(28px, 7vw, 120px); bottom: 160px; display: flex; align-items: center; gap: 13px; max-width: 310px; padding: 16px 21px; border: 1px solid rgba(255,255,255,.91); border-radius: 24px; background: linear-gradient(135deg, rgba(255,255,255,.31), rgba(255,255,255,.07)); box-shadow: inset 0 1px rgba(255,255,255,.98), 0 13px 28px rgba(78,61,50,.13), 0 0 24px rgba(255,247,235,.45); backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%); }
 .hero-quote span { display: grid; place-items: center; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; color: #c39d70; background: rgba(255,255,255,.48); box-shadow: inset 0 1px rgba(255,255,255,.98), 0 6px 16px rgba(87,64,45,.10); }
 .hero-quote p { color: #625044; font-family: "Playfair Display", serif; font-size: 15px; font-style: italic; line-height: 1.35; }
@@ -205,6 +234,45 @@ h1, h2, h3, .splash-content h1, .hero-quote p {
   font-family: Montserrat, "DM Sans", sans-serif !important;
   font-style: normal !important;
   font-weight: 600 !important;
+}
+
+/* Mobile navigation: a transparent glass object, with the page light travelling through it. */
+@media (max-width: 850px) {
+  :is(.public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav) {
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.96) !important;
+    background: linear-gradient(112deg, rgba(255,255,255,.12), rgba(255,255,255,.025) 48%, rgba(255,250,240,.10)) !important;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,1), inset 0 -14px 25px rgba(255,255,255,.025), 0 10px 28px rgba(78,61,50,.12), 0 0 28px rgba(255,249,236,.42) !important;
+    backdrop-filter: blur(10px) saturate(135%) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
+  }
+  :is(.public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav)::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -70% 14% -85% -18%;
+    background: radial-gradient(ellipse, rgba(255,255,255,.76), rgba(255,247,231,.19) 34%, transparent 67%);
+    filter: blur(10px);
+    pointer-events: none;
+  }
+  :is(.public-app-dock button, .pro-dock button, .workspace-dock button, .admin-mobile-dock button, .bottom-nav button) {
+    position: relative;
+    z-index: 1;
+    color: #746455 !important;
+    text-shadow: 0 1px rgba(255,255,255,.70);
+  }
+  :is(.public-app-dock button, .pro-dock button, .workspace-dock button, .admin-mobile-dock button, .bottom-nav button) svg {
+    color: #796249 !important;
+    filter: drop-shadow(0 1px 0 rgba(255,255,255,.72));
+  }
+  :is(.public-app-dock button.active, .pro-dock button.active, .workspace-dock button.active, .admin-mobile-dock button.active, .bottom-nav button.active) {
+    border: 1px solid rgba(255,255,255,.92) !important;
+    background: linear-gradient(145deg, rgba(255,255,255,.25), rgba(255,255,255,.055)) !important;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,1), inset 0 -13px 21px rgba(255,255,255,.08), 0 8px 18px rgba(96,71,51,.11), 0 0 20px rgba(255,248,235,.45) !important;
+    color: #684c2f !important;
+  }
+  :is(.public-app-dock button.active, .pro-dock button.active, .workspace-dock button.active, .admin-mobile-dock button.active, .bottom-nav button.active) svg { color: #80613d !important; }
 }
 
 /* Logged-in assistant: one floating, movable bubble that opens a proper chat surface. */
