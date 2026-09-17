@@ -4,9 +4,9 @@
   overflow: hidden;
   border: 1px solid #ffffff26;
   border-radius: 26px;
-  background: radial-gradient(ellipse at 50% 35%, #4c5159, #252b34 70%);
+  background: radial-gradient(ellipse at 50% 35%, #59534c, #342d25 70%);
   color: #f4eee6;
-  box-shadow: 0 18px 40px #1a213422;
+  box-shadow: 0 18px 40px #33271b22;
 }
 .jaw-viewer header {
   display: flex;
@@ -19,7 +19,7 @@
 .jaw-eyebrow {
   font-size: 9px;
   letter-spacing: 0.18em;
-  color: #a7babf;
+  color: #bfb3a7;
 }
 .jaw-viewer h3 {
   font-size: 23px;
@@ -28,9 +28,9 @@
   color: #fff;
 }
 .jaw-selected {
-  border: 1px solid #9cbfc44d;
+  border: 1px solid #c4b09c4d;
   border-radius: 30px;
-  background: #a6d4d419;
+  background: #d1bda919;
   color: #c3e4e1;
   padding: 8px 12px;
   font-size: 12px;
@@ -83,12 +83,12 @@
 .jaw-controls > label {
   flex: 1;
   font-size: 11px;
-  color: #d2d6de;
+  color: #ded8d2;
   display: block !important;
 }
 .jaw-controls > label > span {
   float: right;
-  color: #a9d3d3;
+  color: #d2beab;
 }
 .jaw-controls input[type="range"] {
   appearance: auto;
@@ -110,7 +110,7 @@
 }
 .jaw-options select {
   background: #ffffff0e;
-  color: #e4e8ec;
+  color: #ece8e4;
   border: 1px solid #ffffff21;
   border-radius: 9px;
   padding: 9px;
@@ -126,7 +126,7 @@
   gap: 6px;
   font-size: 11px;
   white-space: nowrap;
-  color: #d2d6de;
+  color: #ded8d2;
 }
 .jaw-options input[type="checkbox"] {
   width: 16px;
@@ -136,14 +136,14 @@
 .jaw-hint {
   text-align: center;
   font-size: 10px !important;
-  color: #b9c4ce;
+  color: #cec4b9;
   margin: 10px 10px 5px !important;
 }
 .jaw-model-note {
   display: block;
   text-align: center;
   font-size: 9px;
-  color: #7d8c9c;
+  color: #9c8d7d;
   padding: 0 12px 17px;
 }
 .jaw-viewer:fullscreen {

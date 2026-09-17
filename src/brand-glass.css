@@ -1,0 +1,21 @@
+/* Loaded after every feature stylesheet so the shared glass surfaces stay consistent. */
+:root { --ink:#4e3d32; --muted:#807064; }
+.public-site .public-header,
+.public-site .public-announcement,
+.public-site .pro-banner,
+.public-site .smilepec-callout {
+  background:linear-gradient(120deg,rgba(255,255,255,.32),rgba(255,255,255,.06)) !important;
+  border:1px solid rgba(255,255,255,.82) !important;
+  backdrop-filter:blur(22px) saturate(115%) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(115%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 10px 32px rgba(78,61,50,.06) !important;
+  color:#4e3d32 !important;
+}
+.public-site .smilepec-services,.public-site .public-section:not(.pro-banner) { background:transparent; box-shadow:none; }
+.public-site .smilepec-service-grid article { background:linear-gradient(125deg,rgba(255,255,255,.30),rgba(255,255,255,.07)); }
+.primary,.secondary,.dark-button,.public-site .primary,.public-site .secondary {
+  background:linear-gradient(120deg,rgba(255,255,255,.35),rgba(255,255,255,.06)) !important;
+  color:#4e3d32 !important;
+  border:1px solid rgba(255,255,255,.85) !important;
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+}

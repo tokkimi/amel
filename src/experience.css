@@ -27,11 +27,11 @@
   gap: 10px;
   align-items: center;
   font-size: 11px;
-  color: #8295b4;
+  color: #b49b82;
   margin: 16px 0;
 }
 .tools-preview-copy li svg {
-  color: #9eadd0;
+  color: #cdb7a1;
 }
 .tools-preview-copy > small {
   font-size: 9px;
@@ -47,8 +47,8 @@
   letter-spacing: 0.4px;
 }
 .feature-state.future {
-  background: #f2ecfa;
-  color: #a294b5;
+  background: #f7f3ef;
+  color: #b5a594;
 }
 .tools-mini-grid {
   display: grid;
@@ -71,7 +71,7 @@
   position: absolute;
   top: 25px;
   right: 20px;
-  color: #a5b2cc;
+  color: #ccb8a5;
 }
 .tracking-story {
   padding: 15px;
@@ -81,7 +81,7 @@
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  background: #f5f8fa;
+  background: #faf8f5;
 }
 .illustrated-map {
   width: 100%;
@@ -96,7 +96,7 @@
   align-items: center;
   gap: 6px;
   background: #ffffffdc;
-  color: #96a3b8;
+  color: #b8a796;
   font-size: 8px;
   padding: 7px 9px;
   border: 1px solid #fff;
@@ -113,12 +113,12 @@
   gap: 9px;
   background: #ffffffdf;
   padding: 12px 14px;
-  color: #8195b9;
+  color: #b99d81;
   font-size: 10px;
 }
 .tracking-eta b {
   margin-left: auto;
-  color: #697eb6;
+  color: #b1906e;
   font-size: 13px;
 }
 .tracking-person {
@@ -137,8 +137,8 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #f1edf8;
-  color: #b0a2c5;
+  background: #f6f3ef;
+  color: #c5b4a2;
   display: grid;
   place-items: center;
 }
@@ -155,7 +155,7 @@
   height: 1px;
   left: 25px;
   right: 25px;
-  background: #e4e9f5;
+  background: #f2ede7;
 }
 .tracking-story-steps button {
   position: relative;
@@ -165,23 +165,23 @@
   gap: 8px;
   background: none;
   padding: 0 4px;
-  color: #b1bacb;
+  color: #cbbeb1;
   z-index: 1;
 }
 .tracking-story-steps button > span {
   width: 27px;
   height: 27px;
   border-radius: 50%;
-  background: #f0f3f9;
+  background: #f8f5f1;
   border: 3px solid white;
   display: grid;
   place-items: center;
   font-size: 9px;
 }
 .tracking-story-steps .current > span {
-  background: #8596d8;
+  background: #c7af96;
   color: white;
-  box-shadow: 0 0 0 3px #ebeffb;
+  box-shadow: 0 0 0 3px #f7f3ef;
 }
 .tracking-story-steps .done > span {
   background: #dfeee5;
@@ -191,7 +191,7 @@
   font-size: 8px;
 }
 .tracking-story-steps .current small {
-  color: #7184bd;
+  color: #b69778;
 }
 .tracking-caption {
   text-align: center;
@@ -213,7 +213,7 @@
   font-size: 8px;
   margin: 13px 15px 0;
   line-height: 1.6;
-  color: #a3adbe;
+  color: #beb1a3;
 }
 .moving-marker {
   transition: transform 1.2s ease;
@@ -229,7 +229,7 @@
   line-height: 1.2;
 }
 .tools-heading h1 span {
-  color: #8292c8;
+  color: #c0a58a;
 }
 .tools-heading > p {
   font-size: 13px;
@@ -244,12 +244,12 @@
   margin-top: 25px;
 }
 .tool-pills a {
-  background: #eef2f9;
+  background: #f7f4f0;
   border: 1px solid #fff;
   padding: 9px 15px;
   border-radius: 18px;
   font-size: 10px;
-  color: #8b9cba;
+  color: #baa38b;
 }
 .tool-feature-grid {
   display: grid;
@@ -273,7 +273,7 @@
 .tool-feature > strong {
   font-size: 10px;
   font-weight: 500;
-  color: #8d9dbc;
+  color: #bca58d;
 }
 .tool-feature > p {
   font-size: 11px;
@@ -311,7 +311,7 @@
 }
 .tracking-principles article > svg {
   flex-shrink: 0;
-  color: #9eafd1;
+  color: #cdb8a2;
   width: 21px;
 }
 .tracking-principles h3 {
@@ -329,7 +329,7 @@
   align-items: center;
   padding: 45px 70px;
   margin-bottom: 40px;
-  background: linear-gradient(130deg, #edf2fc, #eff4f9);
+  background: linear-gradient(130deg, #f8f5f1, #f7f4f1);
   border: 1px solid white;
   border-radius: 25px;
   max-width: 1176px;
@@ -340,9 +340,9 @@
   border-radius: 30px;
   border: 5px solid #fff;
   box-shadow:
-    20px 25px 40px #8699c424,
-    inset 0 0 0 1px #d8e0f1;
-  background: linear-gradient(140deg, #f7faff, #e1e8fa);
+    20px 25px 40px #c0a58a24,
+    inset 0 0 0 1px #ece5dd;
+  background: linear-gradient(140deg, #fcfbfa, #f3eee8);
   margin: auto;
   transform: rotate(-9deg);
   display: flex;
@@ -354,7 +354,7 @@
 .phone-speaker {
   position: absolute;
   top: 10px;
-  background: #b6c2dc;
+  background: #d9c9b9;
   width: 40px;
   height: 6px;
   border-radius: 8px;
@@ -368,10 +368,10 @@
   font-family: Manrope;
   font-size: 46px;
   color: white;
-  background: linear-gradient(130deg, #a2b2e5, #7289cf);
+  background: linear-gradient(130deg, #d5c4b2, #bda184);
   box-shadow:
     inset 2px 2px 6px #fff7,
-    5px 10px 20px #8d9ac840;
+    5px 10px 20px #c4aa9140;
   position: relative;
 }
 .phone-logo span {
@@ -385,7 +385,7 @@
   font-size: 22px;
   margin-top: 14px;
   letter-spacing: -1px;
-  color: #6b7da5;
+  color: #a5886b;
 }
 .mobile-phone-art > small {
   font-size: 8px;
@@ -405,7 +405,7 @@
 .phone-tabs svg {
   width: 14px;
   height: 14px;
-  color: #96a6cc;
+  color: #c8b19a;
 }
 .mobile-promo h2 {
   font-size: 32px;
@@ -425,7 +425,7 @@
   background: #ffffff7a;
   border: 1px solid #fff;
   border-radius: 11px;
-  color: #8093b8;
+  color: #b89c80;
   font-size: 11px;
   line-height: 1.8;
 }
@@ -454,15 +454,15 @@
 }
 .workspace-tools-banner > svg {
   margin-left: auto;
-  color: #97a7cc;
+  color: #c9b29a;
 }
 .mobile-splash {
   position: fixed;
   inset: 0;
   z-index: 1000;
   background:
-    radial-gradient(ellipse at 80% 17%, #cdd9f8 0, transparent 55%),
-    radial-gradient(ellipse at 10% 83%, #d7e8ed, transparent 55%), #edf2fc;
+    radial-gradient(ellipse at 80% 17%, #ebe3da 0, transparent 55%),
+    radial-gradient(ellipse at 10% 83%, #ebe2d9, transparent 55%), #f8f5f1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -481,11 +481,11 @@
   height: 110px;
   border: 1px solid #ffffffdd;
   border-radius: 32px;
-  background: linear-gradient(135deg, #ffffff80, #b1c1ef75 65%, #edf4ffb0);
+  background: linear-gradient(135deg, #ffffff80, #ded0c275 65%, #f9f6f3b0);
   box-shadow:
     inset 5px 6px 15px #fff9,
-    inset -5px -5px 10px #8b9fce33,
-    15px 25px 35px #859ac42b;
+    inset -5px -5px 10px #c5ad9433,
+    15px 25px 35px #c0a5892b;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -493,7 +493,7 @@
   font-size: 88px;
   font-weight: 650;
   color: white;
-  text-shadow: 0 3px 3px #a4b4d64d;
+  text-shadow: 0 3px 3px #d1bda94d;
   transform: rotate(-10deg);
   position: relative;
   backdrop-filter: blur(10px);
@@ -509,27 +509,27 @@
   font-size: 47px;
   letter-spacing: -2.5px;
   margin: 25px 0 7px;
-  color: #62759d;
+  color: #9d8062;
   font-weight: 750;
 }
 .splash-content h1 span {
-  color: #97a8d2;
+  color: #cbb59e;
 }
 .splash-content > p {
   font-size: 13px;
   letter-spacing: 1px;
-  color: #8c9dbb;
+  color: #bba48c;
 }
 .splash-content > small {
   font-size: 9px;
   letter-spacing: 0.6px;
-  color: #9aabc5;
+  color: #c5b09a;
 }
 .splash-line {
   height: 2px;
   width: 100px;
   margin: 32px auto 22px;
-  background: linear-gradient(90deg, transparent, #9fafe0, transparent);
+  background: linear-gradient(90deg, transparent, #d3c0ac, transparent);
   transform-origin: center;
   animation: splash-line 1.5s ease-in-out infinite;
 }
@@ -538,7 +538,7 @@
   border: 1px solid #ffffffb0;
   border-radius: 50%;
   box-shadow: inset 10px 15px 35px #ffffff33;
-  background: linear-gradient(135deg, #ffffff2a, #b8c9ec0d);
+  background: linear-gradient(135deg, #ffffff2a, #e0d2c40d);
   backdrop-filter: blur(5px);
 }
 .splash-halo.one {
@@ -555,7 +555,7 @@
 }
 .splash-star {
   position: absolute;
-  color: #fdfdff;
+  color: #fefefe;
   font-size: 44px;
 }
 .star-one {
@@ -573,7 +573,7 @@
   background: #ffffff50;
   border: 1px solid #ffffffaa;
   border-radius: 25px;
-  color: #8fa0bd;
+  color: #bda68f;
   font-size: 10px;
   padding: 12px 20px;
   display: flex;

@@ -712,15 +712,6 @@ export default function Portal() {
   }
   return (
     <div className="public-site">
-      <div className="public-announcement">
-        <Sparkles size={13} />
-        <span>
-          {publicSettings.announcement || "Le soin commence par une rencontre."}
-        </span>
-        <button onClick={() => auth("signup")}>
-          Rejoindre SmilePec <ArrowRight size={13} />
-        </button>
-      </div>
       <header className="public-header">
         <Logo />
         <nav

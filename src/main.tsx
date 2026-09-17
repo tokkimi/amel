@@ -8,6 +8,7 @@ import "./connected.css";
 import "./admin.css";
 import "./experience.css";
 import "./pro-suite.css";
+import "./brand-glass.css";
 createRoot(document.getElementById("root")!).render(
   <>
     <Portal />
