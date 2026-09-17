@@ -6,17 +6,23 @@
   --sp-glow: inset 0 1px 1px rgba(255,255,255,.92), inset 0 -10px 24px rgba(255,255,255,.025), 0 12px 34px rgba(78,61,50,.10);
 }
 
-:is(.public-header, .pro-banner, .smilepec-callout, .public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav, .topbar, .pro-topbar, .admin-topbar) {
-  background: var(--sp-glass) !important;
+:is(.public-header, .pro-banner, .smilepec-callout, .topbar, .pro-topbar, .admin-topbar) {
+  background: linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.008) 72%, transparent) !important;
   border: 0 !important;
   backdrop-filter: blur(24px) saturate(118%) !important;
   -webkit-backdrop-filter: blur(24px) saturate(118%) !important;
-  box-shadow: var(--sp-glow) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.86), inset 0 -12px 24px rgba(255,255,255,.018), 0 10px 30px rgba(78,61,50,.035) !important;
   color: var(--sp-ink) !important;
 }
 
 :is(.public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav) {
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.012) 72%, transparent) !important;
   border-radius: 28px 28px 0 0 !important;
+  border: 0 !important;
+  border-top: 1px solid rgba(255,255,255,.78) !important;
+  backdrop-filter: blur(24px) saturate(118%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(118%) !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.94), inset 0 12px 22px rgba(255,255,255,.018), 0 -12px 28px rgba(78,61,50,.035) !important;
 }
 
 /* Reset the earlier broad button decorations. Only actionable calls get a soft glass treatment. */
@@ -44,8 +50,8 @@ button:not(.pro-menu-shade) {
 }
 
 :is(.nav-item.active, .pro-sidebar nav button.active, .admin-sidebar nav .active, .workspace-dock .active, .admin-mobile-dock .active, .bottom-nav button.active, .pro-dock button.active, .workspace-mobile-nav button.selected) {
-  background: rgba(255,255,255,.15) !important;
-  box-shadow: inset 0 1px 1px rgba(255,255,255,.88), 0 6px 18px rgba(78,61,50,.08) !important;
+  background: transparent !important;
+  box-shadow: 0 7px 18px rgba(78,61,50,.07) !important;
   color: var(--sp-ink) !important;
 }
 
@@ -67,25 +73,38 @@ button:disabled { opacity: .45; }
   box-shadow: none !important;
   border-radius: 18px !important;
 }
+.public-links.expanded > *.active, .pro-sidebar.open nav > *.active, .admin-sidebar.shown nav > *.active, .workspace-mobile-nav.expanded > *.selected { background: transparent !important; box-shadow: none !important; }
 .pro-sidebar.open nav, .admin-sidebar.shown nav { display: flex !important; flex-direction: column !important; grid-template-columns: none !important; }
+.public-links.expanded:before, .admin-sidebar.shown:before { display: none !important; }
+.public-links.expanded > * { display: flex !important; align-items: center; min-height: 46px; color: var(--sp-ink) !important; font-weight: 600; }
 
 .public-site .smilepec-services, .public-site .public-section:not(.pro-banner) { background: transparent; box-shadow: none; }
 .public-site .smilepec-service-grid article { background: linear-gradient(125deg, rgba(255,255,255,.26), rgba(255,255,255,.055)); }
+.public-site .public-search { background: linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,.025)) !important; border: 0 !important; box-shadow: inset 0 1px rgba(255,255,255,.88), 0 12px 30px rgba(78,61,50,.055) !important; }
+.public-site .public-search label + label { border: 0 !important; }
+.public-site .search-suggestions button, .pro-shortcuts button, .pro-shortcuts a { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 999px !important; color: var(--sp-muted) !important; }
+.public-site .public-benefits { border: 0 !important; }
 .brand .brand-full-logo { display: block; width: 88px; height: 88px; object-fit: contain; flex-shrink: 0; }
 .public-header .brand { align-self: center; }
 .splash-logo { width: 220px !important; height: 220px !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
 .splash-logo img { width: 100% !important; height: 100% !important; object-fit: contain; }
 
+/* The home image is now a complete visual, rather than a photo hidden by decorative bubbles. */
+.public-hero-art { min-height: 430px; overflow: visible; display: grid; place-items: center; border-radius: 0; background: transparent; box-shadow: none; }
+.hero-care-photo { position: relative !important; inset: auto !important; display: block; width: 100% !important; height: 100% !important; object-fit: contain !important; object-position: center !important; border-radius: 0 !important; filter: none !important; box-shadow: none !important; opacity: 1 !important; }
+
 /* Logged-in assistant: one floating, movable bubble that opens a proper chat surface. */
 .smilepec-assistant-float { position: fixed; right: 26px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 82px)); z-index: 95; }
-.smilepec-assistant-trigger { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; border-radius: 50% !important; background: radial-gradient(circle at 31% 24%, rgba(255,255,255,.72), rgba(255,255,255,.15) 42%, rgba(198,162,125,.22)) !important; box-shadow: inset 0 2px 2px rgba(255,255,255,.98), inset -7px -10px 18px rgba(115,83,54,.12), 0 13px 30px rgba(78,61,50,.20) !important; color: var(--sp-ink) !important; cursor: grab; touch-action: none; backdrop-filter: blur(16px) saturate(125%); -webkit-backdrop-filter: blur(16px) saturate(125%); }
+.smilepec-assistant-trigger { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; overflow: hidden; border-radius: 50% !important; background: radial-gradient(circle at 31% 24%, rgba(255,255,255,.72), rgba(255,255,255,.15) 42%, rgba(198,162,125,.22)) !important; box-shadow: inset 0 2px 2px rgba(255,255,255,.98), inset -7px -10px 18px rgba(115,83,54,.12), 0 13px 30px rgba(78,61,50,.20) !important; color: var(--sp-ink) !important; cursor: grab; touch-action: none; backdrop-filter: blur(16px) saturate(125%); -webkit-backdrop-filter: blur(16px) saturate(125%); }
+.smilepec-assistant-trigger img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.09); }
 .smilepec-assistant-float.is-dragging .smilepec-assistant-trigger { cursor: grabbing; transform: scale(.97); }
 .assistant-pulse { position: absolute; right: 3px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #c9aa87; box-shadow: 0 0 0 4px rgba(255,255,255,.42); }
 .smilepec-assistant-panel { position: absolute; right: 0; bottom: 76px; width: min(360px, calc(100vw - 32px)); max-height: min(570px, calc(100vh - 136px)); overflow: auto; padding: 19px; border: 0; border-radius: 27px; background: linear-gradient(145deg, rgba(255,255,255,.48), rgba(255,255,255,.13)); box-shadow: inset 0 1px 1px rgba(255,255,255,.96), inset 0 -12px 28px rgba(255,255,255,.05), 0 24px 56px rgba(78,61,50,.20); backdrop-filter: blur(30px) saturate(118%); -webkit-backdrop-filter: blur(30px) saturate(118%); color: var(--sp-ink); touch-action: auto; }
 .smilepec-assistant-panel header { display: flex; align-items: center; gap: 10px; }
 .smilepec-assistant-panel header > div { min-width: 0; flex: 1; }
 .smilepec-assistant-panel h2 { margin: 2px 0 0; font-size: 20px; color: var(--sp-ink); }
-.assistant-orb { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 50%; background: rgba(255,255,255,.25); box-shadow: inset 0 1px 1px rgba(255,255,255,.85), 0 5px 12px rgba(78,61,50,.08); color: #806147; }
+.assistant-orb { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; overflow: hidden; border-radius: 50%; background: rgba(255,255,255,.25); box-shadow: inset 0 1px 1px rgba(255,255,255,.85), 0 5px 12px rgba(78,61,50,.08); color: #806147; }
+.assistant-orb img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.1); }
 .assistant-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50% !important; color: var(--sp-ink) !important; }
 .assistant-intro { margin: 13px 0 14px; font-size: 12px; line-height: 1.55; color: var(--sp-muted); }
 .assistant-prompts { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 13px; }
@@ -102,6 +121,7 @@ button:disabled { opacity: .45; }
 @media (max-width: 850px) {
   .brand .brand-full-logo { width: 64px; height: 64px; }
   .public-header { min-height: 76px; padding-top: 6px !important; padding-bottom: 6px !important; }
+  .public-hero-art { min-height: 360px; border-radius: 28px; }
   .smilepec-assistant-float { right: 18px; bottom: max(87px, calc(env(safe-area-inset-bottom) + 72px)); }
   .smilepec-assistant-panel { position: fixed; right: 16px; left: 16px; bottom: max(92px, calc(env(safe-area-inset-bottom) + 78px)); width: auto; max-height: min(570px, calc(100vh - 128px)); }
 }

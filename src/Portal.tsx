@@ -815,35 +815,6 @@ export default function Portal() {
                 src="/amelib-care-team.webp"
                 alt=""
               />
-              <div className="halo halo-one" />
-              <div className="halo halo-two" />
-              <div className="smile-sculpture">
-                <div className="sculpture-shine" />
-                <svg viewBox="0 0 200 200">
-                  <path d="M52 107 Q100 161 148 107" />
-                  <path d="M64 70v7M136 70v7" />
-                </svg>
-              </div>
-              <div className="art-appointment glass">
-                <span className="art-check">
-                  <Check size={18} />
-                </span>
-                <div>
-                  <strong>Un rendez-vous. Un premier pas.</strong>
-                  <small>Votre sourire commence ici.</small>
-                </div>
-                <CalendarDays size={19} />
-              </div>
-              <div className="art-care glass">
-                <Heart size={21} />
-                <span>
-                  Plus proches.
-                  <br />
-                  <strong>Pour mieux soigner.</strong>
-                </span>
-              </div>
-              <span className="hero-spark spark-a">✧</span>
-              <span className="hero-spark spark-b">✧</span>
             </div>
             <div className="hero-search-wrap">
               {searchForm}
