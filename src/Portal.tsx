@@ -3,9 +3,11 @@ import {
   ArrowRight,
   ArrowUpRight,
   CalendarDays,
+  ChartNoAxesCombined,
   Check,
   ChevronLeft,
   Globe,
+  Folder,
   Heart,
   House,
   LogOut,
@@ -797,6 +799,10 @@ export default function Portal() {
                 alt=""
               />
             </div>
+            <aside className="hero-quote" aria-label="Promesse SmilePec">
+              <span><Heart size={22} /></span>
+              <p>« Des patients sereins,<br />un cabinet plus fluide. »</p>
+            </aside>
             <div className="hero-search-wrap">
               <div className="hero-actions">
                 <button className="primary" onClick={() => auth("signup", "Praticien")}>Inscrire mon cabinet <ArrowRight size={16} /></button>
@@ -893,7 +899,7 @@ export default function Portal() {
               </a>
             </div>
           </section>
-          <section className="public-section">
+          <section className="public-section cabinet-method-section">
             <div className="public-section-heading">
               <div>
                 <div className="eyebrow">UN ESPACE, VOTRE MÉTHODE</div>
@@ -910,12 +916,12 @@ export default function Portal() {
                 Découvrir l’espace cabinet <ArrowRight size={16} />
               </button>
             </div>
-            <div className="public-professionals">
+            <div className="public-professionals cabinet-method-grid">
               {[
-                ["Dossiers dentaires", "Fiches patients, schéma dentaire, photos, radios, mutuelle et suivi des soins."],
-                ["Agenda de cabinet", "Vos rendez-vous sont centralisés avec vos disponibilités et vos outils de prise de rendez-vous."],
-                ["Pilotage financier", "Devis, factures, règlements, tiers payant et exports comptables au même endroit."],
-              ].map(([title, text]) => <article className="glass practitioner-card" key={title}><Stethoscope size={24}/><h3>{title}</h3><p>{text}</p></article>)}
+                { title: "Dossiers dentaires", text: "Fiches patients, schéma dentaire, photos, radios, mutuelle et suivi des soins.", note: "TOUT CENTRALISER", icon: Folder },
+                { title: "Agenda de cabinet", text: "Vos rendez-vous sont centralisés avec vos disponibilités et vos outils de prise de rendez-vous.", note: "GAGNER DU TEMPS", icon: CalendarDays },
+                { title: "Pilotage financier", text: "Devis, factures, règlements, tiers payant et exports comptables au même endroit.", note: "PLUS DE CLARTÉ", icon: ChartNoAxesCombined },
+              ].map(({ title, text, note, icon: Icon }) => <article className="glass practitioner-card cabinet-method-card" key={title}><span className="cabinet-card-icon"><Icon size={25}/></span><span className="cabinet-card-arrow"><ArrowRight size={20}/></span><h3>{title}</h3><p>{text}</p><small>{note}</small></article>)}
             </div>
           </section>
           <ToolsPreview />
