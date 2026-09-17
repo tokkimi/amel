@@ -84,6 +84,43 @@ button:disabled { opacity: .45; }
 .public-site .public-search label + label { border: 0 !important; }
 .public-site .search-suggestions button, .pro-shortcuts button, .pro-shortcuts a { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 999px !important; color: var(--sp-muted) !important; }
 .public-site .public-benefits { border: 0 !important; }
+
+/* Public home: white light first, with champagne kept only as a distant reflection. */
+.public-site { background: radial-gradient(ellipse at 80% 5%, rgba(255,255,255,.98) 0, rgba(255,255,255,.52) 30%, transparent 56%), radial-gradient(ellipse at 7% 36%, rgba(255,255,255,.94) 0, transparent 38%), radial-gradient(ellipse at 54% 92%, rgba(229,207,181,.18) 0, transparent 46%), #fdfcfb !important; }
+.public-site .public-hero, .public-site .public-section, .public-site .public-benefits { position: relative; isolation: isolate; }
+.public-site .public-hero::before, .public-site .smilepec-services::before, .public-site .pro-banner::before { content: ""; position: absolute; z-index: -1; pointer-events: none; width: min(46vw, 520px); height: min(46vw, 520px); border-radius: 50%; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.96), rgba(255,255,255,.30) 42%, rgba(231,211,189,.13) 68%, transparent 72%); filter: blur(2px); }
+.public-site .public-hero::before { right: -9%; top: -12%; }
+.public-site .smilepec-services::before { left: -13%; top: -3%; }
+.public-site .pro-banner::before { right: -12%; bottom: -28%; }
+.public-site .assistant-home, .public-site .smilepec-service-grid article, .public-site .public-professionals .practitioner-card, .public-site .pro-visual { background: linear-gradient(135deg, rgba(255,255,255,.52), rgba(255,255,255,.11) 57%, rgba(255,255,255,.26)) !important; border: 0 !important; box-shadow: inset 0 1px rgba(255,255,255,.97), inset 0 -14px 30px rgba(255,255,255,.06), 0 18px 46px rgba(78,61,50,.07) !important; backdrop-filter: blur(26px) saturate(110%) !important; -webkit-backdrop-filter: blur(26px) saturate(110%) !important; }
+.public-site .pro-banner { background: linear-gradient(135deg, rgba(255,255,255,.38), rgba(255,255,255,.08)) !important; }
+
+/* Full-width floating header: a light-catching glass rail that follows intent, not the page. */
+.public-site > .public-header {
+  position: fixed !important;
+  inset: 0 0 auto 0;
+  width: 100% !important;
+  min-height: 86px;
+  padding: 10px clamp(20px, 5vw, 76px) !important;
+  background: linear-gradient(106deg, rgba(255,255,255,.26), rgba(255,255,255,.035) 45%, rgba(255,255,255,.17)) !important;
+  border: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,.76) !important;
+  border-radius: 0 0 30px 30px !important;
+  box-shadow: inset 0 1px rgba(255,255,255,.98), inset 0 -14px 26px rgba(255,255,255,.028), 0 15px 36px rgba(78,61,50,.08) !important;
+  backdrop-filter: blur(30px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(120%) !important;
+  z-index: 80;
+  transition: transform .32s cubic-bezier(.2,.75,.25,1), opacity .24s ease !important;
+}
+.public-site > .public-header::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: -1px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.98), transparent); pointer-events: none; }
+.public-site > .public-header.is-hidden { transform: translateY(-118%); opacity: 0; pointer-events: none; }
+.public-site > .public-header.is-visible { transform: translateY(0); opacity: 1; }
+.public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 96px; }
+
+@media (max-width: 850px) {
+  .public-site > .public-header { min-height: 75px; padding: 5px 18px !important; border-radius: 0 0 24px 24px !important; }
+  .public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 80px; }
+}
 .brand .brand-full-logo { display: block; width: 88px; height: 88px; object-fit: contain; flex-shrink: 0; }
 .public-header .brand { align-self: center; }
 .splash-logo { width: 220px !important; height: 220px !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
@@ -96,7 +133,7 @@ button:disabled { opacity: .45; }
 /* Logged-in assistant: one floating, movable bubble that opens a proper chat surface. */
 .smilepec-assistant-float { position: fixed; right: 26px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 82px)); z-index: 95; }
 .smilepec-assistant-trigger { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 0; overflow: hidden; border-radius: 50% !important; background: radial-gradient(circle at 31% 24%, rgba(255,255,255,.72), rgba(255,255,255,.15) 42%, rgba(198,162,125,.22)) !important; box-shadow: inset 0 2px 2px rgba(255,255,255,.98), inset -7px -10px 18px rgba(115,83,54,.12), 0 13px 30px rgba(78,61,50,.20) !important; color: var(--sp-ink) !important; cursor: grab; touch-action: none; backdrop-filter: blur(16px) saturate(125%); -webkit-backdrop-filter: blur(16px) saturate(125%); }
-.smilepec-assistant-trigger img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.09); }
+.smilepec-assistant-trigger img { width: 76%; height: 76%; object-fit: contain; }
 .smilepec-assistant-float.is-dragging .smilepec-assistant-trigger { cursor: grabbing; transform: scale(.97); }
 .assistant-pulse { position: absolute; right: 3px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #c9aa87; box-shadow: 0 0 0 4px rgba(255,255,255,.42); }
 .smilepec-assistant-panel { position: absolute; right: 0; bottom: 76px; width: min(360px, calc(100vw - 32px)); max-height: min(570px, calc(100vh - 136px)); overflow: auto; padding: 19px; border: 0; border-radius: 27px; background: linear-gradient(145deg, rgba(255,255,255,.48), rgba(255,255,255,.13)); box-shadow: inset 0 1px 1px rgba(255,255,255,.96), inset 0 -12px 28px rgba(255,255,255,.05), 0 24px 56px rgba(78,61,50,.20); backdrop-filter: blur(30px) saturate(118%); -webkit-backdrop-filter: blur(30px) saturate(118%); color: var(--sp-ink); touch-action: auto; }
@@ -104,7 +141,7 @@ button:disabled { opacity: .45; }
 .smilepec-assistant-panel header > div { min-width: 0; flex: 1; }
 .smilepec-assistant-panel h2 { margin: 2px 0 0; font-size: 20px; color: var(--sp-ink); }
 .assistant-orb { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; overflow: hidden; border-radius: 50%; background: rgba(255,255,255,.25); box-shadow: inset 0 1px 1px rgba(255,255,255,.85), 0 5px 12px rgba(78,61,50,.08); color: #806147; }
-.assistant-orb img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.1); }
+.assistant-orb img { width: 78%; height: 78%; object-fit: contain; }
 .assistant-close { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border-radius: 50% !important; color: var(--sp-ink) !important; }
 .assistant-intro { margin: 13px 0 14px; font-size: 12px; line-height: 1.55; color: var(--sp-muted); }
 .assistant-prompts { display: flex; gap: 7px; flex-wrap: wrap; margin: 0 0 13px; }

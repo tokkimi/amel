@@ -138,6 +138,8 @@ export default function Portal() {
     announcement: "",
   });
   const [contactOpen, setContactOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const headerScroll = useRef(0);
   const path = window.location.pathname;
   const isWorkspace = [
     "/patient",
@@ -146,15 +148,7 @@ export default function Portal() {
     "/admin",
     "/mon-espace",
   ].includes(path);
-  const [view, setView] = useState(
-    path === "/outils"
-      ? "tools"
-      : path === "/recherche"
-        ? "search"
-        : path.startsWith("/praticiens/")
-          ? "profile"
-          : "home",
-  );
+  const [view, setView] = useState(path === "/outils" ? "tools" : "home");
   const [account, setAccount] = useState<Account | null>(null),
     [loaded, setLoaded] = useState(false),
     [professionals, setProfessionals] = useState<Professional[]>([]),
@@ -176,7 +170,7 @@ export default function Portal() {
           ? "login"
           : null,
     ),
-    [authRole, setAuthRole] = useState(path === "/admin" ? "admin" : "patient"),
+    [authRole, setAuthRole] = useState(path === "/admin" ? "admin" : "professional"),
     [recovery, setRecovery] = useState(""),
     [created, setCreated] = useState(false),
     [reason, setReason] = useState("Première consultation"),
@@ -191,17 +185,22 @@ export default function Portal() {
       .then((r) => setAccount(r.account))
       .catch((e) => setError(e.message))
       .finally(() => setLoaded(true));
-    api("directory")
-      .then((r) => {
-        setProfessionals(r.professionals);
-        const p = r.professionals.find((p: Professional) =>
-          path.endsWith("/" + p.id),
-        );
-        if (p) setSelected(p);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setDirectoryReady(true));
+    setDirectoryReady(true);
   }, []);
+  useEffect(() => {
+    if (isWorkspace) return;
+    const updateHeader = () => {
+      const current = window.scrollY;
+      setHeaderVisible(current < 72 || current < headerScroll.current);
+      headerScroll.current = current;
+    };
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeader);
+  }, [isWorkspace]);
+  useEffect(() => {
+    if (!isWorkspace && (path === "/recherche" || path.startsWith("/praticiens/")))
+      history.replaceState({}, "", "/");
+  }, [isWorkspace, path]);
   useEffect(() => {
     const dismiss = (e: KeyboardEvent) => {
       if (e.key === "Escape") setMobile(false);
@@ -225,15 +224,7 @@ export default function Portal() {
     const pop = () => {
       setMobile(false);
       const p = location.pathname;
-      setView(
-        p === "/outils"
-          ? "tools"
-          : p === "/recherche"
-            ? "search"
-            : p.startsWith("/praticiens/")
-              ? "profile"
-              : "home",
-      );
+      setView(p === "/outils" ? "tools" : "home");
       const found = professionals.find((x) => p.endsWith("/" + x.id));
       if (found) setSelected(found);
       setModal(
@@ -243,11 +234,10 @@ export default function Portal() {
     addEventListener("popstate", pop);
     return () => removeEventListener("popstate", pop);
   }, [professionals]);
-  const auth = (mode: string, role = "Patient") => {
+  const auth = (mode: string, role = "Praticien") => {
     setAuthRole(
       (
         {
-          Patient: "patient",
           Praticien: "professional",
           Intervenant: "worker",
         } as Record<string, string>
@@ -479,15 +469,13 @@ export default function Portal() {
           )}
           {authRole !== "admin" && (
             <div className="role-options">
-              {["patient", "professional", "worker"].map((r) => (
+              {["professional"].map((r) => (
                 <button
                   key={r}
                   className={authRole === r ? "selected" : ""}
                   onClick={() => setAuthRole(r)}
                 >
-                  {r === "patient" ? (
-                    <Smile size={20} />
-                  ) : r === "professional" ? (
+                  {r === "professional" ? (
                     <Stethoscope size={20} />
                   ) : (
                     <Users size={20} />
@@ -713,7 +701,7 @@ export default function Portal() {
   }
   return (
     <div className="public-site">
-      <header className="public-header">
+      <header className={`public-header ${headerVisible ? "is-visible" : "is-hidden"}`}>
         <Logo />
         <nav
           className={mobile ? "public-links expanded" : "public-links"}
@@ -721,11 +709,9 @@ export default function Portal() {
             if ((e.target as Element).closest("a,button")) setMobile(false);
           }}
         >
-          <button onClick={() => navigate("search", "/recherche")}>
-            Trouver un praticien
-          </button>
+          <a href="#accompagnement">L’accompagnement SmilePec</a>
           <a href="/outils">Les outils SmilePec</a>
-          <a href="/#professionnels">Vous êtes professionnel ?</a>
+          <a href="#professionnels">Pour votre cabinet</a>
         </nav>
         <div className="public-auth">
           {account ? (
@@ -781,31 +767,16 @@ export default function Portal() {
                 <span>À chaque étape.</span>
               </h1>
               <p>
-                SmilePec aide les cabinets dentaires à estimer, gérer et
-                récupérer
-                <br className="desktop-break" /> leur tiers payant. Les patients
-                trouvent leur dentiste et réservent en ligne.
+                SmilePec accompagne les cabinets dentaires dans le tiers
+                payant, l’organisation clinique et le pilotage quotidien.
+                <br className="desktop-break" /> Vos patients restent au cœur de
+                votre cabinet, avec vos propres canaux de prise de rendez-vous.
               </p>
               <div className="hero-people">
-                <div className="avatar-stack">
-                  {professionals.slice(0, 3).map((p) => (
-                    <span className={`avatar small ${"blue"}`} key={p.id}>
-                      {p.photo_data ? (
-                        <img src={p.photo_data} alt="" />
-                      ) : (
-                        p.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .slice(0, 2)
-                          .join("")
-                      )}
-                    </span>
-                  ))}
-                </div>
                 <span>
-                  Dentistes, équipes de cabinet et patients.
+                  Dentistes, équipes de cabinet et SmilePec.
                   <br />
-                  <strong>Un même espace, du rendez-vous au règlement.</strong>
+                  <strong>Un même espace, du dossier au règlement.</strong>
                 </span>
               </div>
             </div>
@@ -817,25 +788,9 @@ export default function Portal() {
               />
             </div>
             <div className="hero-search-wrap">
-              {searchForm}
-              <div className="search-suggestions">
-                <span>Je recherche</span>
-                {["Dentiste", "Orthodontiste", "Chirurgien-dentiste"].map(
-                  (c) => (
-                    <button
-                      key={c}
-                      onClick={() => {
-                        setCategory(c);
-                        setQuery("");
-                        setCity("");
-                        navigate("search", "/recherche");
-                      }}
-                    >
-                      {c}
-                      <ArrowUpRight size={12} />
-                    </button>
-                  ),
-                )}
+              <div className="hero-actions">
+                <button className="primary" onClick={() => auth("signup", "Praticien")}>Inscrire mon cabinet <ArrowRight size={16} /></button>
+                <button className="secondary" onClick={() => auth("login", "Praticien")}>Accéder à mon espace</button>
               </div>
             </div>
           </section>
@@ -843,25 +798,25 @@ export default function Portal() {
             <div>
               <CalendarDays />
               <span>
-                Un rendez-vous
+                Un agenda patient
                 <br />
-                <strong>en quelques clics</strong>
+                <strong>connecté à votre cabinet</strong>
               </span>
             </div>
             <div>
               <Users />
               <span>
-                Des professionnels
+                Une équipe
                 <br />
-                <strong>qui travaillent ensemble</strong>
+                <strong>qui travaille ensemble</strong>
               </span>
             </div>
             <div>
               <Heart />
               <span>
-                Un accompagnement
+                Une gestion
                 <br />
-                <strong>à chaque étape</strong>
+                <strong>à chaque échéance</strong>
               </span>
             </div>
             <div>
@@ -931,63 +886,52 @@ export default function Portal() {
           <section className="public-section">
             <div className="public-section-heading">
               <div>
-                <div className="eyebrow">LA RENCONTRE QUI CHANGE TOUT</div>
-                <h2>À chaque sourire, son praticien.</h2>
+                <div className="eyebrow">UN ESPACE, VOTRE MÉTHODE</div>
+                <h2>Votre cabinet garde la main.</h2>
                 <p>
-                  Rencontrez les dentistes qui rejoignent le réseau SmilePec.
+                  SmilePec centralise les opérations du cabinet sans devenir un
+                  annuaire ni un intermédiaire entre vous et vos patients.
                 </p>
               </div>
               <button
                 className="text-button"
-                onClick={() => navigate("search", "/recherche")}
+                onClick={() => auth("signup", "Praticien")}
               >
-                Explorer les praticiens <ArrowRight size={16} />
+                Découvrir l’espace cabinet <ArrowRight size={16} />
               </button>
             </div>
             <div className="public-professionals">
-              {professionals.slice(0, 3).map(card)}
-              {directoryReady && !professionals.length && (
-                <article className="glass launch-card">
-                  <Stethoscope size={30} />
-                  <h3>Le réseau commence avec vous.</h3>
-                  <p>
-                    Les premiers cabinets peuvent dès maintenant créer leur
-                    profil et ouvrir leurs disponibilités.
-                  </p>
-                  <button
-                    className="primary"
-                    onClick={() => auth("signup", "Praticien")}
-                  >
-                    Inscrire mon cabinet <ArrowRight size={16} />
-                  </button>
-                </article>
-              )}
+              {[
+                ["Dossiers dentaires", "Fiches patients, schéma dentaire, photos, radios, mutuelle et suivi des soins."],
+                ["Agenda de cabinet", "Vos rendez-vous sont centralisés avec vos disponibilités et vos outils de prise de rendez-vous."],
+                ["Pilotage financier", "Devis, factures, règlements, tiers payant et exports comptables au même endroit."],
+              ].map(([title, text]) => <article className="glass practitioner-card" key={title}><Stethoscope size={24}/><h3>{title}</h3><p>{text}</p></article>)}
             </div>
           </section>
           <ToolsPreview />
-          <section className="how-section public-section" id="comment">
+          <section className="how-section public-section" id="accompagnement">
             <div className="eyebrow">C’EST SIMPLE, ET ÇA CHANGE TOUT</div>
             <h2>
-              Moins de démarches.
+              Moins d’administratif.
               <br />
-              Plus de place pour vous.
+              Plus de temps au fauteuil.
             </h2>
             <div className="how-grid">
               {[
                 {
-                  icon: Search,
-                  title: "Trouvez votre praticien",
-                  text: "Une spécialité, une ville, une équipe qui correspond à vos besoins.",
+                  icon: Stethoscope,
+                  title: "Créez votre cabinet",
+                  text: "Installez votre organisation, vos règles d’équipe et vos accès en quelques étapes.",
                 },
                 {
                   icon: CalendarDays,
-                  title: "Choisissez votre moment",
-                  text: "Consultez les créneaux et choisissez le rendez-vous qui vous convient.",
+                  title: "Gardez votre agenda",
+                  text: "Pilotez vos rendez-vous patients depuis votre espace et reliez vos outils existants.",
                 },
                 {
                   icon: Heart,
-                  title: "Gardez le lien",
-                  text: "Retrouvez vos rendez-vous et les informations de votre parcours dans votre espace.",
+                  title: "Déléguez avec précision",
+                  text: "Confiez le tiers payant et les priorités à SmilePec tout en gardant une vision claire.",
                 },
               ].map((s, i) => (
                 <article key={s.title}>
@@ -1064,18 +1008,17 @@ export default function Portal() {
               <details>
                 <summary>À qui s’adresse SmilePec ?</summary>
                 <p>
-                  Aux patients et aux familles qui recherchent un parcours de
-                  soins dentaires ou orthodontiques, ainsi qu’aux praticiens et
-                  à leurs équipes.
+                  Aux chirurgiens-dentistes, orthodontistes et équipes de
+                  cabinet qui veulent centraliser leur organisation et leur
+                  tiers payant avec l’appui de SmilePec.
                 </p>
               </details>
               <details>
-                <summary>Puis-je réserver un vrai rendez-vous ?</summary>
+                <summary>SmilePec prend-il les rendez-vous patients ?</summary>
                 <p>
-                  Oui, les créneaux affichés sont publiés par les professionnels
-                  inscrits. Votre réservation est enregistrée et visible dans
-                  votre espace patient et dans leur agenda. Aucun paiement en
-                  ligne n’est demandé.
+                  Non. SmilePec n’est pas un annuaire ni une plateforme de
+                  réservation publique. Le cabinet conserve ses canaux, dont
+                  Doctolib, et retrouve ses rendez-vous dans son espace.
                 </p>
               </details>
               <details>
@@ -1083,18 +1026,17 @@ export default function Portal() {
                   Comment se passe l’accompagnement à domicile ?
                 </summary>
                 <p>
-                  Les demandes d’accompagnement sont coordonnées avec un
-                  praticien. Le suivi GPS en direct n’est pas encore ouvert.
+                  Les membres autorisés de votre équipe choisissent de partager
+                  ou non leur position pendant une mission. Le suivi n’est
+                  jamais activé par défaut.
                 </p>
               </details>
               <details>
                 <summary>Comment rejoindre le réseau professionnel ?</summary>
                 <p>
-                  Choisissez « Inscription », puis votre profil professionnel.
-                  Complétez votre profil, publiez-le puis ajoutez vos
-                  disponibilités. Les patients peuvent alors vous trouver et
-                  réserver. Votre identité professionnelle reste déclarative
-                  jusqu’au contrôle par l’administration.
+                  Inscrivez votre cabinet, complétez son organisation puis
+                  invitez vos collaborateurs avec les droits adaptés. SmilePec
+                  peut ensuite accompagner le tiers payant et vos priorités.
                 </p>
               </details>
             </div>
@@ -1102,11 +1044,11 @@ export default function Portal() {
           <section className="join-strip">
             <Smile size={28} />
             <div>
-              <h2>Votre prochain sourire commence ici.</h2>
-              <p>Un espace pour vous. Une équipe autour de vous.</p>
+              <h2>Votre cabinet mérite un espace à sa mesure.</h2>
+              <p>Vos patients, votre équipe, l’expertise SmilePec.</p>
             </div>
-            <button className="primary" onClick={() => auth("signup")}>
-              Créer mon espace <ArrowRight size={16} />
+            <button className="primary" onClick={() => auth("signup", "Praticien")}>
+              Inscrire mon cabinet <ArrowRight size={16} />
             </button>
           </section>
         </>
@@ -1379,11 +1321,10 @@ export default function Portal() {
           Accueil
         </button>
         <button
-          className={view === "search" || view === "profile" ? "active" : ""}
-          onClick={() => navigate("search", "/recherche")}
+          onClick={() => document.getElementById("accompagnement")?.scrollIntoView({ behavior: "smooth" })}
         >
-          <Search size={21} />
-          Rechercher
+          <Heart size={21} />
+          Accompagnement
         </button>
         <button
           className={view === "tools" ? "active" : ""}
@@ -1408,12 +1349,12 @@ export default function Portal() {
           <p>Le tiers payant dentaire, maîtrisé.</p>
         </div>
         <div>
-          <strong>Patients</strong>
-          <a href="/recherche">Trouver un praticien</a>
-          <a href="/patient">Mes rendez-vous</a>
+          <strong>Cabinets dentaires</strong>
+          <a href="#professionnels">L’espace cabinet</a>
+          <a href="#accompagnement">L’accompagnement SmilePec</a>
           <a href="/outils">Tous les outils</a>
-          <button onClick={() => auth("signup")}>
-            Créer mon compte patient
+          <button onClick={() => auth("signup", "Praticien")}>
+            Inscrire mon cabinet
           </button>
         </div>
         <div>
@@ -1422,7 +1363,7 @@ export default function Portal() {
             Inscrire mon cabinet
           </button>
           <a href="/pro">Espace professionnel</a>
-          <a href="/intervenant">Espace intervenant</a>
+          <span>Les membres de l’équipe reçoivent une invitation interne.</span>
         </div>
         <div>
           <strong>{publicSettings.name} · en lancement</strong>

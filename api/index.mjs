@@ -105,8 +105,8 @@ export default async function handler(req, res) {
             400,
             "Indiquez un nom et un mot de passe de 12 à 128 caractères.",
           );
-        if (!["patient", "professional", "worker"].includes(b.role))
-          throw fail(400, "Type de compte non autorisé.");
+        if (b.role !== "professional")
+          throw fail(400, "Les accès d’équipe sont créés par l’administrateur du cabinet.");
         const id = randomUUID(),
           password = await passwordHash(b.password),
           recovery = randomBytes(24).toString("hex");
@@ -153,23 +153,15 @@ export default async function handler(req, res) {
       await session(account);
       return send({ account: safeAccount(account) });
     }
-    if (action === "directory" && req.method === "GET") {
-      const rows =
-        await sql`SELECT a.id,a.name,a.role,p.specialty,p.city,p.address,p.bio,p.phone,p.languages,p.qualifications,p.price,p.verified,p.headline,p.contact_email,p.website,p.booking_url,p.calendar_provider,p.photo_data,p.logo_data,(SELECT min(starts_at) FROM slots WHERE professional_id=a.id AND available AND starts_at>now()) AS next_slot,(SELECT coalesce(json_agg(json_build_object('id',s.id,'name',s.name,'description',s.description,'duration',s.duration,'price',s.price,'vat',s.vat) ORDER BY s.created_at),'[]'::json) FROM services s WHERE s.owner_id=a.id AND s.active) AS services FROM accounts a JOIN profiles p ON a.id=p.account_id WHERE p.published AND NOT a.suspended AND a.role='professional' ORDER BY a.name LIMIT 200`;
-      return send({ professionals: rows });
-    }
+    if (action === "directory" && req.method === "GET")
+      throw fail(410, "L’annuaire public n’est pas proposé par SmilePec.");
     if (action === "public-settings" && req.method === "GET") {
       const [settings] =
         await sql`SELECT name,support_email,announcement FROM platform_settings WHERE id=1`;
       return send({ settings });
     }
-    if (action === "slots" && req.method === "GET") {
-      const id = req.query.professional;
-      if (!uuid(id)) throw fail(400, "Profil invalide.");
-      const rows =
-        await sql`SELECT s.id,s.starts_at,s.duration FROM slots s JOIN profiles p ON p.account_id=s.professional_id WHERE s.professional_id=${id} AND s.available AND s.starts_at>now() AND p.published AND EXISTS(SELECT 1 FROM accounts WHERE id=s.professional_id AND NOT suspended) ORDER BY s.starts_at LIMIT 200`;
-      return send({ slots: rows });
-    }
+    if (action === "slots" && req.method === "GET")
+      throw fail(410, "Les créneaux ne sont pas publiés par SmilePec.");
     const token =
       (req.headers.cookie || "")
         .split(";")
@@ -400,19 +392,7 @@ export default async function handler(req, res) {
       return send({ ok: true });
     }
     if (action === "book" && req.method === "POST") {
-      roleCheck(account, "patient");
-      if (!uuid(b.slot_id) || !clean(b.reason, 150))
-        throw fail(400, "Choisissez un créneau et un motif.");
-      const id = randomUUID();
-      const rows =
-        await sql`WITH chosen AS (UPDATE slots s SET available=false FROM profiles p WHERE s.id=${b.slot_id} AND s.professional_id=p.account_id AND p.published AND s.available AND s.starts_at>now() AND EXISTS(SELECT 1 FROM accounts WHERE id=s.professional_id AND NOT suspended) RETURNING s.id,s.professional_id) INSERT INTO appointments(id,slot_id,patient_id,professional_id,reason) SELECT ${id},id,${workspaceId},professional_id,${clean(b.reason, 150)} FROM chosen RETURNING id,professional_id`;
-      if (!rows.length)
-        throw fail(
-          409,
-          "Ce créneau n’est plus disponible. Choisissez un autre horaire.",
-        );
-      await notify(rows[0].professional_id, "appointment", "Nouvelle demande de rendez-vous", `${account.name} a réservé un créneau.`, "/pro?tab=Agenda");
-      return send({ id });
+      throw fail(410, "SmilePec ne propose pas de réservation publique. Les rendez-vous patients sont gérés par le cabinet et son agenda connecté.");
     }
     if (action === "cancel" && req.method === "POST") {
       if (!uuid(b.id)) throw fail(400, "Rendez-vous invalide.");

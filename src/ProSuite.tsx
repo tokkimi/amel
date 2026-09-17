@@ -1313,10 +1313,10 @@ export default function ProSuite({
                       }
                     />
                   </label>
-                  <h2>Agenda connecté</h2>
+                  <h2>Agenda de référence</h2>
                   <div className="form-grid">
                     <label>
-                      Service
+                      Outil de prise de rendez-vous
                       <select
                         value={profile.calendar_provider}
                         onChange={(e) =>
@@ -1338,7 +1338,7 @@ export default function ProSuite({
                       </select>
                     </label>
                     <label>
-                      Lien public de réservation
+                      Lien de votre agenda
                       <input
                         type="url"
                         value={profile.booking_url}
@@ -1351,10 +1351,11 @@ export default function ProSuite({
                             },
                           })
                         }
-                        placeholder="https://calendly.com/…"
+                        placeholder="https://www.doctolib.fr/…"
                       />
                     </label>
                   </div>
+                  {profile.calendar_provider === "Doctolib" && <p className="muted">Le lien Doctolib reste votre canal de prise de rendez-vous. L’affichage automatique des rendez-vous dans SmilePec sera activé avec une intégration Doctolib autorisée pour votre cabinet.</p>}
                   <h2>Horaires habituels</h2>
                   <div className="hours-editor">
                     {[
