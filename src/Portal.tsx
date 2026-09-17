@@ -40,10 +40,8 @@ import AdminConsole from "./AdminConsole";
 function Logo() {
   return (
     <a className="brand" href="/">
-      <span className="brand-symbol">
-        s<span>✦</span>
-      </span>
-      SmilePec<span className="brand-dot">.</span>
+      <img className="brand-emblem" src="/smilepec-emblem.png" alt="" />
+      SmilePec
     </a>
   );
 }

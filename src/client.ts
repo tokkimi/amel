@@ -92,6 +92,7 @@ export type PatientRecord = {
   insurance_card_name: string;
   billing_document_data: string;
   billing_document_name: string;
+  prosthesis_date?: string;
   medical_alerts: string;
   allergies: string;
   medications: string;

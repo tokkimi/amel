@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { usePanel } from "./usePanel";
 import LiveTracking from './LiveTracking';
 import SupportPanel from './SupportPanel';
+import NotificationCenter from "./NotificationCenter";
 import {
   ArrowLeft,
   ArrowRight,
@@ -287,6 +288,7 @@ export default function Workspace({
           <strong>
             {roleLabel(account.role)} · {account.name}
           </strong>
+          <NotificationCenter />
           <button
             className="icon-button"
             aria-label="Déconnexion"

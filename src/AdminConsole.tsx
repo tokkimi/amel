@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { api, Account, dateFormat, roleLabel } from "./client";
+import { downloadWorkbook } from "./exports";
 type Person = {
   id: string;
   name: string;
@@ -59,6 +60,9 @@ type Data = {
   appointments: Appointment[];
   audit: Audit[];
   settings: { name: string; support_email: string; announcement: string };
+  financials: { id:string; number:string; doc_type:string; status:string; total:number; issue_date:string; patient_name:string; professional_name:string }[];
+  priorities: { prosthesis_date:string; patient_name:string; professional_name:string; status:string }[];
+  tasks: { id:string; title:string; stage:string; priority:string; due_at:string; assignee:string; professional_name:string }[];
 };
 const actions: Record<string, string> = {
   profile_verified: "Profil vérifié",
@@ -90,6 +94,8 @@ export default function AdminConsole({
       "Paramètres",
       "Cabinets & équipes",
       "Demandes SmilePec",
+      "Priorités opérationnelles",
+      "Bilan comptable",
     ]),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("Tous"),
@@ -142,6 +148,8 @@ export default function AdminConsole({
     ["Paramètres", Settings],
     ["Cabinets & équipes", Users],
     ["Demandes SmilePec", FileCheck],
+    ["Priorités opérationnelles", CalendarDays],
+    ["Bilan comptable", Download],
   ] as const;
   const go = (s: string) => {
     setSection(s);
@@ -695,6 +703,8 @@ export default function AdminConsole({
                   </div>
                 </form>
               )}
+              {section === "Priorités opérationnelles" && <section className="glass panel"><div className="section-title"><div><h2>Priorités de pose et tâches ouvertes</h2><p>Vue de coordination : les données cliniques détaillées restent dans les dossiers cabinet.</p></div><button className="secondary" onClick={()=>downloadWorkbook("smilepec-priorites", {"Poses prévues":data.priorities.map(p=>({Patient:p.patient_name,Cabinet:p.professional_name,"Date de pose":p.prosthesis_date,Statut:p.status})),"Tâches ouvertes":data.tasks.map(t=>({Tâche:t.title,Cabinet:t.professional_name,Assignée:t.assignee,Priorité:t.priority,Échéance:t.due_at||"",Statut:t.stage}))})}><Download size={15}/> Excel</button></div>{data.priorities.map(p=><article className="admin-appointment" key={p.patient_name+p.prosthesis_date}><span className="stat-icon blue"><CalendarDays size={19}/></span><div className="grow"><strong>{p.patient_name}</strong><small>{p.professional_name}</small><span>Pose prévue : {dateFormat(p.prosthesis_date)}</span></div><span className="badge">{p.status}</span></article>)}{data.tasks.map(t=><article className="admin-appointment" key={t.id}><span className="stat-icon blue"><FileCheck size={19}/></span><div className="grow"><strong>{t.title}</strong><small>{t.professional_name} · {t.assignee||"Non attribuée"}</small></div><span className="badge">{t.priority}</span></article>)}</section>}
+              {section === "Bilan comptable" && <><div className="admin-metrics">{[["Facturé",data.financials.filter(x=>x.doc_type==='invoice').reduce((s,x)=>s+Number(x.total),0)],["Payé",data.financials.filter(x=>x.status==='paid').reduce((s,x)=>s+Number(x.total),0)],["En attente",data.financials.filter(x=>!['paid','cancelled'].includes(x.status)).reduce((s,x)=>s+Number(x.total),0)]].map(([label,value])=><div className="glass admin-metric" key={String(label)}><span>{label}</span><strong>{Number(value).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong></div>)}</div><section className="glass panel"><div className="section-title"><div><h2>Documents de la plateforme</h2><p>Export centralisé des montants et statuts, sans données de soins.</p></div><button className="secondary" onClick={()=>downloadWorkbook("smilepec-bilan-comptable", {Documents:data.financials.map(f=>({Numéro:f.number,Type:f.doc_type,Statut:f.status,Montant:f.total,"Date d’émission":f.issue_date,Patient:f.patient_name,Cabinet:f.professional_name}))})}><Download size={15}/> Excel</button></div>{data.financials.slice(0,100).map(f=><article className="admin-appointment" key={f.id}><span className="stat-icon blue"><FileCheck size={19}/></span><div className="grow"><strong>{f.number} · {Number(f.total).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong><small>{f.professional_name} · {f.patient_name}</small><span>{dateFormat(f.issue_date)}</span></div><span className="badge">{f.status}</span></article>)}</section></>}
             </>
           )}
           {section==='Cabinets & équipes'&&<AdminCabinets/>}

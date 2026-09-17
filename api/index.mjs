@@ -191,11 +191,14 @@ export default async function handler(req, res) {
       !membership ||
       (Array.isArray(membership.permissions) &&
         membership.permissions.includes(permission));
+    const notify = (recipientId, kind, title, body = "", href = "") =>
+      sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${recipientId},${kind},${clean(title,180)},${clean(body,1200)},${clean(href,300)})`;
     const permissionByAction = {
       "slot-create": "agenda",
       "slot-delete": "agenda",
       complete: "agenda",
       "patient-record-save": "clinical",
+      "patient-create": "patients_admin",
       "dental-media-add": "clinical",
       "visit-note-save": "clinical",
       "service-save": "billing",
@@ -218,6 +221,16 @@ export default async function handler(req, res) {
       throw fail(403, "Votre rôle dans le cabinet ne permet pas cette action.");
     if (req.method === "POST") await limit("write:" + account.id, 150);
     if(await workspaceAction({action,req,b,sql,account,workspaceId,membership,can,send})) return;
+    if (action === "notifications" && req.method === "GET") {
+      const rows = await sql`SELECT id,kind,title,body,href,read_at,created_at FROM notifications WHERE account_id=${account.id} ORDER BY created_at DESC LIMIT 80`;
+      return send({ notifications: rows, unread: rows.filter((x) => !x.read_at).length });
+    }
+    if (action === "notification-read" && req.method === "POST") {
+      if (b.id && !uuid(b.id)) throw fail(400, "Notification invalide.");
+      if (b.id) await sql`UPDATE notifications SET read_at=now() WHERE id=${b.id} AND account_id=${account.id} AND read_at IS NULL`;
+      else await sql`UPDATE notifications SET read_at=now() WHERE account_id=${account.id} AND read_at IS NULL`;
+      return send({ ok: true });
+    }
     if (action === "logout" && req.method === "POST") {
       await sql`DELETE FROM sessions WHERE token_hash=${hash(token)}`;
       cookie("", 0);
@@ -242,7 +255,7 @@ export default async function handler(req, res) {
       const [patients, services, documents, tasks, missions, members] =
         professional
           ? await Promise.all([
-              sql`SELECT pa.id AS patient_id,pa.name,pa.email,coalesce(r.id::text,'') AS record_id,coalesce(r.phone,'') AS phone,coalesce(r.status,'actif') AS record_status,coalesce(r.tags,'') AS tags,coalesce(r.notes,'') AS notes,r.birth_date,r.address,r.social_security_number,r.mutual_provider,r.mutual_member_number,r.insurance_card_data,r.insurance_card_name,r.billing_document_data,r.billing_document_name,r.medical_alerts,r.allergies,r.medications,coalesce(r.dental_chart,'{}'::jsonb) AS dental_chart,max(s.starts_at) AS last_appointment,count(ap.id)::int AS appointment_count,(SELECT coalesce(json_agg(dm ORDER BY dm.created_at DESC),'[]'::json) FROM dental_media dm WHERE dm.owner_id=${workspaceId} AND dm.patient_id=pa.id) AS media,(SELECT coalesce(json_agg(vn ORDER BY vn.created_at DESC),'[]'::json) FROM visit_notes vn WHERE vn.owner_id=${workspaceId} AND vn.patient_id=pa.id) AS visits FROM appointments ap JOIN accounts pa ON pa.id=ap.patient_id JOIN slots s ON s.id=ap.slot_id LEFT JOIN patient_records r ON r.owner_id=${workspaceId} AND r.patient_id=pa.id WHERE ap.professional_id=${workspaceId} GROUP BY pa.id,pa.name,pa.email,r.id ORDER BY max(s.starts_at) DESC`,
+              sql`SELECT pa.id AS patient_id,pa.name,pa.email,r.id::text AS record_id,r.phone,r.status AS record_status,r.tags,r.notes,r.birth_date,r.address,r.social_security_number,r.mutual_provider,r.mutual_member_number,r.insurance_card_data,r.insurance_card_name,r.billing_document_data,r.billing_document_name,r.prosthesis_date,r.medical_alerts,r.allergies,r.medications,coalesce(r.dental_chart,'{}'::jsonb) AS dental_chart,max(s.starts_at) AS last_appointment,count(ap.id)::int AS appointment_count,(SELECT coalesce(json_agg(dm ORDER BY dm.created_at DESC),'[]'::json) FROM dental_media dm WHERE dm.owner_id=${workspaceId} AND dm.patient_id=pa.id) AS media,(SELECT coalesce(json_agg(vn ORDER BY vn.created_at DESC),'[]'::json) FROM visit_notes vn WHERE vn.owner_id=${workspaceId} AND vn.patient_id=pa.id) AS visits FROM patient_records r JOIN accounts pa ON pa.id=r.patient_id LEFT JOIN appointments ap ON ap.patient_id=pa.id AND ap.professional_id=${workspaceId} LEFT JOIN slots s ON s.id=ap.slot_id WHERE r.owner_id=${workspaceId} GROUP BY pa.id,pa.name,pa.email,r.id ORDER BY max(s.starts_at) DESC NULLS LAST,r.updated_at DESC`,
               sql`SELECT * FROM services WHERE owner_id=${workspaceId} ORDER BY active DESC,created_at DESC`,
               sql`SELECT d.*,pa.name AS patient_name,pa.email AS patient_email FROM business_documents d JOIN accounts pa ON pa.id=d.patient_id WHERE d.owner_id=${workspaceId} ORDER BY d.created_at DESC LIMIT 500`,
               sql`SELECT t.*,pa.name AS patient_name FROM tasks t LEFT JOIN accounts pa ON pa.id=t.patient_id WHERE t.owner_id=${workspaceId} ORDER BY CASE t.stage WHEN 'À faire' THEN 1 WHEN 'En cours' THEN 2 WHEN 'En attente' THEN 3 ELSE 4 END,t.due_at NULLS LAST,t.created_at DESC LIMIT 500`,
@@ -358,12 +371,13 @@ export default async function handler(req, res) {
         throw fail(400, "Choisissez un créneau et un motif.");
       const id = randomUUID();
       const rows =
-        await sql`WITH chosen AS (UPDATE slots s SET available=false FROM profiles p WHERE s.id=${b.slot_id} AND s.professional_id=p.account_id AND p.published AND s.available AND s.starts_at>now() AND EXISTS(SELECT 1 FROM accounts WHERE id=s.professional_id AND NOT suspended) RETURNING s.id,s.professional_id) INSERT INTO appointments(id,slot_id,patient_id,professional_id,reason) SELECT ${id},id,${workspaceId},professional_id,${clean(b.reason, 150)} FROM chosen RETURNING id`;
+        await sql`WITH chosen AS (UPDATE slots s SET available=false FROM profiles p WHERE s.id=${b.slot_id} AND s.professional_id=p.account_id AND p.published AND s.available AND s.starts_at>now() AND EXISTS(SELECT 1 FROM accounts WHERE id=s.professional_id AND NOT suspended) RETURNING s.id,s.professional_id) INSERT INTO appointments(id,slot_id,patient_id,professional_id,reason) SELECT ${id},id,${workspaceId},professional_id,${clean(b.reason, 150)} FROM chosen RETURNING id,professional_id`;
       if (!rows.length)
         throw fail(
           409,
           "Ce créneau n’est plus disponible. Choisissez un autre horaire.",
         );
+      await notify(rows[0].professional_id, "appointment", "Nouvelle demande de rendez-vous", `${account.name} a réservé un créneau.`, "/pro?tab=Agenda");
       return send({ id });
     }
     if (action === "cancel" && req.method === "POST") {
@@ -391,12 +405,13 @@ export default async function handler(req, res) {
         req.method === "GET" ? req.query.appointment : b.appointment_id;
       if (!uuid(id)) throw fail(400, "Conversation invalide.");
       const [ap] =
-        await sql`SELECT id FROM appointments WHERE id=${id} AND (patient_id=${workspaceId} OR professional_id=${workspaceId})`;
+        await sql`SELECT id,patient_id,professional_id FROM appointments WHERE id=${id} AND (patient_id=${workspaceId} OR professional_id=${workspaceId})`;
       if (!ap) throw fail(403, "Vous n’avez pas accès à cette conversation.");
       if (action === "message-send" && req.method === "POST") {
         const body = clean(b.body, 2000);
         if (!body) throw fail(400, "Écrivez un message.");
         await sql`INSERT INTO messages(id,appointment_id,sender_id,body) VALUES(${randomUUID()},${id},${account.id},${body})`;
+        await notify(ap.patient_id === account.id ? ap.professional_id : ap.patient_id, "message", "Nouveau message", `${account.name} vous a écrit.`, account.role === "patient" ? "/pro?tab=Messages" : "/patient?tab=Messages");
         return send({ ok: true });
       }
       if (action === "messages" && req.method === "GET") {
@@ -429,11 +444,39 @@ export default async function handler(req, res) {
       return send({ ok: true });
     }
 
+    if (action === "patient-create" && req.method === "POST") {
+      roleCheck(account, "professional", "worker", "admin");
+      const name = clean(b.name, 80);
+      const email = clean(b.email, 254).toLowerCase();
+      const insurance = safeFile(b.insurance_card_data);
+      const billing = safeFile(b.billing_document_data);
+      if (!name) throw fail(400, "Indiquez le nom du patient.");
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        throw fail(400, "Indiquez un e-mail valide ou laissez ce champ vide.");
+      if (!insurance || !billing)
+        throw fail(400, "La carte de mutuelle et une facture sont obligatoires.");
+      const patientId = randomUUID();
+      const accountEmail = email || `dossier-${patientId}@patient.interne`;
+      const password = await passwordHash(randomBytes(32).toString("hex"));
+      const chart = b.dental_chart && typeof b.dental_chart === "object" ? b.dental_chart : {};
+      try {
+        await sql.transaction([
+          sql`INSERT INTO accounts(id,email,name,role,password_hash,recovery_hash) VALUES(${patientId},${accountEmail},${name},'patient',${password},${hash(randomBytes(24).toString('hex'))})`,
+          sql`INSERT INTO profiles(account_id) VALUES(${patientId})`,
+          sql`INSERT INTO patient_records(id,owner_id,patient_id,status,phone,email,tags,notes,birth_date,address,social_security_number,mutual_provider,mutual_member_number,insurance_card_data,insurance_card_name,billing_document_data,billing_document_name,prosthesis_date,medical_alerts,allergies,medications,dental_chart) VALUES(${randomUUID()},${workspaceId},${patientId},${clean(b.status,30)||'actif'},${clean(b.phone,40)},${email},${clean(b.tags,500)},${clean(b.notes,8000)},${b.birth_date||null},${clean(b.address,300)},${clean(b.social_security_number,30)},${clean(b.mutual_provider,120)},${clean(b.mutual_member_number,80)},${insurance},${clean(b.insurance_card_name,180)},${billing},${clean(b.billing_document_name,180)},${b.prosthesis_date||null},${clean(b.medical_alerts,2000)},${clean(b.allergies,1000)},${clean(b.medications,1500)},${JSON.stringify(chart)}::jsonb)`,
+          sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},'patient_created',${patientId},'Fiche patient importée manuellement')`,
+        ]);
+      } catch (error) {
+        if (String(error?.message || error).includes('accounts_email_key'))
+          throw fail(409, "Un compte utilise déjà cet e-mail. Ouvrez-le depuis la recherche.");
+        throw error;
+      }
+      return send({ ok: true, patient_id: patientId });
+    }
     if (action === "patient-record-save" && req.method === "POST") {
       roleCheck(account, "professional", "worker", "admin");
       if (!uuid(b.patient_id)) throw fail(400, "Patient invalide.");
-      const [linked] =
-        await sql`SELECT 1 FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${b.patient_id} LIMIT 1`;
+      const [linked] = await sql`SELECT 1 FROM patient_records WHERE owner_id=${workspaceId} AND patient_id=${b.patient_id} UNION ALL SELECT 1 FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${b.patient_id} LIMIT 1`;
       if (!linked)
         throw fail(403, "Ce patient ne fait pas partie de votre patientèle.");
       const [existing] =
@@ -453,7 +496,7 @@ export default async function handler(req, res) {
         b.dental_chart && typeof b.dental_chart === "object"
           ? b.dental_chart
           : {};
-      await sql`INSERT INTO patient_records(id,owner_id,patient_id,status,phone,email,tags,notes,birth_date,address,social_security_number,mutual_provider,mutual_member_number,insurance_card_data,insurance_card_name,billing_document_data,billing_document_name,medical_alerts,allergies,medications,dental_chart) VALUES(${randomUUID()},${workspaceId},${b.patient_id},${clean(b.status, 30) || "actif"},${clean(b.phone, 40)},${clean(b.email, 254)},${clean(b.tags, 500)},${clean(b.notes, 8000)},${b.birth_date || null},${clean(b.address, 300)},${clean(b.social_security_number, 30)},${clean(b.mutual_provider, 120)},${clean(b.mutual_member_number, 80)},${insurance},${clean(b.insurance_card_name, 180)},${billing},${clean(b.billing_document_name, 180)},${clean(b.medical_alerts, 2000)},${clean(b.allergies, 1000)},${clean(b.medications, 1500)},${JSON.stringify(chart)}::jsonb) ON CONFLICT(owner_id,patient_id) DO UPDATE SET status=excluded.status,phone=excluded.phone,email=excluded.email,tags=excluded.tags,notes=excluded.notes,birth_date=excluded.birth_date,address=excluded.address,social_security_number=excluded.social_security_number,mutual_provider=excluded.mutual_provider,mutual_member_number=excluded.mutual_member_number,insurance_card_data=excluded.insurance_card_data,insurance_card_name=excluded.insurance_card_name,billing_document_data=excluded.billing_document_data,billing_document_name=excluded.billing_document_name,medical_alerts=excluded.medical_alerts,allergies=excluded.allergies,medications=excluded.medications,dental_chart=excluded.dental_chart,updated_at=now()`;
+      await sql`INSERT INTO patient_records(id,owner_id,patient_id,status,phone,email,tags,notes,birth_date,address,social_security_number,mutual_provider,mutual_member_number,insurance_card_data,insurance_card_name,billing_document_data,billing_document_name,prosthesis_date,medical_alerts,allergies,medications,dental_chart) VALUES(${randomUUID()},${workspaceId},${b.patient_id},${clean(b.status, 30) || "actif"},${clean(b.phone, 40)},${clean(b.email, 254)},${clean(b.tags, 500)},${clean(b.notes, 8000)},${b.birth_date || null},${clean(b.address, 300)},${clean(b.social_security_number, 30)},${clean(b.mutual_provider, 120)},${clean(b.mutual_member_number, 80)},${insurance},${clean(b.insurance_card_name, 180)},${billing},${clean(b.billing_document_name, 180)},${b.prosthesis_date||null},${clean(b.medical_alerts, 2000)},${clean(b.allergies, 1000)},${clean(b.medications, 1500)},${JSON.stringify(chart)}::jsonb) ON CONFLICT(owner_id,patient_id) DO UPDATE SET status=excluded.status,phone=excluded.phone,email=excluded.email,tags=excluded.tags,notes=excluded.notes,birth_date=excluded.birth_date,address=excluded.address,social_security_number=excluded.social_security_number,mutual_provider=excluded.mutual_provider,mutual_member_number=excluded.mutual_member_number,insurance_card_data=excluded.insurance_card_data,insurance_card_name=excluded.insurance_card_name,billing_document_data=excluded.billing_document_data,billing_document_name=excluded.billing_document_name,prosthesis_date=excluded.prosthesis_date,medical_alerts=excluded.medical_alerts,allergies=excluded.allergies,medications=excluded.medications,dental_chart=excluded.dental_chart,updated_at=now()`;
       return send({ ok: true });
     }
     if (action === "dental-media-add" && req.method === "POST") {
@@ -466,8 +509,7 @@ export default async function handler(req, res) {
       const data = safeFile(b.data_url);
       if (!data)
         throw fail(400, "Choisissez une photo ou un PDF de moins de 3 Mo.");
-      const [linked] =
-        await sql`SELECT 1 FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${b.patient_id}`;
+      const [linked] = await sql`SELECT 1 FROM patient_records WHERE owner_id=${workspaceId} AND patient_id=${b.patient_id} UNION ALL SELECT 1 FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${b.patient_id} LIMIT 1`;
       if (!linked) throw fail(403, "Patient non lié.");
       await sql`INSERT INTO dental_media(id,owner_id,patient_id,appointment_id,kind,title,data_url) VALUES(${randomUUID()},${workspaceId},${b.patient_id},${uuid(b.appointment_id) ? b.appointment_id : null},${b.kind},${clean(b.title, 180)},${data})`;
       return send({ ok: true });
@@ -476,7 +518,7 @@ export default async function handler(req, res) {
       roleCheck(account, "professional", "worker", "admin");
       if (!uuid(b.patient_id) || !clean(b.title, 180))
         throw fail(400, "Renseignez le rendez-vous et son titre.");
-      const [linked]=await sql`SELECT id FROM appointments WHERE patient_id=${b.patient_id} AND professional_id=${workspaceId} AND (${b.appointment_id||null}::uuid IS NULL OR id=${b.appointment_id||null}::uuid) LIMIT 1`;
+      const [linked]=await sql`SELECT 1 WHERE EXISTS(SELECT 1 FROM patient_records WHERE owner_id=${workspaceId} AND patient_id=${b.patient_id}) OR EXISTS(SELECT 1 FROM appointments WHERE patient_id=${b.patient_id} AND professional_id=${workspaceId} AND (${b.appointment_id||null}::uuid IS NULL OR id=${b.appointment_id||null}::uuid))`;
       if(!linked)throw fail(403,'Rendez-vous non lié à votre patientèle.');
       const tooth =
         b.tooth_data && typeof b.tooth_data === "object" ? b.tooth_data : {};
@@ -509,6 +551,7 @@ export default async function handler(req, res) {
         Array.isArray(b.permissions) ? b.permissions : []
       ).filter((x) => allowed.includes(x));
       await sql`INSERT INTO clinic_members(id,owner_id,member_id,job_title,permissions) VALUES(${randomUUID()},${workspaceId},${member.id},${clean(b.job_title, 120)},${JSON.stringify(permissions)}::jsonb) ON CONFLICT(owner_id,member_id) DO UPDATE SET job_title=excluded.job_title,permissions=excluded.permissions,active=true`;
+      await notify(member.id, "team", "Invitation à rejoindre un cabinet", `${account.name} vous a attribué le rôle ${clean(b.job_title, 120) || "Membre d’équipe"}.`, "/pro?tab=%C3%89quipe");
       return send({ ok: true });
     }
     if (action === "service-save" && req.method === "POST") {
@@ -552,8 +595,7 @@ export default async function handler(req, res) {
     if (action === "document-create" && req.method === "POST") {
       roleCheck(account, "professional", "worker", "admin");
       if (!uuid(b.patient_id)) throw fail(400, "Patient invalide.");
-      const [linked] =
-        await sql`SELECT id FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${b.patient_id} ORDER BY created_at DESC LIMIT 1`;
+      const [linked] = await sql`SELECT 1 WHERE EXISTS(SELECT 1 FROM patient_records WHERE owner_id=${workspaceId} AND patient_id=${b.patient_id}) OR EXISTS(SELECT 1 FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${b.patient_id})`;
       if (!linked) throw fail(403, "Patient non lié.");
       const raw = Array.isArray(b.items) ? b.items.slice(0, 30) : [];
       const items = raw
@@ -594,6 +636,7 @@ export default async function handler(req, res) {
         await sql`SELECT id FROM appointments WHERE professional_id=${workspaceId} AND patient_id=${doc.patient_id} ORDER BY created_at DESC LIMIT 1`;
       if (ap)
         await sql`INSERT INTO messages(id,appointment_id,sender_id,body,document_id) VALUES(${randomUUID()},${ap.id},${account.id},${(doc.doc_type === 'quote'?'Devis':'Facture')+' '+doc.number+' · '+Number(doc.total).toFixed(2)+' €\nRèglement : '+({sur_place:'Sur place',mutuelle:'Mutuelle',tiers_payant:'Tiers payant',virement:'Virement',qonto:'Lien Qonto',cheque:'Chèque',especes:'Espèces',carte_cabinet:'Carte au cabinet'}[doc.payment_method]||'Sur place')+'\nPrise en charge prévue : '+Number(doc.insurance_amount||0).toFixed(2)+' €\n'+(doc.payment_details||'')+(doc.payment_url?'\nLien de paiement : '+doc.payment_url:'')},${doc.id})`;
+      await notify(doc.patient_id, "document", `${doc.doc_type === "quote" ? "Nouveau devis" : "Nouvelle facture"} ${doc.number}`, `Un document de ${Number(doc.total).toFixed(2)} € est disponible dans votre messagerie.`, "/patient?tab=Messages");
       return send({ ok: true, appointment_id: ap?.id || null });
     }
     if (action === "document-status" && req.method === "POST") {
@@ -653,6 +696,10 @@ export default async function handler(req, res) {
         await sql`UPDATE tasks SET title=${title},description=${clean(b.description, 5000)},stage=${stage},priority=${priority},due_at=${due},assignee=${clean(b.assignee, 120)},patient_id=${patient},checklist=${JSON.stringify(checklist)}::jsonb,attachments=${JSON.stringify(attachments)}::jsonb,updated_at=now() WHERE id=${b.id} AND owner_id=${workspaceId}`;
       } else
         await sql`INSERT INTO tasks(id,owner_id,title,description,stage,priority,due_at,assignee,patient_id,checklist,attachments) VALUES(${randomUUID()},${workspaceId},${title},${clean(b.description, 5000)},${stage},${priority},${due},${clean(b.assignee, 120)},${patient},${JSON.stringify(checklist)}::jsonb,${JSON.stringify(attachments)}::jsonb)`;
+      if (clean(b.assignee, 120)) {
+        const recipients = await sql`SELECT a.id FROM accounts a WHERE (a.id=${workspaceId} OR EXISTS(SELECT 1 FROM clinic_members cm WHERE cm.owner_id=${workspaceId} AND cm.member_id=a.id AND cm.active AND cm.accepted)) AND lower(a.name)=lower(${clean(b.assignee,120)})`;
+        await Promise.all(recipients.filter((x) => x.id !== account.id).map((x) => notify(x.id, "task", "Tâche attribuée", title, "/pro?tab=T%C3%A2ches")));
+      }
       return send({ ok: true });
     }
     if (action === "task-stage" && req.method === "POST") {
@@ -675,6 +722,8 @@ export default async function handler(req, res) {
       if (b.photo_data && !photo)
         throw fail(400, "Photo trop volumineuse ou invalide.");
       await sql`INSERT INTO missions(id,owner_id,appointment_id,assignee,title,address,status,eta,latitude,longitude,photo_data) VALUES(${randomUUID()},${workspaceId},${uuid(b.appointment_id) ? b.appointment_id : null},${assignee},${title},${clean(b.address, 300)},'planned',${Math.max(0, Math.min(240, Number(b.eta) || 0))},${Number.isFinite(Number(b.latitude)) ? Number(b.latitude) : null},${Number.isFinite(Number(b.longitude)) ? Number(b.longitude) : null},${photo})`;
+      const recipients = await sql`SELECT a.id FROM accounts a WHERE (a.id=${workspaceId} OR EXISTS(SELECT 1 FROM clinic_members cm WHERE cm.owner_id=${workspaceId} AND cm.member_id=a.id AND cm.active AND cm.accepted)) AND lower(a.name)=lower(${assignee})`;
+      await Promise.all(recipients.filter((x) => x.id !== account.id).map((x) => notify(x.id, "mission", "Course attribuée", title, "/pro?tab=Courses")));
       return send({ ok: true });
     }
     if (action === "mission-status" && req.method === "POST") {
@@ -692,13 +741,16 @@ export default async function handler(req, res) {
 
     if (action === "admin" && req.method === "GET") {
       roleCheck(account, "admin");
-      const [counts, accounts, appointments, audit, settings] =
+      const [counts, accounts, appointments, audit, settings, financials, priorities, tasks] =
         await Promise.all([
           sql`SELECT (SELECT count(*)::int FROM accounts) AS accounts,(SELECT count(*)::int FROM accounts WHERE role='patient') AS patients,(SELECT count(*)::int FROM accounts WHERE role IN('professional','worker')) AS professionals,(SELECT count(*)::int FROM profiles p JOIN accounts a ON a.id=p.account_id WHERE p.published AND NOT a.suspended) AS published,(SELECT count(*)::int FROM accounts a JOIN profiles p ON a.id=p.account_id WHERE a.role IN('professional','worker') AND NOT p.verified) AS pending,(SELECT count(*)::int FROM appointments WHERE status='confirmed') AS confirmed,(SELECT count(*)::int FROM appointments WHERE status='cancelled') AS cancelled,(SELECT count(*)::int FROM accounts WHERE suspended) AS suspended`,
           sql`SELECT a.id,a.name,a.email,a.role,a.created_at,a.suspended,p.verified,p.identifier,p.specialty,p.city,p.published,p.qualifications FROM accounts a JOIN profiles p ON a.id=p.account_id ORDER BY a.created_at DESC LIMIT 1000`,
           sql`SELECT ap.id,ap.status,ap.created_at,s.starts_at,s.duration,pa.name AS patient_name,pr.name AS professional_name FROM appointments ap JOIN slots s ON s.id=ap.slot_id JOIN accounts pa ON pa.id=ap.patient_id JOIN accounts pr ON pr.id=ap.professional_id ORDER BY s.starts_at DESC LIMIT 1000`,
           sql`SELECT l.id,l.action,l.target_id,l.detail,l.created_at,a.name AS actor_name FROM audit_log l JOIN accounts a ON a.id=l.actor_id ORDER BY l.created_at DESC LIMIT 300`,
           sql`SELECT * FROM platform_settings WHERE id=1`,
+          sql`SELECT d.id,d.number,d.doc_type,d.status,d.total,d.issue_date,pa.name AS patient_name,pr.name AS professional_name FROM business_documents d JOIN accounts pa ON pa.id=d.patient_id JOIN accounts pr ON pr.id=d.owner_id ORDER BY d.issue_date DESC LIMIT 2000`,
+          sql`SELECT r.prosthesis_date,pa.name AS patient_name,pr.name AS professional_name,r.status FROM patient_records r JOIN accounts pa ON pa.id=r.patient_id JOIN accounts pr ON pr.id=r.owner_id WHERE r.prosthesis_date IS NOT NULL ORDER BY r.prosthesis_date ASC LIMIT 1000`,
+          sql`SELECT t.id,t.title,t.stage,t.priority,t.due_at,t.assignee,pr.name AS professional_name FROM tasks t JOIN accounts pr ON pr.id=t.owner_id WHERE t.stage<>'Terminé' ORDER BY t.due_at NULLS LAST,t.created_at DESC LIMIT 1000`,
         ]);
       return send({
         counts: counts[0],
@@ -706,6 +758,9 @@ export default async function handler(req, res) {
         appointments,
         audit,
         settings: settings[0],
+        financials,
+        priorities,
+        tasks,
       });
     }
     if (action === "admin-verify" && req.method === "POST") {

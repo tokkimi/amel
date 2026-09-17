@@ -52,9 +52,11 @@ import { usePanel } from "./usePanel";
 import DentalChart from "./DentalChart";
 import DocumentEditor from './DocumentEditor';
 import {downloadSharedDocument} from './documents';
+import {downloadPatientPdf, downloadWorkbook} from "./exports";
 import TeamPanel from './TeamPanel';
 import LiveTracking from './LiveTracking';
 import SupportPanel from './SupportPanel';
+import NotificationCenter from "./NotificationCenter";
 
 const pages = [
   "Agenda",
@@ -261,7 +263,8 @@ export default function ProSuite({
     upcoming = appointments.filter(
       (a) => a.status === "confirmed" && new Date(a.starts_at) > new Date(),
     ),
-    activeMissions = data.missions.filter((m) => m.status !== "completed");
+    activeMissions = data.missions.filter((m) => m.status !== "completed"),
+    prosthesisPriorities = data.patients.filter((p) => p.prosthesis_date).sort((a, b) => String(a.prosthesis_date).localeCompare(String(b.prosthesis_date))).slice(0, 8);
   const openChat = (p: PatientRecord) => {
     const ap = appointments.find((a) => a.patient_id === p.patient_id);
     if (ap) {
@@ -365,6 +368,7 @@ export default function ProSuite({
             <a className="icon-button" href="/" aria-label="Voir le site">
               <ExternalLink size={17} />
             </a>
+            <NotificationCenter />
             <button
               className="icon-button"
               onClick={logout}
@@ -423,6 +427,13 @@ export default function ProSuite({
                   </div>
                 ))}
               </div>
+              <section className="glass panel priority-planner">
+                <div className="section-title"><div><h2>Mes priorités de pose</h2><p>Les dates renseignées dans les fiches patient, dans l’ordre d’échéance.</p></div><button className="text-button" onClick={()=>go("Patients")}>Voir les dossiers</button></div>
+                {prosthesisPriorities.length ? prosthesisPriorities.map((p) => {
+                  const days = Math.ceil((new Date(String(p.prosthesis_date)).getTime() - Date.now()) / 86400000);
+                  return <button className="priority-patient" key={p.patient_id} onClick={()=>{setPatient(p);setPatientTab("Synthèse");setModal("patient")}}><Avatar name={p.name}/><div><strong>{p.name}</strong><small>Pose prévue le {new Date(String(p.prosthesis_date)).toLocaleDateString("fr-FR")}</small></div><span className={days < 0 ? "late" : days <= 7 ? "soon" : ""}>{days < 0 ? "En retard" : days === 0 ? "Aujourd’hui" : `J-${days}`}</span></button>;
+                }) : <p className="empty">Aucune pose de prothèse programmée. Ajoutez une date dans une fiche patient.</p>}
+              </section>
               <section className="glass pro-day">
                 <div className="section-title">
                   <div>
@@ -570,13 +581,7 @@ export default function ProSuite({
               {heading(
                 "Patients.",
                 "Une fiche claire pour retrouver le suivi, les notes, les rendez-vous, les documents et les prochaines actions.",
-                <button
-                  className="primary"
-                  onClick={() => setModal("patient-info")}
-                >
-                  <Plus size={16} />
-                  Nouvelle fiche
-                </button>,
+                <><button className="secondary" onClick={()=>downloadWorkbook("smilepec-patients", {Patients:data.patients.map(p=>({Nom:p.name,Email:p.email,Téléphone:p.phone,"Pose de prothèse":p.prosthesis_date||"",Mutuelle:p.mutual_provider,Statut:p.record_status,"Rendez-vous":p.appointment_count}))})}><Download size={16}/> Excel</button><button className="primary" onClick={() => setModal("patient-info")}><Plus size={16} />Nouvelle fiche</button></>,
               )}
               <div className="pro-search">
                 <Search />
@@ -664,17 +669,7 @@ export default function ProSuite({
               {heading(
                 "Comptabilité.",
                 "Catalogue détaillé, devis, factures et règlements : chaque montant reste relié au bon patient.",
-                <button
-                  className="primary"
-                  disabled={!data.patients.length}
-                  onClick={() => {
-                    setDocumentPatient(data.patients[0]);
-                    setModal("document");
-                  }}
-                >
-                  <Plus />
-                  Créer un document
-                </button>,
+                <><button className="secondary" onClick={()=>downloadWorkbook("smilepec-cabinet", {Patients:data.patients.map(p=>({Nom:p.name,Email:p.email,"Pose de prothèse":p.prosthesis_date||"",Mutuelle:p.mutual_provider})),Documents:data.documents.map(d=>({Numéro:d.number,Type:d.doc_type,Patient:d.patient_name,Total:d.total,Statut:d.status,"Émis le":d.issue_date})),Tâches:data.tasks.map(t=>({Titre:t.title,Statut:t.stage,Priorité:t.priority,Assignée:t.assignee,Échéance:t.due_at||""})),"Rendez-vous":appointments.map(a=>({Patient:a.patient_name,Date:a.starts_at,Durée:a.duration,Statut:a.status}))})}><Download size={16}/> Export Excel</button><button className="primary" disabled={!data.patients.length} onClick={() => {setDocumentPatient(data.patients[0]);setModal("document");}}><Plus />Créer un document</button></>,
               )}
               <div className="pro-kpis finance">
                 {[
@@ -1611,6 +1606,7 @@ export default function ProSuite({
               <MessageCircle />
               Conversation
             </button>
+            <button className="secondary" onClick={() => downloadPatientPdf(patient, profile, account.name)}><Download /> Fiche PDF</button>
             <button
               className="primary"
               onClick={() => {
@@ -1662,6 +1658,7 @@ export default function ProSuite({
                         tags: f.get("tags"),
                         notes: f.get("notes"),
                         birth_date: f.get("birth_date"),
+                        prosthesis_date: f.get("prosthesis_date"),
                         address: f.get("address"),
                         social_security_number: f.get("social_security_number"),
                         mutual_provider: f.get("mutual_provider"),
@@ -1751,6 +1748,10 @@ export default function ProSuite({
                     defaultValue={patient.mutual_member_number}
                     required
                   />
+                </label>
+                <label>
+                  Pose de prothèse prévue
+                  <input name="prosthesis_date" type="date" defaultValue={patient.prosthesis_date?.slice(0, 10)} />
                 </label>
               </div>
               <div className="required-documents">
@@ -1967,21 +1968,15 @@ export default function ProSuite({
       )}
       {modal === "patient-info" && (
         <Modal title="Créer une fiche patient" close={() => setModal("")}>
-          <p>
-            Une fiche sécurisée est automatiquement créée dès la première
-            demande de rendez-vous. Invitez votre patient à réserver ou partagez
-            votre lien de profil public.
-          </p>
-          <button
-            className="primary full"
-            onClick={() => {
-              navigator.clipboard?.writeText(location.origin + "/recherche");
-              setNotice("Lien de réservation copié.");
-              setModal("");
-            }}
-          >
-            Copier le lien de réservation
-          </button>
+          <PatientCreateForm
+            save={(body) =>
+              act(
+                "patient-create",
+                body,
+                "Fiche patient créée et prête à compléter.",
+              )
+            }
+          />
         </Modal>
       )}
       {modal.startsWith("service") && (
@@ -2128,6 +2123,84 @@ function ServiceForm({
     </form>
   );
 }
+function PatientCreateForm({ save }: { save: (body: any) => Promise<any> }) {
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const f = new FormData(e.currentTarget);
+        setSaving(true);
+        setError("");
+        try {
+          const insuranceFile = f.get("insurance_card") as File;
+          const billingFile = f.get("billing_document") as File;
+          const [insurance, billing] = await Promise.all([
+            fileDataAny(insuranceFile),
+            fileDataAny(billingFile),
+          ]);
+          await save({
+            name: f.get("name"),
+            email: f.get("email"),
+            phone: f.get("phone"),
+            status: f.get("status"),
+            birth_date: f.get("birth_date"),
+            prosthesis_date: f.get("prosthesis_date"),
+            address: f.get("address"),
+            social_security_number: f.get("social_security_number"),
+            mutual_provider: f.get("mutual_provider"),
+            mutual_member_number: f.get("mutual_member_number"),
+            tags: f.get("tags"),
+            notes: f.get("notes"),
+            medical_alerts: f.get("medical_alerts"),
+            allergies: f.get("allergies"),
+            medications: f.get("medications"),
+            insurance_card_data: insurance,
+            insurance_card_name: insuranceFile.name,
+            billing_document_data: billing,
+            billing_document_name: billingFile.name,
+          });
+        } catch (err) {
+          setError((err as Error).message);
+        } finally {
+          setSaving(false);
+        }
+      }}
+    >
+      <p className="muted">
+        Importez un dossier existant sans rendez-vous. Il restera privé au
+        cabinet et apparaîtra immédiatement dans votre patientèle.
+      </p>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="form-grid">
+        <label>Nom complet *<input name="name" required autoComplete="name" /></label>
+        <label>E-mail<input name="email" type="email" autoComplete="email" /></label>
+        <label>Téléphone<input name="phone" type="tel" autoComplete="tel" /></label>
+        <label>Statut<select name="status" defaultValue="actif"><option value="actif">Actif</option><option value="prospect">Prospect</option><option value="suivi">Suivi</option><option value="inactif">Inactif</option></select></label>
+        <label>Date de naissance<input name="birth_date" type="date" /></label>
+        <label>Pose de prothèse prévue<input name="prosthesis_date" type="date" /></label>
+        <label>Adresse<input name="address" autoComplete="street-address" /></label>
+        <label>N° de sécurité sociale<input name="social_security_number" inputMode="numeric" /></label>
+        <label>Mutuelle / complémentaire *<input name="mutual_provider" required /></label>
+        <label>N° adhérent *<input name="mutual_member_number" required /></label>
+        <label>Tags<input name="tags" placeholder="Orthodontie, import 2026" /></label>
+      </div>
+      <div className="required-documents">
+        <label><strong>Carte de mutuelle *</strong><input name="insurance_card" type="file" accept="image/*,application/pdf" capture="environment" required /></label>
+        <label><strong>Facture justificative *</strong><input name="billing_document" type="file" accept="image/*,application/pdf" capture="environment" required /></label>
+      </div>
+      <div className="form-grid">
+        <label>Alertes médicales<textarea name="medical_alerts" rows={3} /></label>
+        <label>Allergies<textarea name="allergies" rows={3} /></label>
+        <label>Traitements en cours<textarea name="medications" rows={3} /></label>
+      </div>
+      <label>Notes de reprise / historique<textarea name="notes" rows={5} placeholder="Ancien cabinet, soins en cours, points à reprendre…" /></label>
+      <button className="primary full" disabled={saving}>{saving ? "Création…" : "Créer la fiche patient"}</button>
+    </form>
+  );
+}
+
 function DocumentForm({
   patient,
   services,

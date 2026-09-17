@@ -39,6 +39,12 @@ CREATE INDEX IF NOT EXISTS appointment_patient ON appointments(patient_id);
 CREATE INDEX IF NOT EXISTS appointment_professional ON appointments(professional_id);
 CREATE INDEX IF NOT EXISTS session_account ON sessions(account_id);
 CREATE INDEX IF NOT EXISTS message_appointment ON messages(appointment_id,created_at);
+CREATE TABLE IF NOT EXISTS notifications (
+ id uuid PRIMARY KEY, account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+ kind text NOT NULL DEFAULT 'info', title text NOT NULL, body text NOT NULL DEFAULT '', href text NOT NULL DEFAULT '', read_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS notifications_account ON notifications(account_id,read_at,created_at DESC);
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS suspended boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS audit_log(id uuid PRIMARY KEY, actor_id uuid NOT NULL REFERENCES accounts(id),action text NOT NULL,target_id uuid,detail text NOT NULL DEFAULT '',created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS platform_settings(id integer PRIMARY KEY CHECK(id=1),name text NOT NULL DEFAULT 'Amelib',support_email text NOT NULL DEFAULT '',announcement text NOT NULL DEFAULT '',updated_at timestamptz NOT NULL DEFAULT now());
@@ -78,6 +84,7 @@ ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS insurance_card_data text NO
 ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS insurance_card_name text NOT NULL DEFAULT '';
 ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS billing_document_data text NOT NULL DEFAULT '';
 ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS billing_document_name text NOT NULL DEFAULT '';
+ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS prosthesis_date date;
 ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS medical_alerts text NOT NULL DEFAULT '';
 ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS allergies text NOT NULL DEFAULT '';
 ALTER TABLE patient_records ADD COLUMN IF NOT EXISTS medications text NOT NULL DEFAULT '';
