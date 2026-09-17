@@ -313,9 +313,7 @@ export default function ProSuite({
     <div className="pro-suite">
       {menu&&<button className="pro-menu-shade" aria-label="Fermer le menu" onClick={()=>setMenu(false)}/>}
       <aside className={`pro-sidebar ${menu ? "open" : ""}`}>
-        <a className="brand" href="/">
-          SmilePec<span>.</span>
-        </a>
+        <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
         <div className="pro-identity">
           <Avatar name={account.name} src={profile.photo_data} />
           <div>

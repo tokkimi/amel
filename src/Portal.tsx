@@ -39,10 +39,7 @@ import AdminConsole from "./AdminConsole";
 
 function Logo() {
   return (
-    <a className="brand" href="/">
-      <img className="brand-emblem" src="/smilepec-emblem.png" alt="" />
-      SmilePec
-    </a>
+    <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
   );
 }
 function Portrait({ p, large = false }: { p: Professional; large?: boolean }) {

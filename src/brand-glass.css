@@ -19,3 +19,36 @@
   border:1px solid rgba(255,255,255,.85) !important;
   backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
 }
+
+/* Clear glass: translucent white reflections, with no coloured fill. */
+.public-site .public-header,
+.public-site .pro-banner,
+.public-site .smilepec-callout,
+.public-app-dock,.pro-dock,.workspace-dock,.admin-mobile-dock,.bottom-nav,
+.topbar,.pro-topbar {
+  background:linear-gradient(135deg,rgba(255,255,255,.20),rgba(255,255,255,.015) 45%,rgba(255,255,255,.09)) !important;
+  border:1px solid rgba(255,255,255,.85) !important;
+  backdrop-filter:blur(14px) saturate(110%) !important;
+  -webkit-backdrop-filter:blur(14px) saturate(110%) !important;
+  box-shadow:inset 0 2px 2px rgba(255,255,255,.95),inset 1px 0 1px rgba(255,255,255,.65),inset 0 -2px 3px rgba(78,61,50,.10),0 8px 24px rgba(78,61,50,.10),0 1px 2px rgba(78,61,50,.08) !important;
+}
+button:not(.pro-menu-shade),.primary,.secondary,.dark-button,
+.public-site .primary,.public-site .secondary {
+  background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.025) 55%,rgba(255,255,255,.12)) !important;
+  border:1px solid rgba(255,255,255,.78) !important;
+  color:#4e3d32 !important;
+  box-shadow:inset 0 1px 1px #ffffffed,inset 0 -1px 2px #4e3d3212,0 3px 10px #4e3d3209;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+button:focus-visible,a:focus-visible {outline:2px solid #8c7a6b;outline-offset:3px}
+button:disabled{opacity:.45}
+button[aria-selected="true"],button.active,button.selected{box-shadow:inset 0 0 0 1px #8c7a6b, inset 0 2px 3px #fff!important;font-weight:700}
+.brand .brand-full-logo{display:block;width:88px;height:88px;object-fit:contain;flex-shrink:0}
+.public-header .brand{align-self:center}
+.splash-logo{width:220px!important;height:220px!important;background:transparent!important;box-shadow:none!important;border:0!important}
+.splash-logo img{width:100%!important;height:100%!important;object-fit:contain}
+@media(max-width:850px){
+ .brand .brand-full-logo{width:64px;height:64px}
+ .public-header{min-height:76px;padding-top:6px!important;padding-bottom:6px!important}
+ .public-app-dock,.pro-dock,.workspace-dock,.admin-mobile-dock,.bottom-nav{border-radius:25px 25px 0 0!important}
+}

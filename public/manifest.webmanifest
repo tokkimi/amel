@@ -7,9 +7,9 @@
   "theme_color": "#3b322d",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/smilepec-emblem.png",
+      "sizes": "1280x1280",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

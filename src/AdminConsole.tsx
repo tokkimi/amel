@@ -257,9 +257,7 @@ export default function AdminConsole({
   return (
     <div className="admin-app">
       <aside className={"admin-sidebar " + (mobile ? "shown" : "")}>
-        <a className="brand" href="/">
-          SmilePec<span className="brand-dot">.</span>
-        </a>
+        <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
         <span className="admin-space-label">
           <ShieldCheck size={14} /> ADMINISTRATION GÉNÉRALE
         </span>

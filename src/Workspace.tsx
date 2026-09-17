@@ -246,9 +246,7 @@ export default function Workspace({
   return (
     <div className="app real-workspace">
       <aside className="sidebar">
-        <a className="brand" href="/">
-          SmilePec<span className="brand-dot">.</span>
-        </a>
+        <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
         <div className="workspace">
           <span className="stat-icon blue">
             {pro ? <Stethoscope size={20} /> : <Heart size={20} />}
