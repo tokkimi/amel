@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { api, Account, dateFormat, roleLabel } from "./client";
 import { downloadWorkbook } from "./exports";
+import SmilePecAssistant from "./SmilePecAssistant";
 type Person = {
   id: string;
   name: string;
@@ -425,6 +426,7 @@ export default function AdminConsole({
                     })}
                   </div>
                   <div className="admin-overview-grid">
+                    <SmilePecAssistant admin />
                     <section className="glass panel">
                       <div className="section-title">
                         <h2>Dernières inscriptions</h2>

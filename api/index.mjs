@@ -231,6 +231,32 @@ export default async function handler(req, res) {
       else await sql`UPDATE notifications SET read_at=now() WHERE account_id=${account.id} AND read_at IS NULL`;
       return send({ ok: true });
     }
+    if (action === "assistant" && req.method === "POST") {
+      const question = clean(b.question, 800).toLowerCase();
+      if (!question) throw fail(400, "Posez votre question à l’assistant.");
+      if (account.role === "admin") {
+        const [counts, financial] = await Promise.all([
+          sql`SELECT (SELECT count(*)::int FROM accounts WHERE role='patient') AS patients,(SELECT count(*)::int FROM accounts WHERE role='professional') AS cabinets,(SELECT count(*)::int FROM appointments WHERE status='confirmed') AS appointments,(SELECT count(*)::int FROM tasks WHERE stage<>'Terminé') AS tasks`,
+          sql`SELECT coalesce(sum(total) FILTER(WHERE doc_type='invoice'),0) AS invoiced,coalesce(sum(total) FILTER(WHERE status='paid'),0) AS paid,coalesce(sum(total) FILTER(WHERE status NOT IN('paid','cancelled')),0) AS pending FROM business_documents`,
+        ]);
+        const c=counts[0],f=financial[0];
+        return send({ answer:`Vue SmilePec : ${c.cabinets} cabinet(s), ${c.patients} patient(s), ${c.appointments} rendez-vous confirmés et ${c.tasks} tâche(s) ouverte(s). Bilan documents : ${Number(f.invoiced).toFixed(2)} € facturés, ${Number(f.paid).toFixed(2)} € réglés et ${Number(f.pending).toFixed(2)} € à suivre.`, sources:["Administration générale"] });
+      }
+      const [patients, documents, tasks, appointments, ledger] = await Promise.all([
+        sql`SELECT pa.name,r.prosthesis_date,r.status FROM patient_records r JOIN accounts pa ON pa.id=r.patient_id WHERE r.owner_id=${workspaceId} ORDER BY r.prosthesis_date NULLS LAST LIMIT 100`,
+        sql`SELECT number,doc_type,status,total FROM business_documents WHERE owner_id=${workspaceId} ORDER BY created_at DESC LIMIT 200`,
+        sql`SELECT title,stage,priority,due_at,assignee FROM tasks WHERE owner_id=${workspaceId} AND stage<>'Terminé' ORDER BY due_at NULLS LAST LIMIT 100`,
+        sql`SELECT pa.name,s.starts_at FROM appointments ap JOIN accounts pa ON pa.id=ap.patient_id JOIN slots s ON s.id=ap.slot_id WHERE ap.professional_id=${workspaceId} AND ap.status='confirmed' AND s.starts_at>now() ORDER BY s.starts_at LIMIT 20`,
+        sql`SELECT amount,kind,paid FROM ledger WHERE owner_id=${workspaceId} LIMIT 500`,
+      ]);
+      const sources=[]; let answer="";
+      if (/proth|priorit|pose/.test(question)) { const list=patients.filter(x=>x.prosthesis_date).slice(0,8); answer=list.length?`Poses à prioriser : ${list.map(x=>`${x.name} (${new Date(x.prosthesis_date).toLocaleDateString('fr-FR')})`).join(', ')}.`:"Aucune date de pose de prothèse n’est renseignée dans vos fiches.";sources.push("Fiches patient de votre cabinet"); }
+      else if (/compta|factur|devis|pay|encais/.test(question)) { const total=documents.reduce((s,x)=>s+Number(x.total),0),paid=documents.filter(x=>x.status==='paid').reduce((s,x)=>s+Number(x.total),0);answer=`Votre espace contient ${documents.length} document(s) pour ${total.toFixed(2)} € ; ${paid.toFixed(2)} € sont marqués réglés. ${documents.filter(x=>!['paid','cancelled'].includes(x.status)).length} document(s) restent à suivre.`;sources.push("Vos devis et factures"); }
+      else if (/tâche|faire|mission/.test(question)) { answer=tasks.length?`Vous avez ${tasks.length} tâche(s) ouverte(s) : ${tasks.slice(0,6).map(x=>`${x.title}${x.due_at?` (échéance ${new Date(x.due_at).toLocaleDateString('fr-FR')})`:''}`).join(', ')}.`:"Aucune tâche ouverte.";sources.push("Vos tâches"); }
+      else if (/rdv|agenda|rendez/.test(question)) { answer=appointments.length?`Vos prochains rendez-vous : ${appointments.slice(0,6).map(x=>`${x.name}, le ${new Date(x.starts_at).toLocaleDateString('fr-FR')} à ${new Date(x.starts_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`).join(' ; ')}.`:"Aucun rendez-vous à venir.";sources.push("Votre agenda"); }
+      else { answer=`Votre cabinet compte ${patients.length} fiche(s) patient, ${appointments.length} rendez-vous à venir, ${tasks.length} tâche(s) ouverte(s) et ${documents.length} document(s). Vous pouvez me demander les priorités de pose, la comptabilité, l’agenda ou les tâches.`;sources.push("Votre espace cabinet"); }
+      return send({answer,sources});
+    }
     if (action === "logout" && req.method === "POST") {
       await sql`DELETE FROM sessions WHERE token_hash=${hash(token)}`;
       cookie("", 0);

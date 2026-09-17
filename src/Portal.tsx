@@ -911,6 +911,10 @@ export default function Portal() {
             </div>
           </section>
           <section className="smilepec-services public-section">
+            <div className="assistant-home glass">
+              <div><div className="eyebrow">ASSISTANT SMILEPEC</div><h2>Vos informations utiles, au bon moment.</h2><p>Dans chaque espace, l’assistant répond à partir des données autorisées : priorités de pose, agenda, tâches, devis et factures pour le cabinet ; pilotage global pour Amel.</p></div>
+              <div className="assistant-home-chat"><strong>Que dois-je prioriser aujourd’hui ?</strong><span>Les poses de prothèse, les échéances et les tâches ouvertes sont réunies dans votre espace.</span></div>
+            </div>
             <div className="public-section-heading">
               <div>
                 <div className="eyebrow">
