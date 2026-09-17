@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   Globe,
   Heart,
+  House,
   LogOut,
   Mail,
   MapPin,
@@ -18,6 +19,7 @@ import {
   Smile,
   Sparkles,
   Stethoscope,
+  UserRound,
   Users,
   X,
 } from "lucide-react";
@@ -41,6 +43,14 @@ import SmilePecAssistant from "./SmilePecAssistant";
 function Logo() {
   return (
     <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
+  );
+}
+function ToothIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7.1 3.4c1.5 0 2.3.8 4.9.8s3.4-.8 4.9-.8c2.3 0 4 1.9 3.8 4.5-.2 2.6-1.4 5.2-2.7 7.9-.9 1.9-1.5 4.5-2.8 4.5-1.6 0-1.2-4.7-3.2-4.7s-1.6 4.7-3.2 4.7c-1.3 0-1.9-2.6-2.8-4.5-1.3-2.7-2.5-5.3-2.7-7.9C3.1 5.3 4.8 3.4 7.1 3.4Z" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.2 7.6c.8.4 1.7.6 2.8.6 1.1 0 2-.2 2.8-.6" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
   );
 }
 function Portrait({ p, large = false }: { p: Professional; large?: boolean }) {
@@ -1317,20 +1327,20 @@ export default function Portal() {
           className={view === "home" ? "active" : ""}
           onClick={() => navigate("home", "/")}
         >
-          <Smile size={21} />
+          <House size={22} />
           Accueil
         </button>
         <button
           onClick={() => document.getElementById("accompagnement")?.scrollIntoView({ behavior: "smooth" })}
         >
-          <Heart size={21} />
+          <ToothIcon size={22} />
           Accompagnement
         </button>
         <button
           className={view === "tools" ? "active" : ""}
           onClick={() => navigate("tools", "/outils")}
         >
-          <Stethoscope size={21} />
+          <CalendarDays size={22} />
           Outils
         </button>
         <button
@@ -1339,7 +1349,7 @@ export default function Portal() {
             else auth("login");
           }}
         >
-          <Users size={21} />
+          <UserRound size={22} />
           Mon espace
         </button>
       </nav>
