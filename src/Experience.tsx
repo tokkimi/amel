@@ -295,7 +295,7 @@ export function ToolsPreview() {
             Même en chemin.
           </h2>
           <p>
-            Découvrez les outils qui rapprochent patients, cabinets et
+            Découvrez les outils qui coordonnent les cabinets et leurs
             intervenants.
           </p>
         </div>
@@ -314,9 +314,9 @@ export function ToolsPreview() {
             Vous le savez.
           </h3>
           <p>
-            Imaginez votre intervenant sur une carte, une heure d’arrivée et un
-            lien direct avec votre équipe. Du départ à la porte, chacun sait où
-            en est la visite.
+            Suivez une mission de cabinet sur une carte, avec une heure
+            d’arrivée et un lien direct avec votre équipe. Du départ au lieu
+            de rendez-vous, chacun sait où en est la mission.
           </p>
           <ul>
             <li>

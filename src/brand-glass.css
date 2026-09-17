@@ -98,28 +98,32 @@ button:disabled { opacity: .45; }
 /* Full-width floating header: a light-catching glass rail that follows intent, not the page. */
 .public-site > .public-header {
   position: fixed !important;
-  inset: 0 0 auto 0;
-  width: 100% !important;
+  inset: 26px clamp(18px, 3.2vw, 68px) auto !important;
+  width: auto !important;
   min-height: 86px;
   padding: 10px clamp(20px, 5vw, 76px) !important;
-  background: linear-gradient(106deg, rgba(255,255,255,.26), rgba(255,255,255,.035) 45%, rgba(255,255,255,.17)) !important;
-  border: 0 !important;
-  border-bottom: 1px solid rgba(255,255,255,.76) !important;
-  border-radius: 0 0 30px 30px !important;
-  box-shadow: inset 0 1px rgba(255,255,255,.98), inset 0 -14px 26px rgba(255,255,255,.028), 0 15px 36px rgba(78,61,50,.08) !important;
-  backdrop-filter: blur(30px) saturate(120%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(120%) !important;
+  background: linear-gradient(112deg, rgba(255,255,255,.42), rgba(255,255,255,.10) 43%, rgba(255,255,255,.28)) !important;
+  border: 1px solid rgba(255,255,255,.82) !important;
+  border-radius: 31px !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.98), inset 0 -16px 28px rgba(255,255,255,.045), 0 18px 42px rgba(78,61,50,.10), 0 1px 0 rgba(255,255,255,.98) !important;
+  backdrop-filter: blur(34px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(34px) saturate(135%) !important;
   z-index: 80;
   transition: transform .32s cubic-bezier(.2,.75,.25,1), opacity .24s ease !important;
 }
-.public-site > .public-header::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: -1px; height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.98), transparent); pointer-events: none; }
+.public-site > .public-header::after { content: ""; position: absolute; left: 9%; right: 9%; bottom: -1px; height: 1px; border-radius: 99px; background: linear-gradient(90deg, transparent, rgba(255,255,255,1), transparent); pointer-events: none; }
+.public-site > .public-header:has(.public-links.expanded) {
+  background: linear-gradient(106deg, rgba(255,255,255,.34), rgba(255,255,255,.08) 45%, rgba(255,255,255,.22)) !important;
+  backdrop-filter: blur(32px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(145%) !important;
+}
 .public-site > .public-header.is-hidden { transform: translateY(-118%); opacity: 0; pointer-events: none; }
 .public-site > .public-header.is-visible { transform: translateY(0); opacity: 1; }
-.public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 96px; }
+.public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 122px; }
 
 @media (max-width: 850px) {
-  .public-site > .public-header { min-height: 75px; padding: 5px 18px !important; border-radius: 0 0 24px 24px !important; }
-  .public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 80px; }
+  .public-site > .public-header { inset: 10px 10px auto !important; min-height: 70px; padding: 4px 15px !important; border-radius: 24px !important; }
+  .public-site > .public-header + .public-error, .public-site > .public-header ~ .public-hero { margin-top: 91px; }
 }
 .brand .brand-full-logo { display: block; width: 88px; height: 88px; object-fit: contain; flex-shrink: 0; }
 .public-header .brand { align-self: center; }
@@ -161,4 +165,33 @@ button:disabled { opacity: .45; }
   .public-hero-art { min-height: 360px; border-radius: 28px; }
   .smilepec-assistant-float { right: 18px; bottom: max(87px, calc(env(safe-area-inset-bottom) + 72px)); }
   .smilepec-assistant-panel { position: fixed; right: 16px; left: 16px; bottom: max(92px, calc(env(safe-area-inset-bottom) + 78px)); width: auto; max-height: min(570px, calc(100vh - 128px)); }
+}
+
+/* Every mobile dock is the same floating glass rail: one soft container and a luminous active seat. */
+@media (max-width: 850px) {
+  :is(.public-app-dock, .pro-dock, .workspace-dock, .admin-mobile-dock, .bottom-nav) {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    padding: 7px 8px !important;
+    border: 1px solid rgba(255,255,255,.86) !important;
+    border-radius: 30px !important;
+    background: linear-gradient(110deg, rgba(255,255,255,.42), rgba(255,255,255,.10) 48%, rgba(255,255,255,.28)) !important;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,.98), inset 0 -13px 24px rgba(255,255,255,.05), 0 14px 34px rgba(78,61,50,.14) !important;
+    backdrop-filter: blur(30px) saturate(135%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(135%) !important;
+  }
+  :is(.public-app-dock button, .pro-dock button, .workspace-dock button, .admin-mobile-dock button, .bottom-nav button) {
+    flex: 1 1 0;
+    min-width: 0 !important;
+    min-height: 51px;
+    padding: 7px 5px !important;
+    border-radius: 21px !important;
+    color: var(--sp-muted) !important;
+  }
+  :is(.public-app-dock button.active, .pro-dock button.active, .workspace-dock button.active, .admin-mobile-dock button.active, .bottom-nav button.active) {
+    background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(255,255,255,.17)) !important;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,.96), 0 7px 17px rgba(102,76,55,.10) !important;
+    color: #75593f !important;
+  }
 }
