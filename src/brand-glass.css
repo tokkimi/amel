@@ -86,7 +86,7 @@ button:disabled { opacity: .45; }
 .public-site .public-benefits { border: 0 !important; }
 
 /* Public home: white light first, with champagne kept only as a distant reflection. */
-.public-site { background: radial-gradient(ellipse at 80% 5%, rgba(255,255,255,.98) 0, rgba(255,255,255,.52) 30%, transparent 56%), radial-gradient(ellipse at 7% 36%, rgba(255,255,255,.94) 0, transparent 38%), radial-gradient(ellipse at 54% 92%, rgba(229,207,181,.18) 0, transparent 46%), #fdfcfb !important; }
+.public-site { background: radial-gradient(ellipse at 76% 8%, rgba(255,255,255,.84) 0, rgba(255,255,255,.22) 29%, transparent 57%), radial-gradient(ellipse at 7% 34%, rgba(255,255,255,.64) 0, transparent 39%), radial-gradient(ellipse at 53% 91%, rgba(251,240,224,.39) 0, transparent 47%), linear-gradient(137deg, #c9bbae 0%, #eee6df 40%, #c7b6a8 100%) !important; }
 .public-site .public-hero, .public-site .public-section, .public-site .public-benefits { position: relative; isolation: isolate; }
 .public-site .public-hero::before, .public-site .smilepec-services::before, .public-site .pro-banner::before { content: ""; position: absolute; z-index: -1; pointer-events: none; width: min(46vw, 520px); height: min(46vw, 520px); border-radius: 50%; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.96), rgba(255,255,255,.30) 42%, rgba(231,211,189,.13) 68%, transparent 72%); filter: blur(2px); }
 .public-site .public-hero::before { right: -9%; top: -12%; }
@@ -133,6 +133,43 @@ button:disabled { opacity: .45; }
 /* The home image is now a complete visual, rather than a photo hidden by decorative bubbles. */
 .public-hero-art { min-height: 430px; overflow: visible; display: grid; place-items: center; border-radius: 0; background: transparent; box-shadow: none; }
 .hero-care-photo { position: relative !important; inset: auto !important; display: block; width: 100% !important; height: 100% !important; object-fit: contain !important; object-position: center !important; border-radius: 0 !important; filter: none !important; box-shadow: none !important; opacity: 1 !important; }
+
+/* Home hero: a complete cabinet scene under a single, illuminated glass composition. */
+.public-site .public-hero {
+  max-width: min(1450px, calc(100% - 44px));
+  min-height: 600px;
+  margin: 0 auto 60px;
+  padding: 58px clamp(34px, 6.3vw, 96px) 154px;
+  display: block;
+  overflow: hidden;
+  border-radius: 42px;
+  background: linear-gradient(94deg, rgba(242,235,228,.94) 0%, rgba(244,237,231,.78) 37%, rgba(244,237,231,.13) 67%, rgba(224,212,200,.05) 100%) !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.99), inset 0 -18px 38px rgba(255,255,255,.13), 0 26px 68px rgba(78,61,50,.15) !important;
+}
+.public-site .public-hero::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(circle at 11% 16%, rgba(255,255,255,.60), transparent 29%), linear-gradient(90deg, rgba(247,241,235,.93) 0%, rgba(246,238,231,.77) 36%, rgba(245,237,230,.25) 58%, transparent 79%); }
+.public-site .public-hero .public-hero-art { position: absolute; inset: 0; z-index: 0; min-height: 0; display: block; }
+.public-site .public-hero .hero-care-photo { width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center !important; filter: saturate(.84) contrast(.96) brightness(1.04) !important; }
+.public-site .public-hero .hero-copy, .public-site .public-hero .hero-search-wrap { position: relative; z-index: 2; width: min(52%, 590px); }
+.public-site .public-hero .hero-copy > p { color: #74675d; max-width: 550px; }
+.public-site .public-hero .hero-people, .public-site .public-hero .hero-kicker { color: #877465; }
+.public-site .public-hero .hero-people strong { color: #715d4d; }
+.public-site .public-hero .hero-search-wrap { margin-top: 22px; }
+.public-site .hero-benefits { position: absolute; z-index: 3; left: clamp(18px, 3.2vw, 52px); right: clamp(18px, 3.2vw, 52px); bottom: 25px; max-width: none; margin: 0; padding: 20px 24px; border: 1px solid rgba(255,255,255,.87) !important; border-radius: 31px; background: linear-gradient(110deg, rgba(255,255,255,.46), rgba(255,255,255,.12) 52%, rgba(255,255,255,.33)) !important; box-shadow: inset 0 1px rgba(255,255,255,.98), 0 14px 35px rgba(78,61,50,.10) !important; backdrop-filter: blur(28px) saturate(135%); -webkit-backdrop-filter: blur(28px) saturate(135%); }
+.public-site .hero-benefits > div { justify-content: center; }
+.public-site .hero-benefits svg { width: 32px; height: 32px; padding: 7px; border-radius: 50%; background: rgba(255,255,255,.38); box-shadow: inset 0 1px rgba(255,255,255,.94); color: #785e45; }
+.public-site .hero-benefits span { color: #685a4e; font-size: 11px; }
+.public-site .hero-benefits strong { color: #8a7563; }
+@media (max-width: 850px) {
+  .public-site .public-hero { max-width: calc(100% - 20px); min-height: 0; margin-bottom: 34px; padding: 265px 20px 18px; border-radius: 30px; background: linear-gradient(180deg, rgba(245,239,233,.08) 0, rgba(247,241,235,.82) 39%, rgba(245,239,233,.96) 100%) !important; }
+  .public-site .public-hero::after { background: linear-gradient(180deg, rgba(248,242,236,.05) 0, rgba(247,240,233,.27) 31%, rgba(247,241,235,.88) 49%, rgba(247,241,235,.98) 100%); }
+  .public-site .public-hero .public-hero-art { height: 320px; bottom: auto; }
+  .public-site .public-hero .hero-care-photo { object-position: 62% center !important; }
+  .public-site .public-hero .hero-copy, .public-site .public-hero .hero-search-wrap { width: 100%; }
+  .public-site .public-hero h1 { font-size: clamp(37px, 10vw, 48px); }
+  .public-site .public-hero .hero-people { margin-top: 16px; }
+  .public-site .hero-benefits { position: relative; left: auto; right: auto; bottom: auto; margin: 23px 0 0; padding: 13px 10px; overflow-x: auto; scroll-snap-type: x mandatory; }
+  .public-site .hero-benefits > div { min-width: 174px; justify-content: flex-start; scroll-snap-align: start; }
+}
 
 /* Logged-in assistant: one floating, movable bubble that opens a proper chat surface. */
 .smilepec-assistant-float { position: fixed; right: 26px; bottom: max(94px, calc(env(safe-area-inset-bottom) + 82px)); z-index: 95; }

@@ -793,39 +793,39 @@ export default function Portal() {
                 <button className="secondary" onClick={() => auth("login", "Praticien")}>Accéder à mon espace</button>
               </div>
             </div>
-          </section>
-          <section className="public-benefits">
-            <div>
-              <CalendarDays />
-              <span>
-                Un agenda patient
-                <br />
-                <strong>connecté à votre cabinet</strong>
-              </span>
-            </div>
-            <div>
-              <Users />
-              <span>
-                Une équipe
-                <br />
-                <strong>qui travaille ensemble</strong>
-              </span>
-            </div>
-            <div>
-              <Heart />
-              <span>
-                Une gestion
-                <br />
-                <strong>à chaque échéance</strong>
-              </span>
-            </div>
-            <div>
-              <Smile />
-              <span>
-                Au cabinet, à domicile
-                <br />
-                <strong>toujours à vos côtés</strong>
-              </span>
+            <div className="public-benefits hero-benefits">
+              <div>
+                <CalendarDays />
+                <span>
+                  Un agenda patient
+                  <br />
+                  <strong>connecté à votre cabinet</strong>
+                </span>
+              </div>
+              <div>
+                <Users />
+                <span>
+                  Une équipe
+                  <br />
+                  <strong>qui travaille ensemble</strong>
+                </span>
+              </div>
+              <div>
+                <Heart />
+                <span>
+                  Une gestion
+                  <br />
+                  <strong>à chaque échéance</strong>
+                </span>
+              </div>
+              <div>
+                <Smile />
+                <span>
+                  Au cabinet, à domicile
+                  <br />
+                  <strong>toujours à vos côtés</strong>
+                </span>
+              </div>
             </div>
           </section>
           <section className="smilepec-services public-section">
