@@ -1,5 +1,9 @@
-import { neon } from "@neondatabase/serverless";
+import { database } from "../server/db.mjs";
 import { workspaceAction } from "../server/workspace.mjs";
+import { commandCenterAction } from "../server/command-center.mjs";
+import { adminContext, LEGACY_ACTION_PERMISSION } from "../server/rbac.mjs";
+import { requestContext } from "../server/audit.mjs";
+import { resolveFlags } from "../server/flags.mjs";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   hash,
@@ -46,7 +50,7 @@ export default async function handler(req, res) {
   try {
     if (!process.env.DATABASE_URL)
       throw fail(503, "Le service est momentanément indisponible.");
-    const sql = neon(process.env.DATABASE_URL);
+    const sql = database();
     const action =
       req.query?.action ||
       new URL(req.url, "https://amelib.vercel.app").searchParams.get("action");
@@ -171,8 +175,11 @@ export default async function handler(req, res) {
     const [account] = token
       ? await sql`SELECT a.* FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=${hash(token)} AND s.expires_at>now() AND NOT a.suspended`
       : [];
-    if (action === "session" && req.method === "GET")
+    if (action === "session" && req.method === "GET") {
+      // Adoption tracking (DAU/WAU/MAU): one row per account and day. Never blocks the session check.
+      if (account) await sql`INSERT INTO account_activity(account_id,day) VALUES(${account.id},current_date) ON CONFLICT DO NOTHING`.catch(() => {});
       return send({ account: account ? safeAccount(account) : null });
+    }
     if (!account)
       throw fail(401, "Connectez-vous pour accéder à votre espace.");
     const [membership] = ["professional", "worker"].includes(account.role)
@@ -212,6 +219,16 @@ export default async function handler(req, res) {
     if (permissionByAction[action] && !can(permissionByAction[action]))
       throw fail(403, "Votre rôle dans le cabinet ne permet pas cette action.");
     if (req.method === "POST") await limit("write:" + account.id, 150);
+    // Internal RBAC: legacy admin actions keep working for full admins and are refused to narrower internal roles.
+    const legacyPermission = account.role === "admin" && (LEGACY_ACTION_PERMISSION[action] || (action === "support" ? "support.read" : null));
+    if (legacyPermission) {
+      const admin = await adminContext(sql, account);
+      if (!admin.permissions.has(legacyPermission))
+        throw fail(403, "Votre rôle interne ne permet pas cette action.");
+    }
+    if (action === "feature-flags" && req.method === "GET")
+      return send({ flags: await resolveFlags(sql, { workspaceId, isAdmin: account.role === "admin" }).catch(() => ({})) });
+    if (await commandCenterAction({ action, req, b, sql, account, send, ctx: requestContext(req, token, hash) })) return;
     if(await workspaceAction({action,req,b,sql,account,workspaceId,membership,can,send})) return;
     if (action === "notifications" && req.method === "GET") {
       const rows = await sql`SELECT id,kind,title,body,href,read_at,created_at FROM notifications WHERE account_id=${account.id} ORDER BY created_at DESC LIMIT 80`;
@@ -790,6 +807,7 @@ export default async function handler(req, res) {
         );
       await sql.transaction([
         sql`UPDATE profiles SET verified=${!!b.verified} WHERE account_id=${b.id}`,
+        sql`INSERT INTO verifications(account_id,status,reviewer_id,reviewed_at) VALUES(${b.id},${b.verified ? "approved" : "documents_received"},${account.id},now()) ON CONFLICT(account_id) DO UPDATE SET status=excluded.status,reviewer_id=excluded.reviewer_id,reviewed_at=excluded.reviewed_at,updated_at=now()`,
         sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},${b.verified ? "profile_verified" : "verification_removed"},${b.id},${clean(b.note, 500)})`,
       ]);
       return send({ ok: true });

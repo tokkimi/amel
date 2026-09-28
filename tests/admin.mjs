@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
-import {neon} from '@neondatabase/serverless';
+import {sql} from './db.mjs';
 import handler from '../api/index.mjs';
 import {passwordHash,hash} from '../server/security.mjs';
-const sql=neon(process.env.DATABASE_URL),admin=randomUUID(),pro=randomUUID(),token=randomBytes(32).toString('hex');
+const admin=randomUUID(),pro=randomUUID(),token=randomBytes(32).toString('hex');
 async function call(action,body,session=token){let status=200,result;await handler({method:body?'POST':'GET',url:'/api',query:{action},headers:{host:'amelib.vercel.app',origin:'https://amelib.vercel.app','content-type':'application/json',cookie:'amelib_session='+session},body},{setHeader(){},status(s){status=s;return this},json(r){result=r}});return{status,result};}
 try{
  const password=await passwordHash(randomBytes(24).toString('hex'));
