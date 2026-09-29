@@ -44,6 +44,14 @@ try {
   assert.equal((await call('agent', 'cc-role-assign', { account_id: ids.agent, internal_role: 'platform_owner', reason: 'x' })).status, 403);
   assert.equal((await ok('owner', 'cc-me')).role, 'platform_owner', 'legacy admin without row keeps full rights');
 
+  // A cabinet met outside the site can enter the SmilePec CRM without gaining an active password.
+  const manual = await ok('owner', 'cc-cabinet-create', { name: 'Responsable manuel CCTest', clinic_name: 'Cabinet manuel CCTest', email: `manuel-${ids.owner}@example.invalid`, city: 'Lyon', lifecycle: 'lead', tags: ['salon'], internal_summary: 'Rencontré au salon', reason: 'Test CRM' });
+  assert.equal(manual.cabinet.source, 'manual'); assert.equal(manual.recoveryCode.length, 36);
+  const report = await ok('owner', 'cc-report');
+  assert(report.summary.manually_added >= 1 && report.cabinets.some((c) => c.id === manual.cabinet.id));
+  await sql`DELETE FROM audit_log WHERE target_id=${manual.cabinet.id}`;
+  await sql`DELETE FROM accounts WHERE id=${manual.cabinet.id}`;
+
   // Support: private notes never reach the cabinet.
   await ok('cabinet', 'support-create', { subject: 'Impossible d’accéder au dossier CCTEST', body: 'Bonjour, erreur.' });
   const [ticket] = await sql`SELECT id,status FROM support_tickets WHERE account_id=${ids.cabinet}`;

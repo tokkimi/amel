@@ -1,8 +1,8 @@
 import {smilepecFinance} from './smilepec-finance.mjs';
 // Amelib Command Center — admin-only API actions (prefix "cc-").
 // Every action checks the internal permission it needs; every mutation is audited.
-import { randomUUID } from 'node:crypto';
-import { clean } from './security.mjs';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { clean, hash, passwordHash } from './security.mjs';
 import { adminContext, INTERNAL_ROLES, PERMISSIONS } from './rbac.mjs';
 import { auditEntry } from './audit.mjs';
 import { healthScore, onboarding, slaState, agingBucket, SLA_HOURS } from './health.mjs';
@@ -27,7 +27,7 @@ const VIEW_SCOPES = ['inbox', 'cabinets', 'support', 'finance', 'verifications']
 const REQUIRED = {
   'cc-me': null, 'cc-badges': null, 'cc-home': null, 'cc-inbox': null, 'cc-event': null, 'cc-search': null, 'cc-notifications': null, 'cc-views': null, 'cc-ask': null,
   'cc-event-create': 'inbox.manage', 'cc-event-update': 'inbox.manage', 'cc-bulk': null, 'cc-note-add': null, 'cc-view-save': null, 'cc-view-delete': null,
-  'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update',
+  'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update', 'cc-cabinet-create': 'cabinet.update', 'cc-report': 'cabinet.read', 'cc-report-prepared': 'export.bulk',
   'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply',
   'cc-verifications': 'verification.read', 'cc-verification-update': null, 'cc-accounts': 'account.read',
   'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-audit': 'audit.read',
@@ -319,9 +319,61 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
   }
 
   // ── Cabinets ────────────────────────────────────────────────────────────────────────────────
+  if (action === 'cc-cabinet-create' && POST) {
+    const name = clean(b.name, 80);
+    const clinicName = clean(b.clinic_name, 120);
+    const email = clean(b.email, 254).toLowerCase();
+    const city = clean(b.city, 100);
+    const phone = clean(b.phone, 40);
+    const lifecycle = LIFECYCLES.includes(b.lifecycle) ? b.lifecycle : 'lead';
+    const summary = clean(b.internal_summary, 4000);
+    if (!name || !clinicName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      throw fail(400, 'Renseignez le responsable, le nom du cabinet et un e-mail valide.');
+    const [existing] = await sql`SELECT id FROM accounts WHERE email=${email}`;
+    if (existing) throw fail(409, 'Un compte utilise déjà cet e-mail. Ouvrez sa fiche existante.');
+    const id = randomUUID();
+    const recoveryCode = randomBytes(18).toString('hex');
+    const unavailablePassword = await passwordHash(randomBytes(32).toString('hex'));
+    const nextContact = dateOrNull(b.next_contact_at);
+    await sql.transaction([
+      sql`INSERT INTO accounts(id,email,name,role,password_hash,recovery_hash) VALUES(${id},${email},${name},'professional',${unavailablePassword},${hash(recoveryCode)})`,
+      sql`INSERT INTO profiles(account_id,clinic_name,city,phone) VALUES(${id},${clinicName},${city},${phone})`,
+      sql`INSERT INTO cabinet_crm(cabinet_id,lifecycle,owner_id,tags,source,internal_summary,next_contact_at) VALUES(${id},${lifecycle},${isUuid(b.owner_id) ? b.owner_id : null},${JSON.stringify(Array.isArray(b.tags) ? b.tags.map((x) => clean(x, 40)).filter(Boolean).slice(0, 20) : [])}::jsonb,'manual',${summary},${nextContact})`,
+    ]);
+    await audit({ action: 'cabinet_manually_created', entityType: 'cabinet', entityId: id, tenantId: id, after: { clinic_name: clinicName, email, lifecycle, source: 'manual' }, reason: clean(b.reason, 500), detail: 'Cabinet client ajouté manuellement dans le CRM SmilePec' });
+    send({ cabinet: { id, name, clinic_name: clinicName, email, city, phone, lifecycle, source: 'manual' }, recoveryCode });
+    return true;
+  }
+
+  if (action === 'cc-report' && GET) {
+    const cabinets = await cabinetStats(sql);
+    const scope = clean(q.scope, 20) === 'cabinet' && isUuid(q.cabinet_id) ? cabinets.filter((c) => c.id === q.cabinet_id) : cabinets;
+    if (!scope.length && clean(q.scope, 20) === 'cabinet') throw fail(404, 'Cabinet introuvable.');
+    const total = scope.length;
+    const summary = {
+      total,
+      signed_up: scope.filter((c) => c.source !== 'manual').length,
+      manually_added: scope.filter((c) => c.source === 'manual').length,
+      active: scope.filter((c) => c.lifecycle === 'active').length,
+      onboarding: scope.filter((c) => c.lifecycle === 'onboarding' || c.health.onboarding.percent < 100).length,
+      at_risk: scope.filter((c) => c.lifecycle === 'at_risk' || c.health.status === 'risk').length,
+      open_requests: scope.reduce((n, c) => n + Number(c.open_tickets || 0), 0),
+      pending_actions: scope.reduce((n, c) => n + Number(c.open_events || 0), 0),
+    };
+    send({ generated_at: new Date().toISOString(), scope: scope.length === 1 ? 'cabinet' : 'global', summary, cabinets: scope.map((c) => ({ id: c.id, name: cabinetName(c), email: c.email, city: c.city, source: c.source, lifecycle: c.lifecycle, health: c.health, onboarding: c.health.onboarding.percent, open_requests: c.open_tickets, pending_actions: c.open_events, next_contact_at: c.next_contact_at, last_activity_at: c.last_activity_at })) });
+    return true;
+  }
+
+  if (action === 'cc-report-prepared' && POST) {
+    const count = Math.max(0, Math.min(2000, Number(b.count) || 0));
+    await audit({ action: 'cabinet_report_prepared', entityType: 'report', entityId: clean(b.scope, 40) || 'global', after: { count }, reason: clean(b.reason, 500), detail: `Rapport cabinet préparé pour ${count} cabinet(s)` });
+    send({ ok: true });
+    return true;
+  }
+
   if (action === 'cc-cabinets' && GET) {
     const rows = await cabinetStats(sql);
-    send({ cabinets: rows.map((r) => ({ id: r.id, name: r.name, email: r.email, clinic_name: r.clinic_name, city: r.city, phone: r.phone, created_at: r.created_at, suspended: r.suspended, verified: r.verified, published: r.published, lifecycle: r.lifecycle, lifecycle_derived: r.lifecycle_derived, crm_owner_id: r.crm_owner_id, tags: r.tags, next_contact_at: r.next_contact_at, team_count: r.team_count, patient_count: r.patient_count, open_tickets: r.open_tickets, open_events: r.open_events, invoiced: r.invoiced, outstanding: r.outstanding, overdue_amount: r.overdue_amount, overdue_count: r.overdue_count, last_activity_at: r.last_activity_at, health: { score: r.health.score, status: r.health.status, label: r.health.label }, onboarding: { percent: r.health.onboarding.percent, completed: r.health.onboarding.completed, total: r.health.onboarding.total } })) });
+    send({ cabinets: rows.map((r) => ({ id: r.id, name: r.name, email: r.email, clinic_name: r.clinic_name, city: r.city, phone: r.phone, created_at: r.created_at, suspended: r.suspended, verified: r.verified, published: r.published, lifecycle: r.lifecycle, lifecycle_derived: r.lifecycle_derived, source: r.source, crm_owner_id: r.crm_owner_id, tags: r.tags, next_contact_at: r.next_contact_at, team_count: r.team_count, patient_count: r.patient_count, open_tickets: r.open_tickets, open_events: r.open_events, invoiced: r.invoiced, outstanding: r.outstanding, overdue_amount: r.overdue_amount, overdue_count: r.overdue_count, last_activity_at: r.last_activity_at, health: { score: r.health.score, status: r.health.status, label: r.health.label }, onboarding: { percent: r.health.onboarding.percent, completed: r.health.onboarding.completed, total: r.health.onboarding.total } })) });
     return true;
   }
   if (action === 'cc-cabinet' && GET) {
@@ -383,12 +435,13 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
       lifecycle: LIFECYCLES.includes(b.lifecycle) ? b.lifecycle : before?.lifecycle || 'onboarding',
       owner_id: b.owner_id === null ? null : isUuid(b.owner_id) ? b.owner_id : before?.owner_id || null,
       tags: Array.isArray(b.tags) ? [...new Set(b.tags.map((t) => clean(t, 40)).filter(Boolean))].slice(0, 20) : before?.tags || [],
+      internal_summary: b.internal_summary === undefined ? before?.internal_summary || '' : clean(b.internal_summary, 4000),
       training_done_at: b.training_done === true ? before?.training_done_at || new Date().toISOString() : b.training_done === false ? null : before?.training_done_at || null,
       next_contact_at: b.next_contact_at === null ? null : dateOrNull(b.next_contact_at) || before?.next_contact_at || null,
     };
     await sql.transaction([
-      sql`INSERT INTO cabinet_crm(cabinet_id,lifecycle,owner_id,tags,training_done_at,next_contact_at) VALUES(${b.cabinet_id},${next.lifecycle},${next.owner_id},${JSON.stringify(next.tags)}::jsonb,${next.training_done_at},${next.next_contact_at})
-        ON CONFLICT(cabinet_id) DO UPDATE SET lifecycle=excluded.lifecycle,owner_id=excluded.owner_id,tags=excluded.tags,training_done_at=excluded.training_done_at,next_contact_at=excluded.next_contact_at,updated_at=now()`,
+      sql`INSERT INTO cabinet_crm(cabinet_id,lifecycle,owner_id,tags,internal_summary,training_done_at,next_contact_at) VALUES(${b.cabinet_id},${next.lifecycle},${next.owner_id},${JSON.stringify(next.tags)}::jsonb,${next.internal_summary},${next.training_done_at},${next.next_contact_at})
+        ON CONFLICT(cabinet_id) DO UPDATE SET lifecycle=excluded.lifecycle,owner_id=excluded.owner_id,tags=excluded.tags,internal_summary=excluded.internal_summary,training_done_at=excluded.training_done_at,next_contact_at=excluded.next_contact_at,updated_at=now()`,
       audit({ action: 'cabinet_crm_updated', entityType: 'cabinet', entityId: b.cabinet_id, tenantId: b.cabinet_id, before: before || null, after: next, reason: clean(b.reason, 500), detail: 'Suivi commercial du cabinet mis à jour' }),
     ]);
     send({ ok: true });
@@ -608,12 +661,14 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     const ops = await sql`SELECT count(*) FILTER(WHERE status IN('open','in_progress'))::int AS backlog,count(*) FILTER(WHERE status IN('open','in_progress') AND due_at<now())::int AS overdue,
       coalesce(avg(extract(epoch FROM resolved_at-created_at)/3600) FILTER(WHERE resolved_at IS NOT NULL AND NOT auto_resolved),0)::float AS avg_resolution_hours,
       count(*) FILTER(WHERE created_at>now()-interval '7 days')::int AS created_7d FROM operational_events`;
-    const signups = await sql.query(`WITH ${CABINETS_CTE} SELECT to_char(date_trunc('month',created_at),'YYYY-MM') AS month,count(*)::int AS count FROM cab WHERE created_at>=date_trunc('month',current_date)-interval '11 months' GROUP BY 1 ORDER BY 1`, []);
+    const signups = await sql.query(`WITH ${CABINETS_CTE} SELECT to_char(date_trunc('month',cab.created_at),'YYYY-MM') AS month,count(*)::int AS count FROM cab LEFT JOIN cabinet_crm crm ON crm.cabinet_id=cab.id WHERE cab.created_at>=date_trunc('month',current_date)-interval '11 months' AND coalesce(crm.source,'signup')<>'manual' GROUP BY 1 ORDER BY 1`, []);
     const cabinets = perCabinet;
     send({
       adoption: adoption[0], features, signups,
       cabinets: {
         total: cabinets.length,
+        signed_up: cabinets.filter((c) => c.source !== 'manual').length,
+        manually_added: cabinets.filter((c) => c.source === 'manual').length,
         new_30d: cabinets.filter((c) => Date.now() - new Date(c.created_at).getTime() < 30 * 86400000).length,
         activated: cabinets.filter((c) => c.health.onboarding.completed >= 5).length,
         inactive: cabinets.filter((c) => !c.last_activity_at || Date.now() - new Date(c.last_activity_at).getTime() > 14 * 86400000).length,

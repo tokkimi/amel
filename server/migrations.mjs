@@ -147,5 +147,12 @@ CREATE INDEX IF NOT EXISTS clinic_members_member ON clinic_members(member_id,act
 CREATE INDEX IF NOT EXISTS accounts_role_created ON accounts(role,created_at DESC);
 CREATE INDEX IF NOT EXISTS patient_records_prosthesis ON patient_records(prosthesis_date) WHERE prosthesis_date IS NOT NULL;
 ` },
+  { id: '2026-09-29-002-cabinet-crm', sql: `-- Cabinet CRM completion: a manually entered client is a real cabinet record,
+-- kept distinct from an autonomous website signup.
+ALTER TABLE cabinet_crm ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'signup'
+  CHECK(source IN ('signup','manual','import'));
+ALTER TABLE cabinet_crm ADD COLUMN IF NOT EXISTS internal_summary text NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS cabinet_crm_source ON cabinet_crm(source,lifecycle);
+` },
 ];
 export const statements = (text) => text.replace(/^\uFEFF/, '').split(';').map((s) => s.replace(/^\s*--.*$/gm, '').trim()).filter(Boolean);

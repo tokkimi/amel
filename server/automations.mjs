@@ -17,7 +17,7 @@ export const ACTIVITY_UNION = `SELECT ap.created_at AS at FROM appointments ap W
  UNION ALL SELECT s.expires_at-interval '7 days' FROM sessions s WHERE s.account_id=ANY(cab.people) AND s.expires_at>now()-interval '113 days'
  UNION ALL SELECT aa.day::timestamptz FROM account_activity aa WHERE aa.account_id=ANY(cab.people) AND aa.day>current_date-120`;
 export const CABINET_STATS = `SELECT cab.id,cab.name,cab.email,cab.created_at,cab.suspended,cab.clinic_name,cab.city,cab.address,cab.phone,cab.identifier,cab.published,cab.verified,
- crm.lifecycle,crm.owner_id AS crm_owner_id,coalesce(crm.tags,'[]'::jsonb) AS tags,crm.training_done_at,crm.next_contact_at,
+ crm.lifecycle,crm.owner_id AS crm_owner_id,coalesce(crm.tags,'[]'::jsonb) AS tags,coalesce(crm.source,'signup') AS source,crm.internal_summary,crm.training_done_at,crm.next_contact_at,
  cardinality(cab.people)-1 AS team_count,
  (SELECT count(*)::int FROM clinic_members cm WHERE cm.owner_id=cab.id AND cm.active AND NOT cm.accepted) AS pending_invites,
  (cab.calendar_provider<>'' OR cab.weekly_hours<>'{}'::jsonb OR EXISTS(SELECT 1 FROM slots s WHERE s.professional_id=cab.id)) AS agenda_configured,

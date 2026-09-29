@@ -8,7 +8,7 @@ export async function createTestDatabase(){
  sql.query=(text,values=[])=>lazy(text,values);
  sql.transaction=queries=>db.transaction(async tx=>{const rows=[];for(const q of queries)rows.push((await tx.query(q.text,q.values)).rows);return rows});
  sql.end=()=>db.close();
- for(const file of ['schema.sql','pec-billing.sql','pec-plans.sql','migrations/2026-09-28-001-command-center.sql'])await db.exec(await readFile(new URL(file,import.meta.url),'utf8'));
+ for(const file of ['schema.sql','pec-billing.sql','pec-plans.sql','migrations/2026-09-28-001-command-center.sql','migrations/2026-09-29-002-cabinet-crm.sql'])await db.exec(await readFile(new URL(file,import.meta.url),'utf8'));
  useDatabase(sql);process.env.DATABASE_URL='local-isolated-test';
  return {sql,db};
 }

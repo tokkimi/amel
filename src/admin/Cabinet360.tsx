@@ -24,7 +24,7 @@ export default function Cabinet360({ id, close }: { id: string; close: () => voi
   const owner = c && cc.me.team.find((t) => t.id === c.crm_owner_id)?.name;
   const tabs = TABS.filter((t) => (t !== "Finance" && t !== "Documents") || cc.can("billing.read")).filter((t) => t !== "Support" || cc.can("support.read")).map((t) => ({ key: t, label: t, count: t === "Support" ? data?.tickets.filter((x: any) => !["resolved", "closed"].includes(x.status)).length || undefined : undefined }));
   return <Drawer wide open={!!id} onClose={close} title={name}
-    subtitle={c && <span className="cc-inline">{c.city || "Ville non renseignée"}{c.suspended ? <Badge tone="critical" icon>Suspendu</Badge> : <Badge tone="ok" icon>Actif</Badge>}{c.verified ? <Badge tone="ok">Vérifié</Badge> : <Badge tone="warn">Non vérifié</Badge>}<Badge>{LIFECYCLE[c.lifecycle]}{c.lifecycle_derived ? " (déduit)" : ""}</Badge><span>Responsable : <b>{c.name}</b></span>{owner && <span>Suivi : <b>{owner}</b></span>}</span>}
+    subtitle={c && <span className="cc-inline">{c.city || "Ville non renseignée"}{c.suspended ? <Badge tone="critical" icon>Suspendu</Badge> : <Badge tone="ok" icon>Actif</Badge>}{c.verified ? <Badge tone="ok">Vérifié</Badge> : <Badge tone="warn">Non vérifié</Badge>}{c.source === "manual" && <Badge tone="info">Ajouté par Amel</Badge>}<Badge>{LIFECYCLE[c.lifecycle]}{c.lifecycle_derived ? " (déduit)" : ""}</Badge><span>Responsable : <b>{c.name}</b></span>{owner && <span>Suivi : <b>{owner}</b></span>}</span>}
     actions={c && <div className="cc-head-actions">
       <a className="cc-btn is-small" href={"mailto:" + c.email}><Mail size={14} />Contacter</a>
       {cc.can("inbox.manage") && <button className="cc-btn is-small" onClick={() => cc.createTask({ cabinet_id: c.id, cabinet_name: name })}><ListTodo size={14} />Créer tâche</button>}
@@ -130,11 +130,12 @@ function Config({ data, reload }: { data: any; reload: () => void }) {
   return <div className="cc-stack">
     <Card title="Suivi commercial (CRM)">
       <p className="cc-muted">Le cycle de vie commercial est indépendant du statut technique du compte (actif / suspendu).</p>
-      <form className="cc-form-grid" onSubmit={async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>; setBusy(true); try { await api("cc-crm-update", { cabinet_id: c.id, lifecycle: f.lifecycle, owner_id: f.owner_id || null, tags: f.tags.split(",").map((x) => x.trim()).filter(Boolean), next_contact_at: f.next_contact_at ? new Date(f.next_contact_at + "T09:00:00").toISOString() : null }); cc.toast("Suivi mis à jour."); cc.bump(); } catch (err) { cc.toast((err as Error).message); } finally { setBusy(false); } }}>
+      <form className="cc-form-grid" onSubmit={async (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)) as Record<string, string>; setBusy(true); try { await api("cc-crm-update", { cabinet_id: c.id, lifecycle: f.lifecycle, owner_id: f.owner_id || null, tags: f.tags.split(",").map((x) => x.trim()).filter(Boolean), internal_summary: f.internal_summary, next_contact_at: f.next_contact_at ? new Date(f.next_contact_at + "T09:00:00").toISOString() : null }); cc.toast("Suivi mis à jour."); cc.bump(); } catch (err) { cc.toast((err as Error).message); } finally { setBusy(false); } }}>
         <label>Cycle de vie<select name="lifecycle" defaultValue={c.lifecycle} disabled={!edit}>{Object.entries(LIFECYCLE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
         <label>Suivi par<select name="owner_id" defaultValue={c.crm_owner_id || ""} disabled={!edit}><option value="">Personne</option>{cc.me.team.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
         <label>Prochain contact<input type="date" name="next_contact_at" defaultValue={c.next_contact_at ? c.next_contact_at.slice(0, 10) : ""} disabled={!edit} /></label>
         <label>Tags (séparés par des virgules)<input name="tags" defaultValue={(c.tags || []).join(", ")} disabled={!edit} placeholder="pilote, grand compte" /></label>
+        <label className="cc-form-full">Résumé interne<textarea name="internal_summary" rows={4} defaultValue={c.internal_summary || ""} disabled={!edit} maxLength={4000} placeholder="Besoins, contexte commercial et prochaine étape — visible par SmilePec uniquement." /></label>
         {edit && <button className="cc-btn is-primary" disabled={busy}>Enregistrer</button>}
       </form>
     </Card>

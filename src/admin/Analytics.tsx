@@ -23,6 +23,8 @@ export default function Analytics() {
           <Card title="Cabinets">
             <div className="cc-kpis inline">
               <Kpi label="Total" value={data.cabinets.total} onClick={() => cc.go("Cabinets")} />
+              <Kpi label="Inscrits" value={data.cabinets.signed_up} hint="Créés depuis le site" />
+              <Kpi label="Ajoutés par Amel" value={data.cabinets.manually_added} hint="Suivi CRM avant inscription" />
               <Kpi label="Nouveaux 30 j" value={data.cabinets.new_30d} onClick={() => cc.go("Cabinets", "new")} />
               <Kpi label="Activés" value={data.cabinets.activated} hint="≥ 5 étapes d’onboarding" />
               <Kpi label="Inactifs 14 j" value={data.cabinets.inactive} tone={data.cabinets.inactive ? "warn" : "ok"} onClick={() => cc.go("Cabinets", "relancer")} />
