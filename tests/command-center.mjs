@@ -158,6 +158,25 @@ try {
   assert.equal(crm.length, 2, 'non-cabinet ids are ignored'); assert(crm.every((c) => c.lifecycle === 'active' && c.tags.includes('pilote')));
   const flags = await ok('cabinet', 'feature-flags'); assert.equal(typeof flags.flags, 'object');
 
+  // Appointments: admin can consult and manage; narrower roles cannot modify; changes are audited.
+  const slotId = randomUUID(), apId = randomUUID();
+  await sql`INSERT INTO slots(id,professional_id,starts_at,duration,available) VALUES(${slotId},${ids.cabinet},now()+interval '3 days',45,false)`;
+  await sql`INSERT INTO appointments(id,slot_id,patient_id,professional_id,reason) VALUES(${apId},${slotId},${ids.patient},${ids.cabinet},'MOTIF-SOIN-CCTEST')`;
+  const apView = await ok('owner', 'cc-appointment', undefined, { id: apId });
+  assert.equal(apView.appointment.patient_name, 'CC Test patient Dupont'); assert(!JSON.stringify(apView).includes('MOTIF-SOIN-CCTEST'), 'care reason hidden');
+  assert.equal((await call('agent', 'cc-appointment-update', { id: apId, status: 'cancelled', reason: 'x' })).status, 403);
+  assert.equal((await call('owner', 'cc-appointment-update', { id: apId, status: 'cancelled' })).status, 400, 'reason required');
+  const newStart = new Date(Date.now() + 5 * 86400000); newStart.setUTCMinutes(0, 0, 0);
+  await ok('owner', 'cc-appointment-update', { id: apId, starts_at: newStart.toISOString(), duration: 60, reason: 'Demande du cabinet' });
+  const [moved] = await sql`SELECT s.starts_at,s.duration FROM appointments ap JOIN slots s ON s.id=ap.slot_id WHERE ap.id=${apId}`;
+  assert.equal(new Date(moved.starts_at).getTime(), newStart.getTime()); assert.equal(moved.duration, 60);
+  assert.equal((await sql`SELECT available FROM slots WHERE id=${slotId}`)[0].available, true, 'old slot released');
+  await ok('owner', 'cc-appointment-update', { id: apId, status: 'cancelled', reason: 'Patient indisponible' });
+  assert.equal((await sql`SELECT status FROM appointments WHERE id=${apId}`)[0].status, 'cancelled');
+  assert.equal((await call('owner', 'cc-appointment-update', { id: apId, status: 'completed', reason: 'x' })).status, 409, 'future appointment cannot be completed');
+  assert((await sql`SELECT 1 FROM audit_log WHERE action='appointment_updated' AND entity_id=${apId}`).length === 2);
+  assert((await sql`SELECT 1 FROM notifications WHERE account_id=${ids.patient} AND kind='appointment'`).length >= 2, 'patient notified');
+
   // Ask Amelib is grounded: unknown questions are declined, supported ones use data.
   assert.equal((await ok('owner', 'cc-ask', undefined, { q: 'Quelle est la météo ?' })).intent, null);
   assert.equal((await ok('owner', 'cc-ask', undefined, { q: 'Résume Cabinet CCTest cabinet' })).intent, 'cabinet_summary');
@@ -173,6 +192,8 @@ try {
   await sql.query(`DELETE FROM assist_sessions WHERE admin_id=ANY($1::uuid[])`, [all]);
   await sql.query(`DELETE FROM operational_events WHERE cabinet_id=ANY($1::uuid[]) OR created_by=ANY($1::uuid[])`, [all]);
   await sql.query(`DELETE FROM business_documents WHERE owner_id=ANY($1::uuid[])`, [all]);
+  await sql.query(`DELETE FROM appointments WHERE professional_id=ANY($1::uuid[])`, [all]);
+  await sql.query(`DELETE FROM slots WHERE professional_id=ANY($1::uuid[])`, [all]);
   await sql.query(`DELETE FROM accounts WHERE id=ANY($1::uuid[]) AND email LIKE 'amelib-cc-test-%@example.invalid'`, [all]);
   await sql.query(`DELETE FROM rate_limits WHERE key LIKE 'write:%' AND key=ANY($1::text[])`, [all.map((i) => 'write:' + i)]);
   console.log('Temporary Command Center test records removed.');

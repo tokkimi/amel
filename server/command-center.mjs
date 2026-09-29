@@ -33,7 +33,7 @@ const REQUIRED = {
   'cc-config': 'settings.read', 'cc-system': 'settings.read', 'cc-rule-update': 'settings.update', 'cc-automations-run': 'settings.update',
   'cc-flag-save': 'settings.update', 'cc-flag-override': 'settings.update', 'cc-role-assign': 'rbac.manage',
   'cc-assist-start': 'impersonation.readonly', 'cc-assist-view': 'impersonation.readonly', 'cc-assist-end': 'impersonation.readonly',
-  'cc-export-log': 'export.bulk',
+  'cc-export-log': 'export.bulk', 'cc-appointment': 'cabinet.read', 'cc-appointment-update': 'appointment.manage',
 };
 
 const cabinetName = (r) => (r?.clinic_name || r?.name || '');
@@ -566,7 +566,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
         EXISTS(SELECT 1 FROM business_documents d WHERE d.owner_id=r.owner_id AND d.patient_id=r.patient_id AND ((d.doc_type='quote' AND d.status IN('accepted','paid')) OR (d.doc_type='invoice' AND d.status<>'cancelled'))) AS ready
         FROM patient_records r JOIN accounts pa ON pa.id=r.patient_id JOIN accounts o ON o.id=r.owner_id JOIN profiles p ON p.account_id=o.id
         WHERE r.prosthesis_date>=current_date-7 ORDER BY r.prosthesis_date LIMIT 300`,
-      sql`SELECT ap.id,ap.status,ap.created_at,s.starts_at,s.duration,upper(left(split_part(pa.name,' ',1),1))||'. '||upper(left(split_part(pa.name,' ',2),1))||'.' AS patient_initials,pr.id AS cabinet_id,coalesce(nullif(pp.clinic_name,''),pr.name) AS cabinet_name
+      sql`SELECT ap.id,ap.status,ap.created_at,s.starts_at,s.duration,upper(left(split_part(pa.name,' ',1),1))||'. '||upper(left(split_part(pa.name,' ',2),1))||'.' AS patient_initials,pa.name AS patient_name,pr.name AS professional_name,pr.id AS cabinet_id,coalesce(nullif(pp.clinic_name,''),pr.name) AS cabinet_name
         FROM appointments ap JOIN slots s ON s.id=ap.slot_id JOIN accounts pa ON pa.id=ap.patient_id JOIN accounts pr ON pr.id=ap.professional_id JOIN profiles pp ON pp.account_id=pr.id
         WHERE s.starts_at>now()-interval '7 days' ORDER BY s.starts_at LIMIT 300`,
       sql`SELECT to_char(date_trunc('week',created_at),'YYYY-MM-DD') AS week,count(*)::int AS created,count(*) FILTER(WHERE status IN('resolved','dismissed'))::int AS resolved,
@@ -811,6 +811,61 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
       sql`SELECT (SELECT count(*)::int FROM patient_records WHERE owner_id=${id}) AS patients,(SELECT count(*)::int FROM services WHERE owner_id=${id} AND active) AS services,(SELECT count(*)::int FROM slots WHERE professional_id=${id} AND starts_at>now() AND available) AS free_slots`,
     ]);
     send({ session: { id: session.id, reason: session.reason, started_at: session.started_at, mode: 'readonly' }, profile: profile[0], agenda, documents: docs, tasks, team, tickets, counts: counts[0] });
+    return true;
+  }
+  // ── Appointments: consult and manage (cancel, complete, re-confirm, reschedule). Care reason stays hidden.
+  if (action === 'cc-appointment' && GET) {
+    if (!isUuid(q.id)) throw fail(400, 'Rendez-vous invalide.');
+    const [ap] = await sql`SELECT ap.id,ap.status,ap.created_at,ap.patient_id,ap.professional_id,s.id AS slot_id,s.starts_at,s.duration,pa.name AS patient_name,pr.name AS professional_name,coalesce(nullif(pp.clinic_name,''),pr.name) AS cabinet_name,pp.address,
+      (SELECT count(*)::int FROM messages m WHERE m.appointment_id=ap.id) AS message_count
+      FROM appointments ap JOIN slots s ON s.id=ap.slot_id JOIN accounts pa ON pa.id=ap.patient_id JOIN accounts pr ON pr.id=ap.professional_id JOIN profiles pp ON pp.account_id=pr.id WHERE ap.id=${q.id}`;
+    if (!ap) throw fail(404, 'Rendez-vous introuvable.');
+    send({ appointment: ap, history: await timeline(sql, { entityType: 'appointment', entityId: q.id }) });
+    return true;
+  }
+  if (action === 'cc-appointment-update' && POST) {
+    if (!isUuid(b.id)) throw fail(400, 'Rendez-vous invalide.');
+    const reason = clean(b.reason, 500);
+    if (!reason) throw fail(400, 'Indiquez le motif de la modification.');
+    const [ap] = await sql`SELECT ap.*,s.starts_at,s.duration FROM appointments ap JOIN slots s ON s.id=ap.slot_id WHERE ap.id=${b.id}`;
+    if (!ap) throw fail(404, 'Rendez-vous introuvable.');
+    const before = { status: ap.status, starts_at: ap.starts_at, duration: ap.duration };
+    const writes = [];
+    const after = { ...before };
+    if (b.starts_at !== undefined || b.duration !== undefined) {
+      const start = new Date(b.starts_at ?? ap.starts_at), duration = Number(b.duration ?? ap.duration);
+      if (!Number.isFinite(start.getTime()) || start <= new Date() || start > new Date(Date.now() + 365 * 86400000) || !Number.isInteger(duration) || duration < 15 || duration > 180) throw fail(400, 'Choisissez une date future (sous un an) et une durée de 15 à 180 minutes.');
+      if (ap.status === 'cancelled') throw fail(409, 'Réactivez le rendez-vous avant de le déplacer.');
+      const [clash] = await sql`SELECT 1 FROM slots WHERE professional_id=${ap.professional_id} AND id<>${ap.slot_id} AND tstzrange(starts_at,starts_at+duration*interval '1 minute','[)') && tstzrange(${start.toISOString()}::timestamptz,${start.toISOString()}::timestamptz+${duration}*interval '1 minute','[)') AND (NOT available OR EXISTS(SELECT 1 FROM appointments x WHERE x.slot_id=slots.id AND x.status<>'cancelled'))`;
+      if (clash) throw fail(409, 'Ce créneau chevauche un autre rendez-vous du cabinet.');
+      const slot = randomUUID();
+      // Free unbooked overlapping slots of the cabinet, create the new slot, move the appointment, release the old slot.
+      writes.push(
+        sql`DELETE FROM slots s WHERE s.professional_id=${ap.professional_id} AND s.id<>${ap.slot_id} AND s.available AND tstzrange(s.starts_at,s.starts_at+s.duration*interval '1 minute','[)') && tstzrange(${start.toISOString()}::timestamptz,${start.toISOString()}::timestamptz+${duration}*interval '1 minute','[)') AND NOT EXISTS(SELECT 1 FROM appointments x WHERE x.slot_id=s.id)`,
+        sql`INSERT INTO slots(id,professional_id,starts_at,duration,available) VALUES(${slot},${ap.professional_id},${start.toISOString()},${duration},false)`,
+        sql`UPDATE appointments SET slot_id=${slot} WHERE id=${b.id}`,
+        sql`UPDATE slots SET available=true WHERE id=${ap.slot_id} AND starts_at>now()`,
+      );
+      after.starts_at = start.toISOString(); after.duration = duration;
+    }
+    if (b.status !== undefined && b.status !== ap.status) {
+      if (!['confirmed', 'cancelled', 'completed'].includes(b.status)) throw fail(400, 'Statut invalide.');
+      if (b.status === 'completed' && new Date(after.starts_at) > new Date()) throw fail(409, 'Un rendez-vous futur ne peut pas être marqué terminé.');
+      writes.push(sql`UPDATE appointments SET status=${b.status} WHERE id=${b.id}`);
+      if (b.status === 'cancelled') writes.push(sql`UPDATE slots SET available=true WHERE id=(SELECT slot_id FROM appointments WHERE id=${b.id}) AND starts_at>now()`);
+      if (b.status === 'confirmed') writes.push(sql`UPDATE slots SET available=false WHERE id=(SELECT slot_id FROM appointments WHERE id=${b.id})`);
+      after.status = b.status;
+    }
+    if (!writes.length) throw fail(400, 'Aucune modification demandée.');
+    const when = new Date(after.starts_at).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'medium', timeStyle: 'short' });
+    const text = after.status === 'cancelled' ? `Rendez-vous du ${when} annulé par SmilePec.` : `Rendez-vous mis à jour par SmilePec : ${when}${after.status === 'completed' ? ' (terminé)' : ''}.`;
+    writes.push(
+      audit({ action: 'appointment_updated', entityType: 'appointment', entityId: b.id, tenantId: ap.professional_id, before, after, reason, detail: text }),
+      sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${ap.professional_id},'appointment','Rendez-vous modifié',${text},'/pro?tab=Agenda')`,
+      sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${ap.patient_id},'appointment','Rendez-vous modifié',${text},'/patient')`,
+    );
+    await sql.transaction(writes);
+    send({ ok: true });
     return true;
   }
   if (action === 'cc-export-log' && POST) {

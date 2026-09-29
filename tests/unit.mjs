@@ -25,4 +25,7 @@ assert(!permissionsFor('support_agent').has('billing.read'));
 assert(!permissionsFor('read_only_analyst').has('account.suspend'));
 assert(permissionsFor('unknown').has('rbac.manage'), 'unknown roles fall back to owner only when no row exists');
 for (const role of Object.values(INTERNAL_ROLES)) for (const p of role.permissions) assert(PERMISSIONS.includes(p), p);
-console.log('PASS: health score, onboarding, SLA, aging, audit redaction, RBAC matrix.');
+import { readFileSync } from 'node:fs';
+import { MIGRATIONS } from '../server/migrations.mjs';
+for (const m of MIGRATIONS) assert.equal(m.sql, readFileSync(new URL(`../scripts/migrations/${m.id}.sql`, import.meta.url), 'utf8'), 'embedded migration in sync: ' + m.id);
+console.log('PASS: health score, onboarding, SLA, aging, audit redaction, RBAC matrix, embedded migrations in sync.');

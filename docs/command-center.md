@@ -19,6 +19,7 @@ Périmètre : **uniquement** le back-office `/admin` (compte `role = 'admin'`). 
 | # | Fonctionnalité | Avant | Statut livré |
 |---|---|---|---|
 | 4 | Navigation Command Center (8 sections + Administration) | À refactorer | ✅ Fait — anciennes URLs `?tab=` redirigées |
+| — | Rendez-vous : consulter, déplacer, annuler, clôturer, rétablir (motif obligatoire, audité, cabinet + patient notifiés ; permission `appointment.manage`) | Lecture seule | ✅ Opérations › Rendez-vous |
 | 5-7 | Accueil « Bonjour Amel », 4 KPI cliquables, « À traiter maintenant » | Partiel (stats décoratives) | ✅ Fait |
 | 8-9 | Inbox unifiée, filtres, actions rapides, report (demain / lundi / semaine / date) | À créer | ✅ Fait |
 | 10 | Modèle `operational_events` | À créer | ✅ Table + référence à l'entité source (`entity_type/entity_id`), pas de copie |
@@ -105,8 +106,8 @@ SLA de première réponse : critique 4 h, haute 24 h, normale 48 h, basse 96 h.
 
 ## Déploiement
 
-1. `node --env-file=.env.local scripts/migrate.mjs` (base + `scripts/migrations/*.sql`, idempotent).
-2. Déployer.
+1. Déployer : l'API applique elle-même les migrations en attente au premier appel (`server/bootstrap.mjs`, transaction verrouillée, suivi dans `platform_state.schema`). `node --env-file=.env.local scripts/migrate.mjs` reste possible manuellement.
+2. Compte admin dédié (optionnel) : `AMELIB_BOOTSTRAP_ADMIN_EMAIL`, `AMELIB_BOOTSTRAP_ADMIN_NAME`, `AMELIB_BOOTSTRAP_ADMIN_PASSWORD_HASH` (hash scrypt produit par `server/security.mjs`, jamais le mot de passe) créent le compte ou réinitialisent son mot de passe quand le hash change ; un compte existant non-admin n'est jamais promu. Journalisé (`admin_bootstrap`).
 3. Optionnel : attribuer des rôles internes dans Configuration › Équipe & rôles (sans action, tous les admins existants restent Platform Owner).
 
 Rollback : redéployer la version précédente ; `scripts/migrations/2026-09-28-001-command-center.down.sql` (manuel) supprime uniquement les objets ajoutés.

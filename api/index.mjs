@@ -4,6 +4,7 @@ import { commandCenterAction } from "../server/command-center.mjs";
 import { adminContext, LEGACY_ACTION_PERMISSION } from "../server/rbac.mjs";
 import { requestContext } from "../server/audit.mjs";
 import { resolveFlags } from "../server/flags.mjs";
+import { ensureSchema } from "../server/bootstrap.mjs";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   hash,
@@ -51,6 +52,7 @@ export default async function handler(req, res) {
     if (!process.env.DATABASE_URL)
       throw fail(503, "Le service est momentanément indisponible.");
     const sql = database();
+    await ensureSchema(sql);
     const action =
       req.query?.action ||
       new URL(req.url, "https://amelib.vercel.app").searchParams.get("action");

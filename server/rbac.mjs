@@ -4,12 +4,12 @@ export const PERMISSIONS = [
   'cabinet.read', 'cabinet.update', 'verification.read', 'verification.approve', 'verification.reject',
   'support.read', 'support.reply', 'support.assign', 'billing.read', 'billing.manage',
   'account.read', 'account.suspend', 'audit.read', 'analytics.read', 'impersonation.readonly',
-  'settings.read', 'settings.update', 'inbox.manage', 'export.bulk', 'rbac.manage',
+  'settings.read', 'settings.update', 'inbox.manage', 'export.bulk', 'rbac.manage', 'appointment.manage',
 ];
 const read = ['cabinet.read', 'verification.read', 'support.read', 'billing.read', 'account.read', 'analytics.read', 'settings.read'];
 export const INTERNAL_ROLES = {
   platform_owner: { label: 'Platform Owner', permissions: PERMISSIONS },
-  operations_admin: { label: 'Operations Admin', permissions: [...read, 'cabinet.update', 'verification.approve', 'verification.reject', 'support.reply', 'support.assign', 'account.suspend', 'audit.read', 'impersonation.readonly', 'inbox.manage', 'export.bulk'] },
+  operations_admin: { label: 'Operations Admin', permissions: [...read, 'cabinet.update', 'verification.approve', 'verification.reject', 'support.reply', 'support.assign', 'account.suspend', 'audit.read', 'impersonation.readonly', 'inbox.manage', 'export.bulk', 'appointment.manage'] },
   support_agent: { label: 'Support Agent', permissions: ['cabinet.read', 'support.read', 'support.reply', 'support.assign', 'account.read', 'inbox.manage', 'impersonation.readonly'] },
   finance_admin: { label: 'Finance Admin', permissions: ['cabinet.read', 'billing.read', 'billing.manage', 'account.read', 'analytics.read', 'inbox.manage', 'export.bulk'] },
   verification_agent: { label: 'Verification Agent', permissions: ['cabinet.read', 'account.read', 'verification.read', 'verification.approve', 'verification.reject', 'inbox.manage'] },
