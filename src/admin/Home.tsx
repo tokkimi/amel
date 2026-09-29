@@ -1,4 +1,4 @@
-import { ArrowRight, Building2, Euro, Flame, Inbox as InboxIcon, Sparkles } from "lucide-react";
+import { ArrowRight, Briefcase, Building2, Euro, Flame, Inbox as InboxIcon, ListTodo, Sparkles } from "lucide-react";
 import { useCC } from "./context";
 import { EventRow, OpEvent, usePrimary } from "./events";
 import { ago, AUDIT_LABEL, Avatar, Card, Empty, eur, Kpi, Loadable, Skeleton, time, useApi } from "./ui";
@@ -24,6 +24,13 @@ export default function Home() {
       {cc.can("billing.read") && <Kpi icon={<Euro size={16} />} tone={c.overdue_amount ? "warn" : "neutral"} label="SmilePec à encaisser" value={eur(c.outstanding)} hint={c.overdue_amount ? `dont ${eur(c.overdue_amount)} en retard` : "Aucun retard"} onClick={() => cc.go("Finance")} />}
       <Kpi icon={<Building2 size={16} />} tone={c.cabinets_to_contact ? "warn" : "neutral"} label="Cabinets à relancer" value={c.cabinets_to_contact} hint={c.onboarding_stalled ? `${c.onboarding_stalled} onboarding bloqué(s)` : "Inactifs, onboarding, rappels"} onClick={() => cc.go("Cabinets", "relancer")} />
     </div>
+    <Card title="Pilotage complet" action={<span className="cc-muted">Les données cabinet restent cloisonnées</span>}>
+      <div className="cc-inline">
+        {cc.can("pec.manage") && <button className="cc-btn is-primary" onClick={() => cc.go("Dossiers PEC")}><Briefcase size={15} />Tableau PEC par colonnes</button>}
+        {cc.can("cabinet.read") && <button className="cc-btn" onClick={() => cc.go("Opérations", "Tâches cabinets")}><ListTodo size={15} />Tâches de tous les cabinets</button>}
+        {cc.can("billing.read") && <button className="cc-btn" onClick={() => cc.go("Finance")}><Euro size={15} />Bilan financier détaillé</button>}
+      </div>
+    </Card>
     <div className="cc-home-grid">
       <Card className="cc-now" title="À traiter maintenant" action={<button className="cc-link" onClick={() => cc.go("Inbox")}>Tout voir ({c.todo}) <ArrowRight size={13} /></button>}>
         {data.now.length ? <div className="cc-event-list">{data.now.map((e: OpEvent) => <EventRow key={e.id} e={e} refresh={reload} />)}</div>

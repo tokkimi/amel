@@ -43,9 +43,10 @@ const MENU: MenuItem[] = [
   { label: "Paramètres", section: "Configuration", icon: Settings, perm: "settings.read" },
   { label: "Mes cabinets clients", section: "Cabinets", icon: Building2, perm: "cabinet.read" },
   { label: "Demandes SmilePec", section: "Support", icon: LifeBuoy, perm: "support.read", badge: "support" },
-  { label: "Priorités opérationnelles", section: "Opérations", icon: Workflow, perm: "cabinet.read" },
-  { label: "Dossiers PEC", section: "Dossiers PEC", icon: Briefcase, perm: "pec.manage" },
-  { label: "Facturation SmilePec", section: "Finance", icon: Euro, perm: "billing.read" },
+  { label: "Priorités opérationnelles", section: "Opérations", sub: "Poses à venir", icon: Workflow, perm: "cabinet.read" },
+  { label: "Tâches des cabinets", section: "Opérations", sub: "Tâches cabinets", icon: Briefcase, perm: "cabinet.read" },
+  { label: "Tableau PEC · colonnes", section: "Dossiers PEC", icon: Briefcase, perm: "pec.manage" },
+  { label: "Bilan financier détaillé", section: "Finance", icon: Euro, perm: "billing.read" },
   { label: "Analytics", section: "Analytics", icon: BarChart3, perm: "analytics.read", isNew: true },
 ];
 const menuActive = (m: MenuItem, section: string, sub: string) => m.section === section && (m.sub ? sub.startsWith(m.sub) : !MENU.some((x) => x !== m && x.section === section && x.sub && sub.startsWith(x.sub)));
