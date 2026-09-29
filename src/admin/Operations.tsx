@@ -54,12 +54,12 @@ function AppointmentDrawer({ id, close }: { id: string; close: () => void }) {
   </Drawer>;
 }
 
-const SUBS = ["Tâches Amelib", "Poses à venir", "Tâches cabinets", "Rendez-vous", "Volume"];
+const SUBS = ["Tâches SmilePec", "Poses à venir", "Tâches cabinets", "Rendez-vous", "Volume"];
 export default function Operations() {
   const cc = useCC();
   const { data, error, loading, reload } = useApi<any>("cc-operations", { v: cc.version });
   const [sub, setSub] = useUrlParam("sub");
-  const tab = SUBS.includes(sub) ? sub : "Tâches Amelib";
+  const tab = SUBS.includes(sub) ? sub : "Tâches SmilePec";
   const [owner, setOwner] = useState(""), [appointment, setAppointment] = useState(""), [apptStatus, setApptStatus] = useState("");
   const tasks = (data?.tasks || []).filter((t: any) => !owner || (owner === "none" ? !t.owner_id : t.owner_id === owner));
   const lateTasks = (data?.tasks || []).filter((t: any) => t.due_at && new Date(t.due_at) < new Date()).length;
@@ -84,19 +84,19 @@ export default function Operations() {
     { key: "duration", label: "Durée", mobile: "hide", render: (a) => a.duration + " min" },
   ];
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Opérations</h1><p>Tâches de l’équipe, poses à préparer, activité des cabinets et volume hebdomadaire.</p></div>
+    <header className="cc-page-head"><div><h1>{tab === "Rendez-vous" ? "Rendez-vous" : "Priorités opérationnelles"}</h1><p>{tab === "Rendez-vous" ? "Consulter, déplacer, annuler ou clôturer les rendez-vous des cabinets." : "Tâches de l’équipe SmilePec, priorités des cabinets et volume hebdomadaire."}</p></div>
       <div className="cc-inline">{cc.can("inbox.manage") && <button className="cc-btn is-primary" onClick={() => cc.createTask()}><Plus size={15} />Nouvelle tâche</button>}
         {data && <button className="cc-btn" onClick={() => downloadWorkbook("smilepec-priorites", { "Poses prévues": data.poses.map((p: any) => ({ Patient: p.initials, Cabinet: p.cabinet_name, "Date de pose": p.prosthesis_date, "Devis accepté": p.ready ? "Oui" : "Non" })), "Tâches ouvertes": data.cabinet_tasks.map((t: any) => ({ Tâche: t.title, Cabinet: t.cabinet_name, Assignée: t.assignee, Priorité: t.priority, Échéance: t.due_at || "", Statut: t.stage })) })}><Download size={15} />Excel</button>}</div></header>
     <Loadable loading={loading && !data} error={error} retry={reload} rows={8}>
       {data && <>
         <div className="cc-kpis">
-          <Kpi label="Tâches Amelib ouvertes" value={data.tasks.length} onClick={() => setSub("", true)} />
+          <Kpi label="Tâches SmilePec ouvertes" value={data.tasks.length} onClick={() => setSub("", true)} />
           <Kpi label="En retard" value={lateTasks} tone={lateTasks ? "critical" : "ok"} onClick={() => cc.go("Inbox", "overdue")} />
           <Kpi label="Poses sous 7 jours" value={data.poses.filter((p: any) => new Date(p.prosthesis_date).getTime() - Date.now() < 7 * 86400000 && new Date(p.prosthesis_date).getTime() >= Date.now() - 86400000).length} hint={`${data.poses.filter((p: any) => !p.ready).length} sans devis accepté`} onClick={() => setSub("Poses à venir", true)} />
           <Kpi label="Tâches cabinets en retard" value={data.cabinet_tasks.filter((t: any) => t.due_at && new Date(t.due_at) < new Date()).length} onClick={() => setSub("Tâches cabinets", true)} />
         </div>
-        <Tabs label="Opérations" tabs={SUBS.map((s) => ({ key: s, label: s }))} value={tab} onChange={(s) => setSub(s === "Tâches Amelib" ? "" : s, true)} />
-        {tab === "Tâches Amelib" && <Card title="Tâches de l’équipe Amelib" action={<select aria-label="Responsable" value={owner} onChange={(e) => setOwner(e.target.value)}><option value="">Tout le monde</option><option value={cc.me.account.id}>Mon travail</option><option value="none">Non assignées</option>{cc.me.team.filter((t) => t.id !== cc.me.account.id).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>}>
+        {tab !== "Rendez-vous" && <Tabs label="Priorités" tabs={SUBS.filter((s) => s !== "Rendez-vous").map((s) => ({ key: s, label: s }))} value={tab} onChange={(s) => setSub(s === "Tâches SmilePec" ? "" : s, true)} />}
+        {tab === "Tâches SmilePec" && <Card title="Tâches de l’équipe SmilePec" action={<select aria-label="Responsable" value={owner} onChange={(e) => setOwner(e.target.value)}><option value="">Tout le monde</option><option value={cc.me.account.id}>Mon travail</option><option value="none">Non assignées</option>{cc.me.team.filter((t) => t.id !== cc.me.account.id).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>}>
           {tasks.length ? <ul className="cc-list">{tasks.map((t: any) => <li key={t.id}><button className="cc-list-row" onClick={() => cc.open("event", t.id)}><span><strong>{t.title}</strong><small>{t.cabinet_name ? t.cabinet_name + " · " : ""}{t.owner_name || "Non assignée"} · créée {ago(t.created_at)}</small></span><span className="cc-inline"><SeverityBadge severity={t.severity} />{t.due_at && <span className={new Date(t.due_at) < new Date() ? "late" : ""}>{day(t.due_at)}</span>}</span></button></li>)}</ul>
             : <Empty title="Aucune tâche ouverte 🎉" text="Créez une tâche depuis ce bouton, un cabinet ou la palette de commandes (Ctrl K)." />}
         </Card>}

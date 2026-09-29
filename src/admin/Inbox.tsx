@@ -44,7 +44,7 @@ export default function Inbox() {
   });
   const manage = cc.can("inbox.manage");
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Inbox</h1><p>Tout ce qui demande une action humaine, au même endroit.</p></div>
+    <header className="cc-page-head"><div><h1>À traiter</h1><p>Tout ce qui demande une action humaine, au même endroit.</p></div>
       {manage && <button className="cc-btn is-primary" onClick={() => cc.createTask()}><Plus size={15} />Nouvelle tâche</button>}</header>
     <Tabs label="Vues" tabs={INBOX_VIEWS} value={view} onChange={(v) => { setView(v); setExtra({}); }} />
     <div className="cc-filterbar">

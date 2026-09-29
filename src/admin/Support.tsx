@@ -30,7 +30,7 @@ export default function Support() {
   ];
   const k = data?.kpis;
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Support Center</h1><p>Demandes des cabinets, SLA et échanges — réponses publiques et notes internes séparées.</p></div></header>
+    <header className="cc-page-head"><div><h1>Demandes SmilePec</h1><p>Demandes des cabinets, délais de réponse et échanges — réponses au cabinet et notes internes séparées.</p></div></header>
     {k && <div className="cc-kpis">
       <Kpi label="Nouveaux" value={k.new} tone={k.new ? "info" : "neutral"} onClick={() => setStatus("new")} />
       <Kpi label="En cours" value={k.open} onClick={() => setStatus("active")} />
@@ -87,7 +87,7 @@ export function TicketDrawer({ id, close }: { id: string; close: () => void }) {
             <button type="button" role="radio" aria-checked={mode === "public"} className={mode === "public" ? "active public" : ""} onClick={() => setMode("public")}><Send size={14} />Réponse publique</button>
             <button type="button" role="radio" aria-checked={mode === "internal"} className={mode === "internal" ? "active internal" : ""} onClick={() => setMode("internal")}><Lock size={14} />Note interne</button>
           </div>
-          <p className="cc-reply-hint">{mode === "public" ? "⚠ Visible par le cabinet. Il recevra une notification." : "🔒 Visible uniquement par l’équipe Amelib. Jamais envoyé au cabinet."}</p>
+          <p className="cc-reply-hint">{mode === "public" ? "⚠ Visible par le cabinet. Il recevra une notification." : "🔒 Visible uniquement par l’équipe SmilePec. Jamais envoyé au cabinet."}</p>
           <textarea aria-label={mode === "public" ? "Réponse au cabinet" : "Note interne"} rows={4} value={body} onChange={(e) => setBody(e.target.value)} maxLength={5000} />
           {err && <p className="cc-form-error" role="alert">{err}</p>}
           <div className="cc-inline"><label>Puis passer à<select value={next} onChange={(e) => setNext(e.target.value)}><option value="">{mode === "public" ? "Statut automatique" : "Statut inchangé"}</option>{Object.entries(TICKET_STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>

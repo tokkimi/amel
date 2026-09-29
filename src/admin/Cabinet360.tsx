@@ -80,7 +80,7 @@ function Summary({ data, reload, noteRef }: { data: any; reload: () => void; not
       <Card title={`Onboarding — ${data.onboarding.percent} %`}><Meter value={data.onboarding.percent} /><ul className="cc-steps">{data.onboarding.steps.map((s: any) => <li key={s.key} className={s.done ? "done" : ""}>{s.done ? <CheckCircle2 size={15} aria-label="Fait" /> : <Circle size={15} aria-label="À faire" />}{s.label}</li>)}</ul>
         {cc.can("cabinet.update") && !data.onboarding.steps.find((s: any) => s.key === "training").done && <button className="cc-btn is-small" onClick={async () => { await api("cc-crm-update", { cabinet_id: c.id, training_done: true }); cc.toast("Formation marquée comme terminée."); reload(); }}>Marquer la formation terminée</button>}
       </Card>
-      <Card title="Notes internes" action={<Badge tone="info">Visibles par Amelib uniquement</Badge>}>
+      <Card title="Notes internes" action={<Badge tone="info">Visibles par SmilePec uniquement</Badge>}>
         {cc.can("cabinet.update") && <form className="cc-note-form internal" onSubmit={async (e) => { e.preventDefault(); if (!note.trim()) return; setBusy(true); try { await api("cc-note-add", { entity_type: "cabinet", entity_id: c.id, body: note, mentions }); setNote(""); setMentions([]); cc.toast("Note ajoutée."); reload(); } catch (err) { cc.toast((err as Error).message); } finally { setBusy(false); } }}>
           <label><span className="sr-only">Nouvelle note</span><textarea ref={noteRef} rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={4000} placeholder="Ex. Cabinet intéressé par le nouveau module, à rappeler après la formation." /></label>
           <div className="cc-inline"><span className="cc-muted">Mentionner :</span>{cc.me.team.filter((m) => m.id !== cc.me.account.id).map((m) => <label key={m.id} className="cc-check-label"><input type="checkbox" checked={mentions.includes(m.id)} onChange={() => setMentions(mentions.includes(m.id) ? mentions.filter((x) => x !== m.id) : [...mentions, m.id])} />{m.name}</label>)}<button className="cc-btn is-small is-primary" disabled={busy || !note.trim()}>Ajouter</button></div>
@@ -113,7 +113,7 @@ function Finance({ data }: { data: any }) {
   const late = data.documents.filter((d: any) => d.days_late > 0);
   return <div className="cc-stack">
     <div className="cc-mini-kpis boxed"><span><b>{eur(c.invoiced)}</b>facturé</span><span><b>{eur(c.paid)}</b>payé</span><span><b>{eur(c.outstanding)}</b>à encaisser</span><span className={c.overdue_amount ? "late" : ""}><b>{eur(c.overdue_amount)}</b>en retard</span></div>
-    <p className="cc-muted">Argent géré par le cabinet (factures patients) — distinct des revenus Amelib.</p>
+    <p className="cc-muted">Argent géré par le cabinet (factures patients) — distinct des revenus SmilePec.</p>
     <Card title="Factures en retard">{late.length ? <ul className="cc-list">{late.map((d: any) => <li key={d.id}><span><strong>{d.number}</strong><small>Échéance {day(d.due_date)}</small></span><span className="cc-inline late"><b>{eur(d.total, 2)}</b>{d.days_late} j de retard</span></li>)}</ul> : <Empty title="Aucune facture en retard 🎉" />}</Card>
   </div>;
 }

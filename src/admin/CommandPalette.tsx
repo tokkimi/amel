@@ -43,7 +43,7 @@ export default function CommandPalette({ open, close }: { open: boolean; close: 
   let lastGroup = "";
   return <div className="cc-modal-backdrop top" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
     <div className="cc-palette" role="dialog" aria-modal="true" aria-label="Rechercher ou effectuer une action">
-      <label className="cc-palette-input"><Search size={18} aria-hidden /><input ref={input} role="combobox" aria-expanded aria-controls="cc-palette-list" aria-activedescendant={items[active]?.id} placeholder="Rechercher dans Amelib ou effectuer une action…" value={q} onChange={(e) => setQ(e.target.value)}
+      <label className="cc-palette-input"><Search size={18} aria-hidden /><input ref={input} role="combobox" aria-expanded aria-controls="cc-palette-list" aria-activedescendant={items[active]?.id} placeholder="Rechercher dans SmilePec ou effectuer une action…" value={q} onChange={(e) => setQ(e.target.value)}
         onKeyDown={(e) => { if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(items.length - 1, a + 1)); } if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(0, a - 1)); } if (e.key === "Enter") run(items[active]); if (e.key === "Escape") close(); }} /><kbd>Échap</kbd></label>
       <ul id="cc-palette-list" role="listbox">
         {items.map((item, i) => { const header = item.group !== lastGroup ? (lastGroup = item.group) : null; const I = item.icon; return [

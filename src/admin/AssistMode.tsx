@@ -8,7 +8,7 @@ export default function AssistMode({ session, exit }: { session: { cabinet_name:
   const p = data?.profile;
   return <div className="cc-assist" role="region" aria-label="Mode assistance">
     <div className="cc-assist-banner" role="status">
-      <Eye size={16} aria-hidden /><span>Vous consultez Amelib en tant que <b>{session.cabinet_name}</b> — Mode assistance Amel · <b>lecture seule</b></span>
+      <Eye size={16} aria-hidden /><span>Vous consultez SmilePec en tant que <b>{session.cabinet_name}</b> — Mode assistance Amel · <b>lecture seule</b></span>
       <button className="cc-btn is-small" onClick={exit}><LogOut size={14} />Quitter le mode assistance</button>
     </div>
     <div className="cc-assist-body">

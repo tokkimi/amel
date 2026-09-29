@@ -11,7 +11,7 @@ export default function Config() {
   const [sub, setSub] = useUrlParam("sub");
   const tab = SUBS.includes(sub) ? sub : "Plateforme";
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Configuration</h1><p>Paramètres publics, règles automatiques, fonctionnalités, rôles internes et santé technique.</p></div></header>
+    <header className="cc-page-head"><div><h1>Paramètres</h1><p>Paramètres publics, règles automatiques, fonctionnalités, rôles internes et santé technique.</p></div></header>
     <Tabs label="Configuration" tabs={SUBS.map((s) => ({ key: s, label: s }))} value={tab} onChange={(s) => setSub(s === "Plateforme" ? "" : s, true)} />
     <Loadable loading={loading && !data} error={error} retry={reload} rows={8}>
       {data && <>
@@ -69,10 +69,10 @@ function Flags({ flags }: { flags: any[] }) {
   const cc = useCC();
   const edit = cc.can("settings.update");
   const [busy, setBusy] = useState(false);
-  const ROLLOUT: Record<string, string> = { off: "Désactivé", internal: "Amelib uniquement", pilot: "Cabinets pilotes (tag « pilote » ou forçage)", all: "Tous les cabinets" };
+  const ROLLOUT: Record<string, string> = { off: "Désactivé", internal: "SmilePec uniquement", pilot: "Cabinets pilotes (tag « pilote » ou forçage)", all: "Tous les cabinets" };
   return <div className="cc-stack">
     <Card title="Feature flags">
-      <p className="cc-muted">Déploiement progressif : désactivé, équipe Amelib, cabinets pilotes, tous — avec forçage ON/OFF par cabinet depuis sa fiche 360°.</p>
+      <p className="cc-muted">Déploiement progressif : désactivé, équipe SmilePec, cabinets pilotes, tous — avec forçage ON/OFF par cabinet depuis sa fiche 360°.</p>
       {flags.length ? <ul className="cc-list">{flags.map((f) => <li key={f.key}><span><strong>{f.label}</strong><small>{f.key}{f.description ? " · " + f.description : ""} · {f.overrides_on} forcé(s) ON, {f.overrides_off} OFF</small></span>
         {edit ? <select aria-label={"Déploiement " + f.label} value={f.rollout} onChange={async (e) => { await api("cc-flag-save", { ...f, rollout: e.target.value }); cc.toast("Feature flag enregistré."); cc.bump(); }}>{Object.entries(ROLLOUT).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select> : <Badge>{ROLLOUT[f.rollout]}</Badge>}</li>)}</ul>
         : <Empty title="Aucun feature flag." text="Créez le premier ci-dessous." icon="·" />}
@@ -91,7 +91,7 @@ function Roles({ data }: { data: any }) {
   const cc = useCC();
   const manage = cc.can("rbac.manage");
   return <div className="cc-stack">
-    <Card title="Équipe Amelib">
+    <Card title="Équipe SmilePec">
       <p className="cc-muted">Les comptes administrateurs existants sans rôle interne conservent tous les droits (Platform Owner) : la migration est progressive et rétrocompatible.</p>
       <ul className="cc-list">{data.team.map((m: any) => <li key={m.id}><span><strong>{m.name}</strong><small>{m.email}{m.legacy ? " · rôle hérité" : ""}</small></span>
         {manage ? <select aria-label={"Rôle de " + m.name} value={m.internal_role} onChange={(e) => { const role = e.target.value; const label = data.roles.find((r: any) => r.key === role)?.label; cc.confirm({ title: "Changer les permissions", reason: true, danger: true, summary: <p><b>{m.name}</b> passera au rôle <b>{label}</b>. Ce changement est journalisé.</p>, run: async (reason) => { await api("cc-role-assign", { account_id: m.id, internal_role: role, reason }); cc.toast("Rôle mis à jour."); cc.bump(); } }); }}>{data.roles.map((r: any) => <option key={r.key} value={r.key}>{r.label}</option>)}</select> : <Badge>{data.roles.find((r: any) => r.key === m.internal_role)?.label}</Badge>}</li>)}</ul>

@@ -115,7 +115,7 @@ export function EventDrawer({ id, close }: { id: string; close: () => void }) {
             : <><button className="cc-btn is-primary" onClick={() => act(e.id, { status: "resolved" }, "Résolu.")}><Check size={14} />Résoudre</button><button className="cc-btn is-ghost" onClick={() => act(e.id, { status: "dismissed" }, "Classé sans suite.")}><X size={14} />Classer</button></>}
         </div>}
         {manage && <form className="cc-note-form internal" onSubmit={async (ev) => { ev.preventDefault(); if (!note.trim()) return; setBusy(true); try { await api("cc-note-add", { entity_type: "event", entity_id: e.id, body: note }); setNote(""); reload(); cc.toast("Note interne ajoutée."); } catch (err) { cc.toast((err as Error).message); } finally { setBusy(false); } }}>
-          <label><span><MessageSquarePlus size={14} /> Note interne — visible uniquement par l’équipe Amelib</span><textarea rows={2} value={note} onChange={(ev) => setNote(ev.target.value)} maxLength={4000} /></label>
+          <label><span><MessageSquarePlus size={14} /> Note interne — visible uniquement par l’équipe SmilePec</span><textarea rows={2} value={note} onChange={(ev) => setNote(ev.target.value)} maxLength={4000} /></label>
           <button className="cc-btn" disabled={busy || !note.trim()}>Ajouter la note</button>
         </form>}
         {!!data.notes.length && <div className="cc-notes">{data.notes.map((n: any) => <article key={n.id}><header><Avatar name={n.author} size={20} /><strong>{n.author}</strong><time>{day(n.created_at)} {new Date(n.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</time></header><p>{n.body}</p></article>)}</div>}

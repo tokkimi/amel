@@ -10,7 +10,7 @@ export default function Security() {
   const { data, error, loading, reload } = useApi<any>("cc-audit", { q: debounced, entity_type: entity, page, v: cc.version });
   const pages = data ? Math.max(1, Math.ceil(data.total / data.size)) : 1;
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Sécurité & Audit</h1><p>Journal append-only des décisions, sessions d’assistance et actions sensibles.</p></div></header>
+    <header className="cc-page-head"><div><h1>Journal d’actions</h1><p>Journal append-only des décisions, sessions d’assistance et actions sensibles.</p></div></header>
     <Loadable loading={loading && !data} error={error} retry={reload} rows={8}>
       {data && <>
         <div className="cc-kpis">

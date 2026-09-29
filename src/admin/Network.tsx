@@ -10,8 +10,8 @@ export default function Network() {
   const [sub, setSub] = useUrlParam("sub");
   const [tab, target] = (sub || "Comptes").split(":");
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Réseau</h1><p>Professionnels, comptes, vérifications, onboarding et équipes.</p></div></header>
-    <Tabs label="Réseau" tabs={SUBS.map((s) => ({ key: s, label: s }))} value={SUBS.includes(tab) ? tab : "Comptes"} onChange={(s) => setSub(s === "Comptes" ? "" : s, true)} />
+    <header className="cc-page-head"><div><h1>{tab === "Vérifications" ? "Vérifications" : "Comptes"}</h1><p>{tab === "Vérifications" ? "Contrôle des professionnels : pièces, checklist, décision et historique." : "Tous les comptes, l’onboarding des cabinets et leurs équipes."}</p></div></header>
+    {tab !== "Vérifications" && <Tabs label="Comptes" tabs={SUBS.filter((s) => s !== "Vérifications").map((s) => ({ key: s, label: s }))} value={SUBS.includes(tab) ? tab : "Comptes"} onChange={(s) => setSub(s === "Comptes" ? "" : s, true)} />}
     {(tab === "Comptes" || !SUBS.includes(tab)) && <Accounts key={target || ""} initial={target} />}
     {tab === "Vérifications" && <Verifications focus={target} />}
     {tab === "Onboarding" && <Onboarding />}

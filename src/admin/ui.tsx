@@ -72,7 +72,7 @@ export const TICKET_PRIORITY: Record<string, string> = { low: "Basse", normal: "
 export const TICKET_CATEGORY: Record<string, string> = { general: "Général", access: "Accès", billing: "Facturation", tiers_payant: "Tiers payant", bug: "Anomalie", onboarding: "Onboarding", data: "Données", other: "Autre" };
 export const LIFECYCLE: Record<string, string> = { lead: "Lead", contacted: "Contacté", demo: "Démo", onboarding: "Onboarding", active: "Actif", at_risk: "À risque", churned: "Perdu" };
 export const VERIFICATION: Record<string, string> = { new: "Nouveau", documents_received: "Documents reçus", reviewing: "En revue", missing_information: "Infos manquantes", approved: "Approuvé", rejected: "Refusé" };
-export const ROLE: Record<string, string> = { patient: "Patient", professional: "Praticien", worker: "Assistant", admin: "Amelib" };
+export const ROLE: Record<string, string> = { patient: "Patient", professional: "Praticien", worker: "Assistant", admin: "SmilePec" };
 
 // ── Primitives ──────────────────────────────────────────────────────────────────────────────────
 const toneIcon = { critical: OctagonAlert, warn: AlertTriangle, ok: CheckCircle2, info: Info } as const;

@@ -88,7 +88,7 @@ export default function Cabinets() {
   } });
   const counts = Object.fromEntries(FILTERS.map((f) => [f.key, (data?.cabinets || []).filter((c) => matches(c, f.key)).length]));
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Cabinets</h1><p>Gestion 360° du réseau : santé, onboarding, suivi commercial et support.</p></div>
+    <header className="cc-page-head"><div><h1>Cabinets & équipes</h1><p>Les cabinets clients de SmilePec : fiche complète, équipe, suivi, santé et support.</p></div>
       {cc.can("export.bulk") && <button className="cc-btn" onClick={() => exportRows(rows)}><Download size={15} />Exporter la vue</button>}</header>
     <div className="cc-filterbar">
       <Chips label="Filtres cabinets" items={FILTERS.map((f) => ({ ...f, count: counts[f.key] }))} value={filter} onChange={setFilter} />

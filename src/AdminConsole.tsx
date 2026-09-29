@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Activity, ArrowRight, BarChart3, Briefcase, Building2, Check, Euro, Eye, Home as HomeIcon, Inbox as InboxIcon, LifeBuoy,
+  Activity, ArrowRight, BarChart3, Briefcase, CalendarDays, Building2, Check, Euro, Eye, Home as HomeIcon, Inbox as InboxIcon, LifeBuoy,
   LogOut, Menu, RefreshCw, Search, Settings, ShieldCheck, Users, Workflow, X,
 } from "lucide-react";
 import { api, Account } from "./client";
@@ -23,13 +23,30 @@ import Notifications from "./admin/Notifications";
 import AssistMode from "./admin/AssistMode";
 import "./admin/command-center.css";
 
-// Amelib Command Center — the central admin (Amel) back-office. Public pages and cabinet spaces are untouched.
+// SmilePec Command Center — the central admin (Amel) back-office. Public pages and cabinet spaces are untouched.
 const NAV: { key: Section; icon: typeof HomeIcon; perm?: string; badge?: "inbox" | "support" }[] = [
   { key: "Accueil", icon: HomeIcon }, { key: "Inbox", icon: InboxIcon, badge: "inbox" }, { key: "Cabinets", icon: Building2, perm: "cabinet.read" },
   { key: "Opérations", icon: Workflow, perm: "cabinet.read" }, { key: "Finance", icon: Euro, perm: "billing.read" }, { key: "Support", icon: LifeBuoy, perm: "support.read", badge: "support" },
   { key: "Réseau", icon: Users, perm: "account.read" }, { key: "Analytics", icon: BarChart3, perm: "analytics.read" },
 ];
 const ADMIN_NAV: { key: Section; icon: typeof HomeIcon; perm?: string }[] = [{ key: "Sécurité & Audit", icon: ShieldCheck, perm: "audit.read" }, { key: "Configuration", icon: Settings, perm: "settings.read" }];
+// Amel's original admin menu (same names, same order), each entry now opening the improved page.
+type MenuItem = { label: string; section: Section; sub?: string; icon: typeof HomeIcon; perm?: string; badge?: "inbox" | "support"; isNew?: boolean };
+const MENU: MenuItem[] = [
+  { label: "Vue d’ensemble", section: "Accueil", icon: HomeIcon },
+  { label: "À traiter", section: "Inbox", icon: InboxIcon, badge: "inbox", isNew: true },
+  { label: "Comptes", section: "Réseau", icon: Users, perm: "account.read" },
+  { label: "Vérifications", section: "Réseau", sub: "Vérifications", icon: ShieldCheck, perm: "verification.read" },
+  { label: "Rendez-vous", section: "Opérations", sub: "Rendez-vous", icon: CalendarDays, perm: "cabinet.read" },
+  { label: "Journal d’actions", section: "Sécurité & Audit", icon: Activity, perm: "audit.read" },
+  { label: "Paramètres", section: "Configuration", icon: Settings, perm: "settings.read" },
+  { label: "Cabinets & équipes", section: "Cabinets", icon: Building2, perm: "cabinet.read" },
+  { label: "Demandes SmilePec", section: "Support", icon: LifeBuoy, perm: "support.read", badge: "support" },
+  { label: "Priorités opérationnelles", section: "Opérations", icon: Workflow, perm: "cabinet.read" },
+  { label: "Bilan comptable", section: "Finance", icon: Euro, perm: "billing.read" },
+  { label: "Analytics", section: "Analytics", icon: BarChart3, perm: "analytics.read", isNew: true },
+];
+const menuActive = (m: MenuItem, section: string, sub: string) => m.section === section && (m.sub ? sub.startsWith(m.sub) : !MENU.some((x) => x !== m && x.section === section && x.sub && sub.startsWith(x.sub)));
 const SECTIONS = [...NAV, ...ADMIN_NAV].map((n) => n.key) as string[];
 // Old ?tab= values keep working (bookmarks, notifications).
 const LEGACY: Record<string, [Section, string?]> = {
@@ -41,7 +58,7 @@ const LEGACY: Record<string, [Section, string?]> = {
 export default function AdminConsole({ account, logout }: { account: Account; logout: () => void }) {
   const [me, setMe] = useState<Me | null>(null), [meError, setMeError] = useState("");
   const [tab, setTab] = useUrlParam("tab");
-  const [, setSub] = useUrlParam("sub");
+  const [sub, setSub] = useUrlParam("sub");
   const [cabinet, setCabinet] = useUrlParam("cabinet"), [ticket, setTicket] = useUrlParam("ticket"), [event, setEvent] = useUrlParam("event");
   const [version, setVersion] = useState(0), [menu, setMenu] = useState(false), [palette, setPalette] = useState(false);
   const [confirmReq, setConfirmReq] = useState<ConfirmRequest | null>(null), [task, setTask] = useState<{ cabinet_id?: string; cabinet_name?: string; title?: string } | null>(null);
@@ -89,12 +106,10 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
     <div className="cc-app">
       <aside className={"cc-sidebar" + (menu ? " open" : "")} aria-label="Navigation administration">
         <a className="cc-brand" href="/admin"><img src="/smilepec-logo.png" alt="SmilePec" /></a>
-        <span className="cc-nav-label">Command Center</span>
-        <nav>{NAV.filter((n) => allowed(n.perm)).map(({ key, icon: I, badge: b }) => <button key={key} className={section === key ? "active" : ""} aria-current={section === key ? "page" : undefined} onClick={() => cc.go(key)}><I size={17} aria-hidden />{key}{!!badge(b) && <span className={"cc-nav-badge" + (b === "inbox" && badges.urgent ? " urgent" : "")} aria-label={`${badge(b)} en attente`}>{badge(b)}</span>}</button>)}</nav>
+        <span className="cc-nav-label">Administration générale</span>
+        <nav>{MENU.filter((m) => allowed(m.perm)).map((m) => { const on = menuActive(m, section, sub); const I = m.icon; return <button key={m.label} className={on ? "active" : ""} aria-current={on ? "page" : undefined} onClick={() => cc.go(m.section, m.sub)}><I size={17} aria-hidden />{m.label}{!!badge(m.badge) && <span className={"cc-nav-badge" + (m.badge === "inbox" && badges.urgent ? " urgent" : "")} aria-label={`${badge(m.badge)} en attente`}>{badge(m.badge)}</span>}</button>; })}</nav>
         <span className="cc-nav-label">SmilePec</span>
-        <nav><a className="cc-nav-link" href="/pro"><Briefcase size={17} aria-hidden />Espace SmilePec<small>tâches, patients, poses, devis</small></a></nav>
-        <span className="cc-nav-label">Administration</span>
-        <nav className="cc-nav-secondary">{ADMIN_NAV.filter((n) => allowed(n.perm)).map(({ key, icon: I }) => <button key={key} className={section === key ? "active" : ""} aria-current={section === key ? "page" : undefined} onClick={() => cc.go(key)}><I size={16} aria-hidden />{key}</button>)}</nav>
+        <nav><a className="cc-nav-link" href="/pro"><Briefcase size={17} aria-hidden />Espace SmilePec<small>tâches, dossiers, équipe</small></a></nav>
         <div className="cc-identity"><span className="cc-avatar">{account.name[0]}</span><div><strong>{account.name}</strong><small>{me.role_label}</small></div></div>
         <button className="cc-btn is-ghost" onClick={logout}><LogOut size={15} />Se déconnecter</button>
       </aside>
@@ -102,8 +117,8 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
       <div className="cc-main">
         <header className="cc-topbar">
           <button className="cc-icon cc-menu-btn" aria-label="Menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>{menu ? <X size={18} /> : <Menu size={18} />}</button>
-          <span className="cc-crumb"><Activity size={13} aria-hidden /> Amelib <span>/</span> <strong>{section}</strong></span>
-          <button className="cc-searchbar" onClick={() => setPalette(true)} aria-label="Rechercher dans Amelib (Ctrl K)"><Search size={15} aria-hidden /><span>Rechercher dans Amelib…</span><kbd>{navigator.platform.includes("Mac") ? "⌘" : "Ctrl"} K</kbd></button>
+          <span className="cc-crumb"><Activity size={13} aria-hidden /> SmilePec <span>/</span> <strong>{MENU.find((m) => menuActive(m, section, sub))?.label || section}</strong></span>
+          <button className="cc-searchbar" onClick={() => setPalette(true)} aria-label="Rechercher dans SmilePec (Ctrl K)"><Search size={15} aria-hidden /><span>Rechercher dans SmilePec…</span><kbd>{navigator.platform.includes("Mac") ? "⌘" : "Ctrl"} K</kbd></button>
           <Notifications unread={badges.notifications} onChange={loadBadges} />
           <button className="cc-icon" aria-label="Actualiser" onClick={() => { cc.bump(); loadMe(); }}><RefreshCw size={17} /></button>
           <a href="/pro" className="cc-link">Espace SmilePec <ArrowRight size={13} /></a>
@@ -111,7 +126,7 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
         </header>
         <main className="cc-content" id="main"><Page /></main>
         <nav className="cc-dock" aria-label="Navigation rapide">
-          {([["Accueil", HomeIcon], ["Inbox", InboxIcon], ["Cabinets", Building2], ["Support", LifeBuoy]] as const).filter(([k]) => allowed(NAV.find((n) => n.key === k)?.perm)).map(([k, I]) => <button key={k} className={section === k ? "active" : ""} onClick={() => cc.go(k)}><I size={20} />{k}{k === "Inbox" && !!badges.inbox && <span className="cc-nav-badge">{badges.inbox}</span>}</button>)}
+          {([["Accueil", HomeIcon, "Accueil"], ["Inbox", InboxIcon, "À traiter"], ["Cabinets", Building2, "Cabinets"], ["Support", LifeBuoy, "Demandes"]] as const).filter(([k]) => allowed(NAV.find((n) => n.key === k)?.perm)).map(([k, I, label]) => <button key={k} className={section === k ? "active" : ""} onClick={() => cc.go(k)}><I size={20} />{label}{k === "Inbox" && !!badges.inbox && <span className="cc-nav-badge">{badges.inbox}</span>}</button>)}
           <button className={menu ? "active" : ""} onClick={() => setMenu(!menu)}><Menu size={20} />Plus</button>
         </nav>
       </div>

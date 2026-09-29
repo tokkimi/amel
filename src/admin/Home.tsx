@@ -2,7 +2,7 @@ import { ArrowRight, Building2, Euro, Flame, Inbox as InboxIcon, Sparkles } from
 import { useCC } from "./context";
 import { EventRow, OpEvent, usePrimary } from "./events";
 import { ago, AUDIT_LABEL, Avatar, Card, Empty, eur, Kpi, Loadable, Skeleton, time, useApi } from "./ui";
-import AskAmelib from "./AskAmelib";
+import AskSmilePec from "./AskSmilePec";
 
 export default function Home() {
   const cc = useCC();
@@ -43,6 +43,6 @@ export default function Home() {
         </Card>
       </div>
     </div>
-    <AskAmelib />
+    <AskSmilePec />
   </div>;
 }

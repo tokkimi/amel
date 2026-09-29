@@ -20,16 +20,16 @@ export default function Finance() {
   ];
   const t = data?.totals;
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Finance</h1><p>Suivi des encaissements des cabinets et, séparément, des revenus propres d’Amelib.</p></div>
+    <header className="cc-page-head"><div><h1>Bilan comptable</h1><p>Suivi des encaissements des cabinets et, séparément, des revenus propres d’SmilePec.</p></div>
       {data && <button className="cc-btn" onClick={() => cc.confirm({ title: "Exporter le bilan", reason: "optional", summary: <p>Export Excel de {data.cabinets.length} cabinet(s) et {data.overdue.length} facture(s) en retard, sans données de soins. L’export est journalisé.</p>, run: async (reason) => {
         await api("cc-export-log", { kind: "finance", count: data.cabinets.length + data.overdue.length, reason });
         downloadWorkbook("smilepec-bilan-comptable", { Cabinets: data.cabinets.map((c: Row) => ({ Cabinet: c.name, Facturé: c.invoiced, Payé: c.paid, Restant: c.outstanding, "En retard": c.overdue })), Retards: data.overdue.map((d: any) => ({ Numéro: d.number, Cabinet: d.cabinet_name, Montant: d.total, Échéance: d.due_date, "Jours de retard": d.days_late })) });
       } })}><Download size={15} />Excel</button>}</header>
     <Loadable loading={loading && !data} error={error} retry={reload} rows={8}>
       {data && <>
-        <Tabs label="Périmètre financier" value={tab} onChange={setTab} tabs={[{ key: "cabinets", label: "Encaissements cabinets" }, { key: "amelib", label: "Revenus Amelib" }]} />
+        <Tabs label="Périmètre financier" value={tab} onChange={setTab} tabs={[{ key: "cabinets", label: "Encaissements cabinets" }, { key: "amelib", label: "Revenus SmilePec" }]} />
         {tab === "cabinets" && <>
-          <p className="cc-muted">Montants des devis et factures émis par les cabinets à leurs patients — argent géré par les cabinets, jamais comptabilisé comme revenu Amelib.</p>
+          <p className="cc-muted">Montants des devis et factures émis par les cabinets à leurs patients — argent géré par les cabinets, jamais comptabilisé comme revenu SmilePec.</p>
           <div className="cc-kpis">
             <Kpi label="Facturé" value={eur(t.invoiced)} />
             <Kpi label="Payé" value={eur(t.paid)} tone="ok" />
@@ -56,7 +56,7 @@ export default function Finance() {
             <Kpi label="Encaissé" value={eur(data.platform.collected)} tone="ok" />
             <Kpi label="Impayés plateforme" value={eur(data.platform.overdue)} tone={data.platform.overdue ? "critical" : "neutral"} />
           </div>
-          {!data.platform.invoiced && !data.platform.subscriptions && <Empty icon="·" title="Aucune facturation plateforme enregistrée." text="La facturation des abonnements Amelib n’est pas encore activée. Les indicateurs se rempliront dès les premières factures plateforme." />}
+          {!data.platform.invoiced && !data.platform.subscriptions && <Empty icon="·" title="Aucune facturation plateforme enregistrée." text="La facturation des abonnements SmilePec n’est pas encore activée. Les indicateurs se rempliront dès les premières factures plateforme." />}
         </>}
       </>}
     </Loadable>
