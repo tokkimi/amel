@@ -14,8 +14,9 @@ const copyFor = (role: Role) => {
 export default function SmilePecAssistant({ role }: { role: Role }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [sources, setSources] = useState<string[]>([]);
+  const [messages, setMessages] = useState<{ role: "user" | "assistant"; text: string; sources?: string[] }[]>([]);
+  const history = useRef<HTMLDivElement>(null);
+  const pending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [position, setPosition] = useState<Position>(null);
   const [dragging, setDragging] = useState(false);
@@ -29,20 +30,44 @@ export default function SmilePecAssistant({ role }: { role: Role }) {
     return () => window.removeEventListener("keydown", escape);
   }, []);
 
+  useEffect(() => {
+    history.current?.scrollTo({ top: history.current.scrollHeight });
+  }, [messages, busy, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      document.documentElement.style.setProperty("--assistant-height", `${viewport?.height || window.innerHeight}px`);
+      document.documentElement.style.setProperty("--assistant-top", `${viewport?.offsetTop || 0}px`);
+    };
+    update();
+    document.body.classList.add("assistant-open");
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    return () => {
+      document.body.classList.remove("assistant-open");
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
+  }, [open]);
+
   const ask = async (value?: string) => {
     const asked = (value || question).trim();
-    if (!asked || busy) return;
+    if (!asked || pending.current) return;
+    pending.current = true;
     setBusy(true);
+    setQuestion("");
+    setMessages((items) => [...items, { role: "user", text: asked }]);
     try {
-      const result = await api<{ answer: string; sources: string[] }>("assistant", { question: asked });
-      setAnswer(result.answer);
-      setSources(result.sources || []);
-      setQuestion("");
+      const result = await api<{ answer: string; sources: string[] }>("assistant", { question: asked, history: messages.filter((message) => message.role === "user").slice(-6).map((message) => message.text) });
+      setMessages((items) => [...items, { role: "assistant", text: result.answer, sources: result.sources || [] }]);
     } catch {
-      setAnswer("Je n’arrive pas à accéder à votre espace pour le moment. Réessayez dans un instant.");
-      setSources([]);
+      setMessages((items) => [...items, { role: "assistant", text: "Je n’arrive pas à accéder à votre espace pour le moment. Réessayez dans un instant." }]);
+      setQuestion(asked);
     } finally {
       setBusy(false);
+      pending.current = false;
     }
   };
 
@@ -73,10 +98,13 @@ export default function SmilePecAssistant({ role }: { role: Role }) {
     <div className={`smilepec-assistant-float ${open ? "is-open" : ""} ${dragging ? "is-dragging" : ""}`} style={position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}>
       {open && <section className="smilepec-assistant-panel" role="dialog" aria-label={copy.title}>
         <header><span className="assistant-orb" aria-hidden="true"><img src="/smilepec-emblem.png" alt="" /></span><div><span className="eyebrow">ASSISTANT SMILEPEC</span><h2>{copy.title}</h2></div><button className="assistant-close" type="button" onClick={() => setOpen(false)} aria-label="Fermer l’assistant"><X size={18} /></button></header>
-        <p className="assistant-intro">{copy.description}</p>
-        <div className="assistant-prompts">{copy.prompts.map((prompt) => <button key={prompt} type="button" onClick={() => ask(prompt)}>{prompt}</button>)}</div>
-        {answer && <div className="assistant-answer"><strong>SmilePec</strong><p>{answer}</p>{sources.length > 0 && <small>{sources.join(" · ")}</small>}</div>}
-        <form onSubmit={(event) => { event.preventDefault(); ask(); }} className="assistant-form"><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={copy.placeholder} aria-label="Votre question à l’assistant" /><button className="assistant-send" disabled={busy} aria-label="Envoyer la question"><Send size={17} /></button></form>
+        <div className="assistant-history" ref={history} role="log" aria-live="polite" aria-relevant="additions text">
+          <p className="assistant-intro">{copy.description}</p>
+          {messages.length === 0 && <div className="assistant-prompts">{copy.prompts.map((prompt) => <button key={prompt} type="button" disabled={busy} onClick={() => ask(prompt)}>{prompt}</button>)}</div>}
+          {messages.map((message, index) => <div key={index} className={`assistant-answer ${message.role === "user" ? "is-user" : ""}`}><strong>{message.role === "user" ? "Vous" : "SmilePec"}</strong><p>{message.text}</p>{!!message.sources?.length && <small>{message.sources.join(" · ")}</small>}</div>)}
+          {busy && <p className="assistant-status" role="status">SmilePec prépare votre réponse…</p>}
+        </div>
+        <form onSubmit={(event) => { event.preventDefault(); ask(); }} className="assistant-form"><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={copy.placeholder} aria-label="Votre question à l’assistant" /><button className="assistant-send" disabled={busy || !question.trim()} aria-label="Envoyer la question"><Send size={17} /></button></form>
       </section>}
       <button className="smilepec-assistant-trigger" type="button" aria-label={open ? "Fermer l’assistant SmilePec" : "Ouvrir l’assistant SmilePec"} aria-expanded={open} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag} onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } setOpen((value) => !value); }}>
         <img src="/smilepec-emblem.png" alt="" />

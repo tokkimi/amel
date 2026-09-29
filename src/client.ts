@@ -92,6 +92,9 @@ export type PatientRecord = {
   insurance_card_name: string;
   billing_document_data: string;
   billing_document_name: string;
+  quote_document_data: string;
+  quote_document_name: string;
+  impression_date?: string;
   prosthesis_date?: string;
   medical_alerts: string;
   allergies: string;
@@ -141,14 +144,24 @@ export type WorkTask = {
   id: string;
   title: string;
   description: string;
-  stage: "À faire" | "En cours" | "En attente" | "Terminé";
+  stage: string;
+  parent_task_id?: string;
+  plan_name?: string;
+  initial_quote?: number;
+  final_quote?: number;
+  recovered_amount?: number;
+  financial_date?: string;
+  practitioner_id?: string;
+  impression_date?: string;
+  placement_date?: string;
+  assignee_id?: string;
   priority: string;
   due_at?: string;
   assignee: string;
   patient_id?: string;
   patient_name?: string;
   checklist: { id: string; text: string; done: boolean }[];
-  attachments: { name: string; url: string }[];
+  attachments: { name: string; url: string; kind?: string }[];
 };
 export type Mission = {
   id: string;
@@ -164,6 +177,8 @@ export type Mission = {
   updated_at: string;
 };
 export type Dashboard = {
+  workspaceId?: string;
+  workspaces?: {id:string;name:string;clinic_name:string}[];
   permissions?: string[];
   isOwner?: boolean;
   account: Account;
@@ -188,7 +203,8 @@ export type Dashboard = {
   }[];
 };
 export async function api<T = any>(action: string, data?: unknown): Promise<T> {
-  const response = await fetch("/api?action=" + action, {
+  const workspace = new URLSearchParams(window.location.search).get("workspace");
+  const response = await fetch("/api?action=" + action + (workspace ? "&workspace=" + encodeURIComponent(workspace) : ""), {
     method: data === undefined ? "GET" : "POST",
     credentials: "same-origin",
     headers: data === undefined ? {} : { "Content-Type": "application/json" },

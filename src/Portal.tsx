@@ -1,3 +1,4 @@
+import ConnectedTools from "./ConnectedTools";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -844,6 +845,58 @@ export default function Portal() {
               </div>
             </div>
           </section>
+          <section className="pro-banner public-section" id="professionnels">
+            <div>
+              <span className="pill">
+                <Stethoscope size={13} /> SMILEPEC POUR LES DENTISTES
+              </span>
+              <h2>
+                Soignez. Pilotez.
+                <br />
+                SmilePec gère le reste.
+              </h2>
+              <p>
+                Agenda, dossiers dentaires, équipe, factures et tiers payant :
+                <br />
+                votre cabinet dispose enfin d’un espace complet, avec
+                l’expertise SmilePec à la demande.
+              </p>
+              <div className="pro-banner-actions">
+                <button
+                  className="primary"
+                  onClick={() => auth("signup", "Praticien")}
+                >
+                  Rejoindre comme professionnel <ArrowRight size={16} />
+                </button>
+                <a className="secondary" href="/pro">
+                  Explorer l’espace pro
+                </a>
+              </div>
+            </div>
+            <div className="pro-visual glass">
+              <div className="section-title">
+                <span className="stat-icon blue">
+                  <Stethoscope size={21} />
+                </span>
+                <span className="pill">Votre cabinet, connecté</span>
+              </div>
+              <h3>
+                Plus de liens.
+                <br />
+                Moins de distance.
+              </h3>
+              <div className="pro-feature">
+                <Check size={15} /> Votre tableau de bord et votre profil
+              </div>
+              <div className="pro-feature">
+                <Check size={15} /> Vos rendez-vous et vos patients
+              </div>
+              <div className="pro-feature">
+                <Check size={15} /> Votre équipe, au même endroit
+              </div>
+            </div>
+          </section>
+          <ConnectedTools />
           <section className="smilepec-services public-section">
             <div className="assistant-home glass">
               <div><div className="eyebrow">ASSISTANT SMILEPEC</div><h2>Vos informations utiles, au bon moment.</h2><p>Dans chaque espace, l’assistant répond à partir des données autorisées : priorités de pose, agenda, tâches, devis et factures pour le cabinet ; pilotage global pour Amel.</p></div>
@@ -959,57 +1012,6 @@ export default function Portal() {
                   <p>{s.text}</p>
                 </article>
               ))}
-            </div>
-          </section>
-          <section className="pro-banner public-section" id="professionnels">
-            <div>
-              <span className="pill">
-                <Stethoscope size={13} /> SMILEPEC POUR LES DENTISTES
-              </span>
-              <h2>
-                Soignez. Pilotez.
-                <br />
-                SmilePec gère le reste.
-              </h2>
-              <p>
-                Agenda, dossiers dentaires, équipe, factures et tiers payant :
-                <br />
-                votre cabinet dispose enfin d’un espace complet, avec
-                l’expertise SmilePec à la demande.
-              </p>
-              <div className="pro-banner-actions">
-                <button
-                  className="primary"
-                  onClick={() => auth("signup", "Praticien")}
-                >
-                  Rejoindre comme professionnel <ArrowRight size={16} />
-                </button>
-                <a className="secondary" href="/pro">
-                  Explorer l’espace pro
-                </a>
-              </div>
-            </div>
-            <div className="pro-visual glass">
-              <div className="section-title">
-                <span className="stat-icon blue">
-                  <Stethoscope size={21} />
-                </span>
-                <span className="pill">Votre cabinet, connecté</span>
-              </div>
-              <h3>
-                Plus de liens.
-                <br />
-                Moins de distance.
-              </h3>
-              <div className="pro-feature">
-                <Check size={15} /> Votre profil professionnel
-              </div>
-              <div className="pro-feature">
-                <Check size={15} /> Vos rendez-vous et vos patients
-              </div>
-              <div className="pro-feature">
-                <Check size={15} /> Votre équipe, au même endroit
-              </div>
             </div>
           </section>
           <section className="public-section faq-section">

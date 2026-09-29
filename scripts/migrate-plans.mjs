@@ -1,0 +1,1 @@
+import {readFileSync} from 'node:fs';import {neon} from '@neondatabase/serverless';const sql=neon(process.env.DATABASE_URL);for(const s of readFileSync(new URL('./pec-plans.sql',import.meta.url),'utf8').split(';').filter(s=>s.trim()))await sql.query(s);console.log('Treatment plan migration complete.');

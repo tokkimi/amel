@@ -1,3 +1,7 @@
+import PecReport from "./PecReport";
+import BillingClients from "./BillingClients";
+import {PecBoard,PecForm} from "./PecBoard";
+import {PEC_STAGES,normalizeStage} from "./pec";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
@@ -104,8 +108,8 @@ async function fileData(file?: File) {
 }
 async function fileDataAny(file?: File) {
   if (!file) return "";
-  if (file.size > 3000000)
-    throw new Error("Choisissez un fichier de moins de 3 Mo.");
+  if (file.size > 1200000)
+    throw new Error("Choisissez un fichier de moins de 1,2 Mo.");
   if (
     !["application/pdf", "image/jpeg", "image/png", "image/webp"].includes(
       file.type,
@@ -194,7 +198,7 @@ export default function ProSuite({
     [messages, setMessages] = useState<any[]>([]),
     [draft, setDraft] = useState(""),
     [search, setSearch] = useState(""),
-    [documentPatient, setDocumentPatient] = useState<PatientRecord | null>(
+    [documentPatient, setDocumentPatient] = useState<Pick<PatientRecord, "patient_id" | "name" | "email"> | null>(
       null,
     ),
     [editingTask, setEditingTask] = useState<Partial<WorkTask> | null>(null);
@@ -352,7 +356,7 @@ export default function ProSuite({
               className="secondary"
               onClick={() => {
                 setEditingTask({
-                  stage: "À faire",
+                  stage: PEC_STAGES[0],
                   priority: "Normale",
                   checklist: [],
                   attachments: [],
@@ -377,6 +381,8 @@ export default function ProSuite({
           </div>
         </header>
         <main>
+          {account.role==='admin'&&!!data.workspaces?.length&&<label className="workspace-picker">Cabinet sélectionné<select value={data.workspaceId||account.id} onChange={e=>{const url=new URL(window.location.href);url.searchParams.set('workspace',e.target.value);window.location.assign(url.toString())}}>{data.workspaces.map(w=><option value={w.id} key={w.id}>{w.clinic_name||w.name}</option>)}</select><small>Les patients, dossiers PEC et documents affichés appartiennent à ce cabinet.</small></label>}
+
           <nav className="pro-shortcuts" aria-label="Outils du cabinet"><button onClick={()=>go('Équipe')}><Users size={16}/>Équipe & rôles</button><button onClick={()=>go('Mon profil')}><Settings size={16}/>Cabinet & horaires</button><button onClick={()=>go('Tâches')}><Kanban size={16}/>Tâches</button><button onClick={()=>go('SmilePec')}><Heart size={16}/>SmilePec</button>{account.role==='admin'&&<a href="/admin">Administration</a>}</nav>
           {error && <p className="form-error">{error}</p>}
           {notice && (
@@ -414,7 +420,7 @@ export default function ProSuite({
                   ],
                   [
                     "Tâches ouvertes",
-                    data.tasks.filter((t) => t.stage !== "Terminé").length,
+                    data.tasks.filter((t) => normalizeStage(t.stage) !== "RAPPROCHEMENT FAIT").length,
                     CheckCircle2,
                   ],
                 ].map(([l, v, I]: any) => (
@@ -515,7 +521,7 @@ export default function ProSuite({
                     </button>
                   </div>
                   {data.tasks
-                    .filter((t) => t.stage !== "Terminé")
+                    .filter((t) => normalizeStage(t.stage) !== "RAPPROCHEMENT FAIT")
                     .slice(0, 4)
                     .map((t) => (
                       <button
@@ -595,9 +601,9 @@ export default function ProSuite({
                     <div className="patient-crm-head">
                       <Avatar name={p.name} />
                       <span
-                        className={`badge ${p.insurance_card_data && p.billing_document_data ? "" : "warning"}`}
+                        className={`badge ${p.insurance_card_data && p.quote_document_data ? "" : "warning"}`}
                       >
-                        {p.insurance_card_data && p.billing_document_data
+                        {p.insurance_card_data && p.quote_document_data
                           ? p.record_status
                           : "Pièces requises"}
                       </span>
@@ -702,12 +708,13 @@ export default function ProSuite({
                   </div>
                 ))}
               </div>
+              <BillingClients />
               <div className="pro-finance-grid">
                 <section className="glass panel">
                   <div className="section-title">
                     <div>
                       <h2>Prestations & tarifs</h2>
-                      <p>Prix, durée, TVA et description modifiables.</p>
+                      <p>Prix, TVA et description modifiables.</p>
                     </div>
                     <button
                       className="secondary"
@@ -722,7 +729,7 @@ export default function ProSuite({
                       <div>
                         <strong>{s.name}</strong>
                         <small>
-                          {s.duration} min · TVA {Number(s.vat)}% ·{" "}
+                          TVA {Number(s.vat)}% ·{" "}
                           {s.description || "Sans description"}
                         </small>
                       </div>
@@ -858,7 +865,7 @@ export default function ProSuite({
                             setDocumentPatient(
                               data.patients.find(
                                 (p) => p.patient_id === conversation.patient_id,
-                              ) || null,
+                              ) || { patient_id: conversation.patient_id, name: conversation.patient_name, email: "" },
                             );
                             setModal("document");
                           }}
@@ -1027,13 +1034,13 @@ export default function ProSuite({
           {page === "Tâches" && (
             <>
               {heading(
-                "Organisation d’équipe.",
-                "Un tableau vivant pour assigner, documenter et terminer chaque action.",
+                "Suivi des dossiers PEC.",
+                "De la demande à la facturation : chaque patient, ses documents et son statut.",
                 <button
                   className="primary"
                   onClick={() => {
                     setEditingTask({
-                      stage: "À faire",
+                      stage: PEC_STAGES[0],
                       priority: "Normale",
                       checklist: [],
                       attachments: [],
@@ -1045,59 +1052,9 @@ export default function ProSuite({
                   Nouvelle tâche
                 </button>,
               )}
-              <div className="kanban-board">
-                {["À faire", "En cours", "En attente", "Terminé"].map(
-                  (stage) => (
-                    <section key={stage}>
-                      <header>
-                        <h2>{stage}</h2>
-                        <span>
-                          {data.tasks.filter((t) => t.stage === stage).length}
-                        </span>
-                      </header>
-                      {data.tasks
-                        .filter((t) => t.stage === stage)
-                        .map((t) => (
-                          <article
-                            className="glass task-card"
-                            key={t.id}
-                            onClick={() => {
-                              setEditingTask(t);
-                              setModal("task");
-                            }}
-                          >
-                            <span
-                              className={`task-priority ${t.priority.toLowerCase()}`}
-                            >
-                              {t.priority}
-                            </span>
-                            <h3>{t.title}</h3>
-                            <p>{t.description}</p>
-                            {t.patient_name && (
-                              <small>
-                                <Users /> {t.patient_name}
-                              </small>
-                            )}
-                            <div className="task-meta">
-                              <span>
-                                {t.checklist.filter((x) => x.done).length}/
-                                {t.checklist.length}
-                                <CheckCircle2 />
-                              </span>
-                              {t.attachments.length > 0 && (
-                                <span>
-                                  {t.attachments.length}
-                                  <Paperclip />
-                                </span>
-                              )}
-                              <Avatar name={t.assignee || account.name} />
-                            </div>
-                          </article>
-                        ))}
-                    </section>
-                  ),
-                )}
-              </div>
+              {(!data.permissions || data.permissions.includes("billing")) && <PecReport revision={data.tasks} />}
+              <PecBoard tasks={data.tasks} edit={task=>{setEditingTask(task);setModal("task")}} move={(id,stage)=>act('task-stage',{id,stage},'Statut de la fiche actualisé.',false)}/>
+
             </>
           )}
 
@@ -1641,8 +1598,8 @@ export default function ProSuite({
                       : undefined,
                   ),
                   fileDataAny(
-                    (f.get("billing_document") as File)?.size
-                      ? (f.get("billing_document") as File)
+                    (f.get("quote_document") as File)?.size
+                      ? (f.get("quote_document") as File)
                       : undefined,
                   ),
                 ])
@@ -1658,6 +1615,7 @@ export default function ProSuite({
                         notes: f.get("notes"),
                         birth_date: f.get("birth_date"),
                         prosthesis_date: f.get("prosthesis_date"),
+                        impression_date: f.get("impression_date"),
                         address: f.get("address"),
                         social_security_number: f.get("social_security_number"),
                         mutual_provider: f.get("mutual_provider"),
@@ -1670,10 +1628,10 @@ export default function ProSuite({
                         insurance_card_name: insurance
                           ? (f.get("insurance_card") as File).name
                           : patient.insurance_card_name,
-                        billing_document_data: billing,
-                        billing_document_name: billing
-                          ? (f.get("billing_document") as File).name
-                          : patient.billing_document_name,
+                        quote_document_data: billing,
+                        quote_document_name: billing
+                          ? (f.get("quote_document") as File).name
+                          : patient.quote_document_name,
                       },
                       "Fiche dentaire enregistrée.",
                       false,
@@ -1749,13 +1707,15 @@ export default function ProSuite({
                   />
                 </label>
                 <label>
-                  Pose de prothèse prévue
+                  Date de pose
                   <input name="prosthesis_date" type="date" defaultValue={patient.prosthesis_date?.slice(0, 10)} />
+                </label>
+                <label>Date de taille / empreinte<input name="impression_date" type="date" defaultValue={patient.impression_date?.slice(0,10)}/>
                 </label>
               </div>
               <div className="required-documents">
                 <label>
-                  <strong>Carte de mutuelle *</strong>
+                  <strong>Mutuelle nominative *</strong>
                   <input
                     name="insurance_card"
                     type="file"
@@ -1769,16 +1729,16 @@ export default function ProSuite({
                   )}
                 </label>
                 <label>
-                  <strong>Facture justificative *</strong>
+                  <strong>Devis nominatif *</strong>
                   <input
-                    name="billing_document"
+                    name="quote_document"
                     type="file"
                     accept="image/*,application/pdf"
                     capture="environment"
                   />
-                  {patient.billing_document_name && (
+                  {patient.quote_document_name && (
                     <small>
-                      <FileText /> {patient.billing_document_name}
+                      <FileText /> {patient.quote_document_name}
                     </small>
                   )}
                 </label>
@@ -2007,6 +1967,7 @@ export default function ProSuite({
         >
           <DocumentForm
             patient={documentPatient}
+            initialAppointment={page === "Messages" ? conversation?.id : undefined}
             services={data.services}
             appointments={appointments}
             save={async (body) => {
@@ -2029,8 +1990,17 @@ export default function ProSuite({
           close={() => setModal("")}
           wide
         >
-          <TaskForm
+          <PecForm
+            key={editingTask.id || ('new-'+(editingTask.parent_task_id||''))}
             task={editingTask}
+            canBill={!data.permissions || data.permissions.includes('billing')}
+            close={()=>setModal('')}
+            related={data.tasks.filter(t=>t.id!==editingTask.id && (t.id===(editingTask.parent_task_id||editingTask.id)||t.parent_task_id===(editingTask.parent_task_id||editingTask.id)))}
+            openPlan={plan=>setEditingTask(plan)}
+            addPlan={()=>setEditingTask({title:editingTask.title,parent_task_id:editingTask.parent_task_id||editingTask.id,stage:PEC_STAGES[0],assignee_id:editingTask.assignee_id,practitioner_id:editingTask.practitioner_id,attachments:[]})}
+            members={data.members}
+            ownerId={data.workspaceId || account.id}
+            ownerName={data.profile.clinic_name || account.name}
             patients={data.patients}
             account={account}
             save={(body) => act("task-save", body, "Tâche enregistrée.")}
@@ -2066,7 +2036,7 @@ function ServiceForm({
           id: service?.id,
           name: f.get("name"),
           description: f.get("description"),
-          duration: Number(f.get("duration")),
+          duration: service?.duration || 45,
           price: Number(f.get("price")),
           vat: Number(f.get("vat")),
           active: true,
@@ -2086,16 +2056,7 @@ function ServiceForm({
         />
       </label>
       <div className="form-grid">
-        <label>
-          Durée (min)
-          <input
-            name="duration"
-            type="number"
-            min="5"
-            max="480"
-            defaultValue={service?.duration || 45}
-          />
-        </label>
+
         <label>
           Prix HT (€)
           <input
@@ -2134,7 +2095,7 @@ function PatientCreateForm({ save }: { save: (body: any) => Promise<any> }) {
         setError("");
         try {
           const insuranceFile = f.get("insurance_card") as File;
-          const billingFile = f.get("billing_document") as File;
+          const billingFile = f.get("quote_document") as File;
           const [insurance, billing] = await Promise.all([
             fileDataAny(insuranceFile),
             fileDataAny(billingFile),
@@ -2146,6 +2107,7 @@ function PatientCreateForm({ save }: { save: (body: any) => Promise<any> }) {
             status: f.get("status"),
             birth_date: f.get("birth_date"),
             prosthesis_date: f.get("prosthesis_date"),
+            impression_date: f.get("impression_date"),
             address: f.get("address"),
             social_security_number: f.get("social_security_number"),
             mutual_provider: f.get("mutual_provider"),
@@ -2157,8 +2119,8 @@ function PatientCreateForm({ save }: { save: (body: any) => Promise<any> }) {
             medications: f.get("medications"),
             insurance_card_data: insurance,
             insurance_card_name: insuranceFile.name,
-            billing_document_data: billing,
-            billing_document_name: billingFile.name,
+            quote_document_data: billing,
+            quote_document_name: billingFile.name,
           });
         } catch (err) {
           setError((err as Error).message);
@@ -2178,7 +2140,7 @@ function PatientCreateForm({ save }: { save: (body: any) => Promise<any> }) {
         <label>Téléphone<input name="phone" type="tel" autoComplete="tel" /></label>
         <label>Statut<select name="status" defaultValue="actif"><option value="actif">Actif</option><option value="prospect">Prospect</option><option value="suivi">Suivi</option><option value="inactif">Inactif</option></select></label>
         <label>Date de naissance<input name="birth_date" type="date" /></label>
-        <label>Pose de prothèse prévue<input name="prosthesis_date" type="date" /></label>
+        <label>Date de pose<input name="prosthesis_date" type="date" /></label><label>Date de taille / empreinte<input name="impression_date" type="date" /></label>
         <label>Adresse<input name="address" autoComplete="street-address" /></label>
         <label>N° de sécurité sociale<input name="social_security_number" inputMode="numeric" /></label>
         <label>Mutuelle / complémentaire *<input name="mutual_provider" required /></label>
@@ -2186,8 +2148,8 @@ function PatientCreateForm({ save }: { save: (body: any) => Promise<any> }) {
         <label>Tags<input name="tags" placeholder="Orthodontie, import 2026" /></label>
       </div>
       <div className="required-documents">
-        <label><strong>Carte de mutuelle *</strong><input name="insurance_card" type="file" accept="image/*,application/pdf" capture="environment" required /></label>
-        <label><strong>Facture justificative *</strong><input name="billing_document" type="file" accept="image/*,application/pdf" capture="environment" required /></label>
+        <label><strong>Mutuelle nominative *</strong><input name="insurance_card" type="file" accept="image/*,application/pdf" capture="environment" required /></label>
+        <label><strong>Devis nominatif *</strong><input name="quote_document" type="file" accept="image/*,application/pdf" capture="environment" required /></label>
       </div>
       <div className="form-grid">
         <label>Alertes médicales<textarea name="medical_alerts" rows={3} /></label>
@@ -2204,13 +2166,17 @@ function DocumentForm({
   patient,
   services,
   appointments,
+  initialAppointment,
   save,
 }: {
-  patient: PatientRecord;
+  patient: Pick<PatientRecord, "patient_id" | "name" | "email">;
   services: Service[];
   appointments: Appointment[];
-  save: (x: any) => void;
+  initialAppointment?: string;
+  save: (x: any) => Promise<void>;
 }) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [items, setItems] = useState([
     {
       label: services[0]?.name || "",
@@ -2225,10 +2191,13 @@ function DocumentForm({
   );
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
+        if (saving) return;
         const f = new FormData(e.currentTarget);
-        save({
+        setSaving(true);
+        setError("");
+        try { await save({
           patient_id: patient.patient_id,
           appointment_id: f.get("appointment_id"),
           doc_type: f.get("doc_type"),
@@ -2240,8 +2209,11 @@ function DocumentForm({
           payment_details: f.get('payment_details'),
           items,
         });
+        } catch (err) { setError(err instanceof Error ? err.message : "Impossible de créer le document. Réessayez."); } finally { setSaving(false); }
       }}
     >
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <fieldset disabled={saving} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <div className="document-preview-head">
         <div>
           <span>Destinataire</span>
@@ -2263,7 +2235,7 @@ function DocumentForm({
         </label>
         <label>
           Rendez-vous lié
-          <select name="appointment_id">
+          <select name="appointment_id" defaultValue={initialAppointment || ""}>
             <option value="">Aucun</option>
             {appointments
               .filter((a) => a.patient_id === patient.patient_id)
@@ -2411,198 +2383,7 @@ function DocumentForm({
         carte sera activé lors de l’intégration du prestataire de paiement.
       </p>
       <button className="primary full">Vérifier et créer</button>
-    </form>
-  );
-}
-function TaskForm({
-  task,
-  patients,
-  account,
-  save,
-}: {
-  task: Partial<WorkTask>;
-  patients: PatientRecord[];
-  account: Account;
-  save: (x: any) => void;
-}) {
-  const [checklist, setChecklist] = useState(task.checklist || []),
-    [attachments, setAttachments] = useState(task.attachments || []);
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const f = new FormData(e.currentTarget);
-        save({
-          id: task.id,
-          title: f.get("title"),
-          description: f.get("description"),
-          stage: f.get("stage"),
-          priority: f.get("priority"),
-          due_at: f.get("due_at"),
-          assignee: f.get("assignee"),
-          patient_id: f.get("patient_id"),
-          checklist,
-          attachments,
-        });
-      }}
-    >
-      <label>
-        Titre
-        <input name="title" defaultValue={task.title} required />
-      </label>
-      <label>
-        Description
-        <textarea name="description" rows={4} defaultValue={task.description} />
-      </label>
-      <div className="form-grid">
-        <label>
-          Colonne
-          <select name="stage" defaultValue={task.stage}>
-            <option>À faire</option>
-            <option>En cours</option>
-            <option>En attente</option>
-            <option>Terminé</option>
-          </select>
-        </label>
-        <label>
-          Priorité
-          <select name="priority" defaultValue={task.priority}>
-            <option>Basse</option>
-            <option>Normale</option>
-            <option>Haute</option>
-            <option>Urgente</option>
-          </select>
-        </label>
-        <label>
-          Responsable
-          <input
-            name="assignee"
-            defaultValue={task.assignee || account.name}
-            placeholder="Nom du collaborateur"
-          />
-        </label>
-        <label>
-          Échéance
-          <input
-            name="due_at"
-            type="datetime-local"
-            defaultValue={localDate(task.due_at)}
-          />
-        </label>
-        <label>
-          Patient lié
-          <select name="patient_id" defaultValue={task.patient_id}>
-            <option value="">Aucun</option>
-            {patients.map((p) => (
-              <option value={p.patient_id} key={p.patient_id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="checklist-editor">
-        <h3>Checklist</h3>
-        {checklist.map((c, i) => (
-          <label className="check-item" key={c.id}>
-            <input
-              type="checkbox"
-              checked={c.done}
-              onChange={(e) =>
-                setChecklist(
-                  checklist.map((x, j) =>
-                    j === i ? { ...x, done: e.target.checked } : x,
-                  ),
-                )
-              }
-            />
-            <input
-              value={c.text}
-              onChange={(e) =>
-                setChecklist(
-                  checklist.map((x, j) =>
-                    j === i ? { ...x, text: e.target.value } : x,
-                  ),
-                )
-              }
-            />
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() => setChecklist(checklist.filter((_, j) => j !== i))}
-            >
-              <X />
-            </button>
-          </label>
-        ))}
-        <button
-          type="button"
-          className="text-button"
-          onClick={() =>
-            setChecklist([
-              ...checklist,
-              { id: crypto.randomUUID(), text: "", done: false },
-            ])
-          }
-        >
-          <Plus />
-          Ajouter une étape
-        </button>
-      </div>
-      <div className="attachments-editor">
-        <h3>Documents et liens</h3>
-        {attachments.map((a, i) => (
-          <div key={i}>
-            <input
-              value={a.name}
-              onChange={(e) =>
-                setAttachments(
-                  attachments.map((x, j) =>
-                    j === i ? { ...x, name: e.target.value } : x,
-                  ),
-                )
-              }
-            />
-            <input
-              type="url"
-              value={a.url}
-              onChange={(e) =>
-                setAttachments(
-                  attachments.map((x, j) =>
-                    j === i ? { ...x, url: e.target.value } : x,
-                  ),
-                )
-              }
-            />
-          </div>
-        ))}
-        <button
-          type="button"
-          className="text-button"
-          onClick={() =>
-            setAttachments([...attachments, { name: "", url: "" }])
-          }
-        >
-          <Paperclip />
-          Ajouter un document ou lien
-        </button>
-        <label className="text-button task-photo-upload">
-          <Image /> Ajouter une photo
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (file)
-                setAttachments([
-                  ...attachments,
-                  { name: file.name, url: await fileData(file) },
-                ]);
-            }}
-          />
-        </label>
-      </div>
-      <button className="primary full">Enregistrer la tâche</button>
+      </fieldset>
     </form>
   );
 }
