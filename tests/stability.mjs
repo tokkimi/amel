@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
-import {neon} from '@neondatabase/serverless';
+import {sql} from './db.mjs';
 import handler from '../api/index.mjs';
-const sql=neon(process.env.DATABASE_URL);const ids=[];const nonce=randomUUID();
+const ids=[];const nonce=randomUUID();
 async function call(action,body,cookie=''){const [name,...params]=action.split('&');const req={method:body===undefined?'GET':'POST',url:'/api',query:{action:name,...Object.fromEntries(new URLSearchParams(params.join('&')))},headers:{host:'amelib.vercel.app',origin:'https://amelib.vercel.app','content-type':'application/json','x-vercel-forwarded-for':'test-'+nonce,cookie},body};let code=200,headers={};let result;const res={setHeader(k,v){headers[k]=v},status(c){code=c;return this},json(data){result=data;return this}};await handler(req,res);return {status:code,body:result,cookie:headers['Set-Cookie']?.split(';')[0]};}
 async function signup(role){const email=`amelib-test-${randomUUID()}@example.invalid`,password=randomBytes(24).toString('base64url');const r=await call('signup',{email,password,name:'Integration test '+role,role:'professional'});assert.equal(r.status,200,JSON.stringify(r.body));ids.push(r.body.account.id);if(role==='patient') await sql`UPDATE accounts SET role='patient' WHERE id=${r.body.account.id}`;return {...r.body,email,password,cookie:r.cookie};}
 const future=new Date(Date.now()+5*86400000);future.setUTCMinutes(0,0,0);
@@ -46,14 +46,12 @@ try {
  assert.equal((await call('task-save',{...task,...amounts,id:child.body.id,stage:'PEC À FACTURER'},pro.cookie)).status,200);
  const [childRow]=await sql`SELECT parent_task_id,stage FROM tasks WHERE id=${child.body.id}`;assert.equal(childRow.parent_task_id,saved.body.id);assert.equal(childRow.stage,'PEC À FACTURER');
  console.log('PASS: sous-fiches, facturer, montants, bilan annuel/mensuel et isolation.');
- const client=await call('billing-client-save',{name:'Cabinet test',email:'test@example.invalid',monthly_amount:'45.90',service_label:'Suivi mensuel'},pro.cookie);assert.equal(client.status,200,JSON.stringify(client.body));
- const billing=await call('billing-clients',undefined,pro.cookie);assert.equal(billing.body.clients[0].monthly_amount,4590);assert.equal(billing.body.ready,false);
- const isolated=await call('billing-clients',undefined,otherPro.cookie);assert.equal(isolated.body.clients.length,0);
+ assert.equal((await call('billing-clients',undefined,pro.cookie)).status,403);
  const incomplete=await call('patient-create',{name:'Test',insurance_card_data:file,insurance_card_name:'Mutuelle.pdf'},pro.cookie);assert.equal(incomplete.status,400);
  const newPatient=await call('patient-create',{name:'Patient test',email:'amelib-test-'+randomUUID()+'@example.invalid',insurance_card_data:file,insurance_card_name:'Mutuelle.pdf',quote_document_data:file,quote_document_name:'Devis.pdf'},pro.cookie);assert.equal(newPatient.status,200,JSON.stringify(newPatient.body));ids.push(newPatient.body.patient_id);
  console.log('PASS: chat, devis, 2 pièces obligatoires, statuts PEC, isolation des cabinets et clients de facturation.');
 }finally{
  for(const id of ids){await sql`DELETE FROM tasks WHERE owner_id=${id} AND parent_task_id IS NOT NULL`;await sql`DELETE FROM audit_log WHERE actor_id=${id}`;await sql`DELETE FROM messages WHERE appointment_id IN(SELECT id FROM appointments WHERE patient_id=${id} OR professional_id=${id})`;await sql`DELETE FROM appointments WHERE patient_id=${id} OR professional_id=${id}`;await sql`DELETE FROM slots WHERE professional_id=${id}`;await sql`DELETE FROM accounts WHERE id=${id} AND email LIKE 'amelib-test-%@example.invalid'`;}
  await sql`DELETE FROM rate_limits WHERE key=${'auth-ip:'+ (await import('../server/security.mjs')).hash('test-'+nonce)}`;
- console.log('Test-created accounts and records removed.');
+ console.log('Test-created accounts and records removed.');await sql.end?.();
 }

@@ -1,5 +1,4 @@
 import PecReport from "./PecReport";
-import BillingClients from "./BillingClients";
 import {PecBoard,PecForm} from "./PecBoard";
 import {PEC_STAGES,normalizeStage} from "./pec";
 import React, { useEffect, useMemo, useState } from "react";
@@ -708,7 +707,7 @@ export default function ProSuite({
                   </div>
                 ))}
               </div>
-              <BillingClients />
+              
               <div className="pro-finance-grid">
                 <section className="glass panel">
                   <div className="section-title">

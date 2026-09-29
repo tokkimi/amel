@@ -3,9 +3,9 @@ import {randomUUID} from 'node:crypto';
 import {clean} from './security.mjs';
 const fail=(status,message)=>Object.assign(new Error(message),{status});
 export const billingReady=()=>Boolean(process.env.STRIPE_SECRET_KEY&&process.env.STRIPE_WEBHOOK_SECRET&&process.env.RESEND_API_KEY&&process.env.BILLING_FROM_EMAIL&&process.env.PUBLIC_APP_URL);
-export async function billingAction({action,req,b,sql,account,workspaceId,can,send}){
+export async function billingAction({action,req,b,sql,account,workspaceId,can,send,internal}){
  if(!action?.startsWith('billing-'))return false;
- if(account.role==='patient'||!can('billing'))throw fail(403,'Accès à la comptabilité requis.');
+ if(account.role!=='admin'||!internal?.permissions.has(req.method==='GET'?'billing.read':'billing.manage'))throw fail(403,'Accès à la comptabilité requis.');
  if(action==='billing-clients'&&req.method==='GET'){
   const clients=await sql`SELECT * FROM billing_clients WHERE owner_id=${workspaceId} ORDER BY name`;
   const invoices=await sql`SELECT i.*,c.name AS client_name FROM billing_invoices i JOIN billing_clients c ON c.id=i.client_id WHERE c.owner_id=${workspaceId} ORDER BY i.issued_at DESC LIMIT 200`;

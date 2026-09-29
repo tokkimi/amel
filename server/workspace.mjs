@@ -49,11 +49,22 @@ export async function workspaceAction({action,req,b,sql,account,workspaceId,memb
  }
  if(action==='support'&&req.method==='GET') {
   const tickets=account.role==='admin'?await sql`SELECT t.*,a.name,a.email FROM support_tickets t JOIN accounts a ON a.id=t.account_id ORDER BY t.updated_at DESC LIMIT 300`:await sql`SELECT * FROM support_tickets WHERE account_id=${account.id} ORDER BY updated_at DESC`;
-  send({tickets});return true;
+  const messages=account.role==='admin'?[]:await sql`SELECT m.id,m.ticket_id,m.body,m.created_at,a.name AS author FROM support_messages m JOIN accounts a ON a.id=m.author_id JOIN support_tickets t ON t.id=m.ticket_id WHERE t.account_id=${account.id} AND m.visibility='public' ORDER BY m.created_at`;
+  send({tickets:tickets.map(t=>({...t,messages:messages.filter(m=>m.ticket_id===t.id)}))});return true;
  }
  if(action==='support-create'&&req.method==='POST') {
   if(!clean(b.subject,180)||!clean(b.body,5000))throw fail(400,'Indiquez un sujet et votre demande.');
   await sql`INSERT INTO support_tickets(id,account_id,subject,body) VALUES(${randomUUID()},${account.id},${clean(b.subject,180)},${clean(b.body,5000)})`;send({ok:true});return true;
+ }
+ if(action==='support-reply'&&req.method==='POST') {
+  if(account.role==='admin')throw fail(403,'Utilisez la messagerie de l’espace Amel.');
+  const body=clean(b.body,5000);if(!body)throw fail(400,'Écrivez votre message.');
+  const [ticket]=await sql`SELECT id,status FROM support_tickets WHERE id=${b.id} AND account_id=${account.id}`;
+  if(!ticket)throw fail(404,'Demande introuvable.');
+  await sql.transaction([
+   sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body) VALUES(${randomUUID()},${ticket.id},${account.id},'public',${body})`,
+   sql`UPDATE support_tickets SET status='open',resolved_at=NULL,reopened_count=reopened_count+CASE WHEN status IN('resolved','closed') THEN 1 ELSE 0 END,updated_at=now() WHERE id=${ticket.id}`
+  ]);send({ok:true});return true;
  }
  if(action==='support-update'&&req.method==='POST') {
   if(account.role!=='admin')throw fail(403,'Accès administrateur requis.');

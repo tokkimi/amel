@@ -33,7 +33,7 @@ export function PecForm({task,patients,account,members,ownerId,ownerName,save,cl
  <label>Nom du patient / titre de la fiche<input name="title" defaultValue={task.title} required maxLength={200}/></label>
  <label>Plan de traitement<input name="plan_name" defaultValue={task.plan_name} placeholder="Ex. couronne secteur 1, implant secteur 3…" maxLength={180}/></label>
  <div className="pec-tabs" role="tablist" aria-label="Contenu de la fiche"><button type="button" role="tab" aria-selected={tab==='dossier'} onClick={()=>setTab('dossier')}>Dossier & documents</button>{canBill&&<button type="button" role="tab" aria-selected={tab==='finance'} onClick={()=>setTab('finance')}>Informations financières</button>}</div>
- <div hidden={tab!=='dossier'}>
+ <div hidden={tab!=='dossier'} className="pec-dossier-tab">
  <aside className="pec-step-help"><strong>{selectedStage}</strong><p>{PEC_GUIDANCE[selectedStage]}</p></aside>
  <div className="form-grid"><label>Statut<select name="stage" value={selectedStage} onChange={e=>setSelectedStage(e.target.value)}>{PEC_STAGES.map(s=><option key={s}>{s}</option>)}</select></label>
 

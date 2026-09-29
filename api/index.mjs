@@ -1,6 +1,11 @@
 import {billingAction} from "../server/billing.mjs";
-import { neon } from "@neondatabase/serverless";
+import { database } from "../server/db.mjs";
 import { workspaceAction } from "../server/workspace.mjs";
+import { commandCenterAction } from "../server/command-center.mjs";
+import { adminContext, LEGACY_ACTION_PERMISSION } from "../server/rbac.mjs";
+import { requestContext } from "../server/audit.mjs";
+import { resolveFlags } from "../server/flags.mjs";
+import { ensureSchema } from "../server/bootstrap.mjs";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   hash,
@@ -47,8 +52,9 @@ export default async function handler(req, res) {
   try {
     if (!process.env.DATABASE_URL)
       throw fail(503, "Le service est momentanément indisponible.");
-    const sql = neon(process.env.DATABASE_URL);
-    const action =
+    const sql = database();
+    if (process.env.AMELIB_AUTO_MIGRATE === "1") await ensureSchema(sql);
+    let action =
       req.query?.action ||
       new URL(req.url, "https://amelib.vercel.app").searchParams.get("action");
     const b = req.body && typeof req.body === "object" ? req.body : {};
@@ -172,24 +178,52 @@ export default async function handler(req, res) {
     const [account] = token
       ? await sql`SELECT a.* FROM sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=${hash(token)} AND s.expires_at>now() AND NOT a.suspended`
       : [];
-    if (action === "session" && req.method === "GET")
+    if (action === "session" && req.method === "GET") {
+      // Adoption tracking (DAU/WAU/MAU): one row per account and day. Never blocks the session check.
+      if (account) await sql`INSERT INTO account_activity(account_id,day) VALUES(${account.id},current_date) ON CONFLICT DO NOTHING`.catch(() => {});
       return send({ account: account ? safeAccount(account) : null });
+    }
     if (!account)
       throw fail(401, "Connectez-vous pour accéder à votre espace.");
+    const centralPec = ['cc-pec-list','cc-pec-save','cc-pec-stage','cc-pec-report'].includes(action);
+    let internal = account.role==='admin' ? await adminContext(sql,account) : null;
+    if(centralPec){
+      if(!internal?.permissions.has('pec.manage'))throw fail(403,'Accès au suivi PEC SmilePec requis.');
+      if(!uuid(req.query?.workspace))throw fail(400,'Sélectionnez un cabinet pour travailler sur ses dossiers.');
+      if(action==='cc-pec-report'&&!internal.permissions.has('billing.read'))throw fail(403,'Accès aux bilans requis.');
+    }
     const [membership] = ["professional", "worker"].includes(account.role)
       ? await sql`SELECT owner_id,permissions FROM clinic_members WHERE member_id=${account.id} AND active AND accepted ORDER BY created_at DESC LIMIT 1`
       : [];
     let workspaceId = membership?.owner_id || account.id;
     if (req.query?.workspace && req.query.workspace !== workspaceId) {
-      if (account.role !== 'admin' || !uuid(req.query.workspace)) throw fail(403, 'Vous n’avez pas accès à ce cabinet.');
+      if (account.role !== 'admin' || !internal?.permissions.has('pec.manage') || !uuid(req.query.workspace)) throw fail(403, 'Vous n’avez pas accès à ce cabinet.');
       const [cabinet] = await sql`SELECT id FROM accounts WHERE id=${req.query.workspace} AND role IN ('professional','admin') AND NOT suspended`;
       if (!cabinet) throw fail(404, 'Cabinet indisponible.');
       workspaceId = cabinet.id;
     }
     const can = (permission) =>
-      !membership ||
+      internal ? internal.permissions.has(({billing:"billing.read",tasks:"pec.manage",agenda:"appointment.manage",messages:"support.read",clinical:"pec.manage",patients_admin:"pec.manage"})[permission] || "settings.update") : !membership ||
       (Array.isArray(membership.permissions) &&
         membership.permissions.includes(permission));
+    if(centralPec){
+      const [clinic]=await sql`SELECT a.id,a.name,p.clinic_name FROM accounts a JOIN profiles p ON p.account_id=a.id WHERE a.id=${workspaceId} AND a.role='professional' AND NOT a.suspended`;
+      if(!clinic)throw fail(404,'Cabinet indisponible.');
+      if(action==='cc-pec-list'){
+        const [tasks,members]=await Promise.all([
+          sql`SELECT * FROM tasks WHERE owner_id=${workspaceId} ORDER BY updated_at DESC LIMIT 500`,
+          sql`SELECT m.member_id,m.active,m.job_title,a.name,a.role FROM clinic_members m JOIN accounts a ON a.id=m.member_id WHERE m.owner_id=${workspaceId} AND m.active AND m.accepted`
+        ]);
+        return send({clinic,tasks:tasks.map(t=>{if(can('billing'))return t;const {initial_quote,final_quote,recovered_amount,financial_date,practitioner_id,...visible}=t;return visible;}),members});
+      }
+      action=({'cc-pec-save':'task-save','cc-pec-stage':'task-stage','cc-pec-report':'pec-report'})[action];
+    }
+    // An Amel account never has a personal cabinet workspace. Its PEC work must
+    // always go through the selected-cabinet endpoint above, which keeps the
+    // cabinet context explicit and auditable.
+    if (account.role === 'admin' && !centralPec && ['task-save','task-stage','pec-report'].includes(action))
+      throw fail(403, 'Utilisez le suivi PEC dédié et sélectionnez un cabinet.');
+    if(internal&&!centralPec&&req.query?.workspace&&req.query.workspace!==account.id)throw fail(403,'Utilisez le suivi PEC dédié ou le mode assistance en lecture seule.');
     const notify = (recipientId, kind, title, body = "", href = "") =>
       sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${recipientId},${kind},${clean(title,180)},${clean(body,1200)},${clean(href,300)})`;
     const permissionByAction = {
@@ -219,7 +253,17 @@ export default async function handler(req, res) {
     if (permissionByAction[action] && !can(permissionByAction[action]))
       throw fail(403, "Votre rôle dans le cabinet ne permet pas cette action.");
     if (req.method === "POST") await limit("write:" + account.id, 150);
-    if(await billingAction({action,req,b,sql,account,workspaceId,can,send})) return;
+    if(await billingAction({action,req,b,sql,account,workspaceId,can,send,internal})) return;
+    // Internal RBAC: legacy admin actions keep working for full admins and are refused to narrower internal roles.
+    const legacyPermission = account.role === "admin" && (LEGACY_ACTION_PERMISSION[action] || (action === "support" ? "support.read" : null));
+    if (legacyPermission) {
+      const admin = await adminContext(sql, account);
+      if (!admin.permissions.has(legacyPermission))
+        throw fail(403, "Votre rôle interne ne permet pas cette action.");
+    }
+    if (action === "feature-flags" && req.method === "GET")
+      return send({ flags: await resolveFlags(sql, { workspaceId, isAdmin: account.role === "admin" }).catch(() => ({})) });
+    if (await commandCenterAction({ action, req, b, sql, account, send, ctx: requestContext(req, token, hash) })) return;
     if(await workspaceAction({action,req,b,sql,account,workspaceId,membership,can,send})) return;
     if (action === "notifications" && req.method === "GET") {
       const rows = await sql`SELECT id,kind,title,body,href,read_at,created_at FROM notifications WHERE account_id=${account.id} ORDER BY created_at DESC LIMIT 80`;
@@ -705,6 +749,7 @@ export default async function handler(req, res) {
         if(!existing)throw fail(404,'Fiche introuvable.');
         if(!['devis','mutuelle'].every(kind=>existing.attachments.some(a=>a.kind===kind&&safeFile(a.url))))throw fail(400,'Ajoutez les documents Devis et Mutuelle dans la fiche avant de changer son statut.');
         await sql`UPDATE tasks SET stage=${b.stage},updated_at=now() WHERE id=${b.id} AND owner_id=${workspaceId}`;
+        if(centralPec)await sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},'pec_stage_changed',${b.id},${'Statut PEC : '+b.stage})`;
         return send({ok:true});
       }
       const title=clean(b.title,200);if(!title)throw fail(400,'Indiquez le nom du patient ou le titre de la fiche.');
@@ -730,6 +775,7 @@ export default async function handler(req, res) {
       if(practitionerId){const [practitioner]=await sql`SELECT id FROM accounts a WHERE a.id=${practitionerId} AND (a.id=${workspaceId} OR (a.role='professional' AND EXISTS(SELECT 1 FROM clinic_members cm WHERE cm.owner_id=${workspaceId} AND cm.member_id=a.id AND cm.active AND cm.accepted)))`;if(!practitioner)throw fail(403,'Choisissez un praticien du cabinet.');}
       const id=existing?.id||randomUUID();
       await sql`INSERT INTO tasks(id,owner_id,title,description,stage,assignee,assignee_id,patient_id,attachments,impression_date,placement_date,due_at,parent_task_id,plan_name,initial_quote,final_quote,recovered_amount,financial_date,practitioner_id) VALUES(${id},${workspaceId},${title},${clean(b.description,5000)},${b.stage},${assignee},${assigneeId},${patient},${JSON.stringify(attachments)}::jsonb,${impression},${placement},${placement||impression},${parentId},${clean(b.plan_name,180)},${initial},${final},${recovered},${financialDate},${practitionerId}) ON CONFLICT(id) DO UPDATE SET title=excluded.title,description=excluded.description,stage=excluded.stage,assignee=excluded.assignee,assignee_id=excluded.assignee_id,patient_id=excluded.patient_id,attachments=excluded.attachments,impression_date=excluded.impression_date,placement_date=excluded.placement_date,due_at=excluded.due_at,plan_name=excluded.plan_name,initial_quote=excluded.initial_quote,final_quote=excluded.final_quote,recovered_amount=excluded.recovered_amount,financial_date=excluded.financial_date,practitioner_id=excluded.practitioner_id,updated_at=now() WHERE tasks.owner_id=${workspaceId}`;
+      if(centralPec)await sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},'pec_saved',${id},'Plan PEC enregistré pour le cabinet sélectionné')`;
       return send({ok:true,id});
     }
     if (action === "mission-save" && req.method === "POST") {
@@ -796,6 +842,7 @@ export default async function handler(req, res) {
         );
       await sql.transaction([
         sql`UPDATE profiles SET verified=${!!b.verified} WHERE account_id=${b.id}`,
+        sql`INSERT INTO verifications(account_id,status,reviewer_id,reviewed_at) VALUES(${b.id},${b.verified ? "approved" : "documents_received"},${account.id},now()) ON CONFLICT(account_id) DO UPDATE SET status=excluded.status,reviewer_id=excluded.reviewer_id,reviewed_at=excluded.reviewed_at,updated_at=now()`,
         sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},${b.verified ? "profile_verified" : "verification_removed"},${b.id},${clean(b.note, 500)})`,
       ]);
       return send({ ok: true });

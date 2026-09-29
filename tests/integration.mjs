@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
-import {neon} from '@neondatabase/serverless';
+import {sql} from './db.mjs';
 import handler from '../api/index.mjs';
-const sql=neon(process.env.DATABASE_URL);const ids=[];const nonce=randomUUID();
+const ids=[];const nonce=randomUUID();
 async function call(action,body,cookie=''){const [name,...params]=action.split('&');const req={method:body===undefined?'GET':'POST',url:'/api',query:{action:name,...Object.fromEntries(new URLSearchParams(params.join('&')))},headers:{host:'amelib.vercel.app',origin:'https://amelib.vercel.app','content-type':'application/json','x-vercel-forwarded-for':'test-'+nonce,cookie},body};let code=200,headers={};let result;const res={setHeader(k,v){headers[k]=v},status(c){code=c;return this},json(data){result=data;return this}};await handler(req,res);return {status:code,body:result,cookie:headers['Set-Cookie']?.split(';')[0]};}
 async function signup(role){const email=`amelib-test-${randomUUID()}@example.invalid`,password=randomBytes(24).toString('base64url');const r=await call('signup',{email,password,name:'Integration test '+role,role});assert.equal(r.status,200,JSON.stringify(r.body));ids.push(r.body.account.id);return {...r.body,email,password,cookie:r.cookie};}
 const future=new Date(Date.now()+5*86400000);future.setUTCMinutes(0,0,0);

@@ -203,7 +203,7 @@ export type Dashboard = {
   }[];
 };
 export async function api<T = any>(action: string, data?: unknown): Promise<T> {
-  const workspace = new URLSearchParams(window.location.search).get("workspace");
+  const workspace = window.location.pathname === "/admin" ? null : new URLSearchParams(window.location.search).get("workspace");
   const response = await fetch("/api?action=" + action + (workspace ? "&workspace=" + encodeURIComponent(workspace) : ""), {
     method: data === undefined ? "GET" : "POST",
     credentials: "same-origin",

@@ -1,9 +1,9 @@
 import {useEffect,useState} from 'react';
 import {api,money,WorkTask} from './client';
 type Row={month:string;practitioner_id:string|null;practitioner:string;plans:number;initial:string;final:string;difference:string;recovered:string};
-export default function PecReport({revision}:{revision:WorkTask[]}){
+export default function PecReport({revision,endpoint="pec-report"}:{revision:WorkTask[];endpoint?:string}){
  const [year,setYear]=useState(new Date().getFullYear()),[month,setMonth]=useState(''),[practitioner,setPractitioner]=useState(''),[rows,setRows]=useState<Row[]>([]),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- useEffect(()=>{let active=true;setBusy(true);setError('');api('pec-report&year='+year).then(d=>{if(active)setRows(d.rows)}).catch(e=>{if(active){setRows([]);setError(e.message)}}).finally(()=>{if(active)setBusy(false)});return()=>{active=false}},[year,revision]);
+ useEffect(()=>{let active=true;setBusy(true);setError('');api(endpoint+'&year='+year).then(d=>{if(active)setRows(d.rows)}).catch(e=>{if(active){setRows([]);setError(e.message)}}).finally(()=>{if(active)setBusy(false)});return()=>{active=false}},[year,revision,endpoint]);
  const filtered=rows.filter(r=>(!month||r.month===year+'-'+month)&&(!practitioner||(r.practitioner_id||'none')===practitioner));
  const sum=(key:'initial'|'final'|'difference'|'recovered')=>filtered.reduce((v,r)=>v+Math.round(Number(r[key])*100),0)/100;
  const practitioners=[...new Map(rows.map(r=>[r.practitioner_id||'none',r.practitioner])).entries()];

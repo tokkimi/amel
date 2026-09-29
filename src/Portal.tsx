@@ -702,7 +702,7 @@ export default function Portal() {
         </div>
       );
     return <>
-      {account.role === "admin" && path !== "/pro" ? (
+      {account.role === "admin" ? (
         <AdminConsole account={account} logout={logout} />
       ) : account.role === "patient" ? (
         <Workspace account={account} logout={logout} />

@@ -44,3 +44,11 @@ L’administration dispose de statistiques, filtres des comptes, vérification d
 La navigation mobile utilise une barre d’onglets fixe sur le site public et dans chaque espace, des menus depuis le bas et un historique de navigation conservant l’onglet dans l’URL. La webapp possède un manifeste pour le mode autonome ; elle n’est pas une application native et ne fonctionne pas hors ligne.
 
 Tests supplémentaires : `node --env-file=.env.local tests/admin.mjs` et `node --env-file=.env.local tests/deployed.mjs`.
+
+## Command Center (administration centrale)
+
+`/admin` est le centre de pilotage d'Amelib : accueil « à traiter », Inbox unifiée, Cabinet 360°, Support Center, Finance, Réseau, Analytics, audit et configuration (rôles internes, automatisations, feature flags, santé système). Architecture, mapping, risques et règles : `docs/command-center.md`.
+
+- `node scripts/migrate.mjs` applique aussi `scripts/migrations/*.sql` : à exécuter avant le déploiement.
+- `node tests/unit.mjs` (sans base) et `node --env-file=.env.local tests/command-center.mjs`.
+- Base locale : préfixer par `AMELIB_LOCAL_PG=1 DATABASE_URL=postgres://…` ; `node scripts/local-api.mjs` sert `dist/` et `/api` sur http://localhost:3001.
