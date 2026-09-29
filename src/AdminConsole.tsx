@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Activity, ArrowRight, BarChart3, Building2, Check, Euro, Eye, Home as HomeIcon, Inbox as InboxIcon, LifeBuoy,
+  Activity, ArrowRight, BarChart3, Briefcase, Building2, Check, Euro, Eye, Home as HomeIcon, Inbox as InboxIcon, LifeBuoy,
   LogOut, Menu, RefreshCw, Search, Settings, ShieldCheck, Users, Workflow, X,
 } from "lucide-react";
 import { api, Account } from "./client";
@@ -91,6 +91,8 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
         <a className="cc-brand" href="/admin"><img src="/smilepec-logo.png" alt="SmilePec" /></a>
         <span className="cc-nav-label">Command Center</span>
         <nav>{NAV.filter((n) => allowed(n.perm)).map(({ key, icon: I, badge: b }) => <button key={key} className={section === key ? "active" : ""} aria-current={section === key ? "page" : undefined} onClick={() => cc.go(key)}><I size={17} aria-hidden />{key}{!!badge(b) && <span className={"cc-nav-badge" + (b === "inbox" && badges.urgent ? " urgent" : "")} aria-label={`${badge(b)} en attente`}>{badge(b)}</span>}</button>)}</nav>
+        <span className="cc-nav-label">SmilePec</span>
+        <nav><a className="cc-nav-link" href="/pro"><Briefcase size={17} aria-hidden />Espace SmilePec<small>tâches, patients, poses, devis</small></a></nav>
         <span className="cc-nav-label">Administration</span>
         <nav className="cc-nav-secondary">{ADMIN_NAV.filter((n) => allowed(n.perm)).map(({ key, icon: I }) => <button key={key} className={section === key ? "active" : ""} aria-current={section === key ? "page" : undefined} onClick={() => cc.go(key)}><I size={16} aria-hidden />{key}</button>)}</nav>
         <div className="cc-identity"><span className="cc-avatar">{account.name[0]}</span><div><strong>{account.name}</strong><small>{me.role_label}</small></div></div>
@@ -104,7 +106,7 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
           <button className="cc-searchbar" onClick={() => setPalette(true)} aria-label="Rechercher dans Amelib (Ctrl K)"><Search size={15} aria-hidden /><span>Rechercher dans Amelib…</span><kbd>{navigator.platform.includes("Mac") ? "⌘" : "Ctrl"} K</kbd></button>
           <Notifications unread={badges.notifications} onChange={loadBadges} />
           <button className="cc-icon" aria-label="Actualiser" onClick={() => { cc.bump(); loadMe(); }}><RefreshCw size={17} /></button>
-          <a href="/pro" className="cc-link hide-sm">Mon espace pro <ArrowRight size={13} /></a>
+          <a href="/pro" className="cc-link">Espace SmilePec <ArrowRight size={13} /></a>
           <a href="/" className="cc-link hide-sm">Voir le site <Eye size={13} /></a>
         </header>
         <main className="cc-content" id="main"><Page /></main>

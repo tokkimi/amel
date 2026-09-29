@@ -459,3 +459,7 @@
   .cc-dock .cc-nav-badge { position: absolute; top: 0; right: 18%; font-size: 10px; min-width: 18px; padding: 1px 4px; }
   .cc-modal-backdrop.top { padding-top: 8px; }
 }
+
+.cc-app .cc-nav-link { display: grid; grid-template-columns: auto 1fr; column-gap: 11px; align-items: center; padding: 9px 10px; border-radius: 9px; font-size: 14px; font-weight: 650; color: var(--cc-accent-strong) !important; background: var(--cc-accent-soft); }
+.cc-app .cc-nav-link small { grid-column: 2; font-size: 11.5px; font-weight: 400; color: var(--cc-muted); }
+.cc-app .cc-nav-link:hover { background: #ecdfcd; }
