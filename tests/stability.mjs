@@ -39,7 +39,7 @@ try {
  assert.equal((await call('task-save',{...task,parent_task_id:child.body.id},pro.cookie)).status,400);
  assert.equal((await call('task-save',{...task,...amounts,initial_quote:-1},pro.cookie)).status,400);
  assert.equal((await call('task-save',{...task,...amounts,financial_date:''},pro.cookie)).status,400);
- const report=await call('pec-report&year=2026',undefined,pro.cookie);assert.equal(report.status,200,JSON.stringify(report.body));assert.equal(Number(report.body.rows[0].difference),150.5);assert.equal(Number(report.body.rows[0].recovered),120.5);assert.equal(report.body.rows[0].plans,1);
+ const report=await call('pec-report&year=2026',undefined,pro.cookie);assert.equal(report.status,200,JSON.stringify(report.body));assert.equal(Number(report.body.rows[0].difference),150.5);assert.equal(Number(report.body.rows[0].recovered),120.5);assert.equal(report.body.rows[0].plans,1);assert.equal(report.body.details.length,1);assert.equal(report.body.details[0].id,child.body.id);
  assert.deepEqual((await call('pec-report&year=2026',undefined,otherPro.cookie)).body.rows,[]);
  assert.deepEqual((await call('pec-report&year=2025',undefined,pro.cookie)).body.rows,[]);
  assert.equal((await call('task-save',{...task,...amounts,id:child.body.id,stage:'ACCORD PEC'},pro.cookie)).status,200);

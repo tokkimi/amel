@@ -736,8 +736,11 @@ export default async function handler(req, res) {
     if (action==='pec-report'&&req.method==='GET') {
       roleCheck(account,'professional','worker','admin');if(!can('billing'))throw fail(403,'Accès à la comptabilité requis.');
       const year=Number(req.query.year||new Date().getFullYear());if(!Number.isInteger(year)||year<2000||year>2100)throw fail(400,'Année invalide.');
-      const rows=await sql`SELECT to_char(t.financial_date,'YYYY-MM') AS month,t.practitioner_id,coalesce(a.name,'Non attribué') AS practitioner,count(*)::int AS plans,sum(t.initial_quote) AS initial,sum(t.final_quote) AS final,sum(t.final_quote-t.initial_quote) AS difference,sum(t.recovered_amount) AS recovered FROM tasks t LEFT JOIN accounts a ON a.id=t.practitioner_id WHERE t.owner_id=${workspaceId} AND t.financial_date>=${year+'-01-01'}::date AND t.financial_date<${(year+1)+'-01-01'}::date GROUP BY month,t.practitioner_id,a.name ORDER BY month,a.name`;
-      return send({year,rows});
+      const [rows,details]=await Promise.all([
+        sql`SELECT to_char(t.financial_date,'YYYY-MM') AS month,t.practitioner_id,coalesce(a.name,'Non attribué') AS practitioner,count(*)::int AS plans,sum(t.initial_quote) AS initial,sum(t.final_quote) AS final,sum(t.final_quote-t.initial_quote) AS difference,sum(t.recovered_amount) AS recovered FROM tasks t LEFT JOIN accounts a ON a.id=t.practitioner_id WHERE t.owner_id=${workspaceId} AND t.financial_date>=${year+'-01-01'}::date AND t.financial_date<${(year+1)+'-01-01'}::date GROUP BY month,t.practitioner_id,a.name ORDER BY month,a.name`,
+        sql`SELECT t.id,to_char(t.financial_date,'YYYY-MM') AS month,t.financial_date,t.title,t.plan_name,t.stage,t.practitioner_id,coalesce(a.name,'Non attribué') AS practitioner,t.initial_quote::float AS initial,t.final_quote::float AS final,(t.final_quote-t.initial_quote)::float AS difference,t.recovered_amount::float AS recovered FROM tasks t LEFT JOIN accounts a ON a.id=t.practitioner_id WHERE t.owner_id=${workspaceId} AND t.financial_date>=${year+'-01-01'}::date AND t.financial_date<${(year+1)+'-01-01'}::date ORDER BY t.financial_date DESC,t.updated_at DESC`
+      ]);
+      return send({year,rows,details});
     }
     if (['task-save','task-stage'].includes(action) && req.method === 'POST') {
       roleCheck(account,'professional','worker','admin');
