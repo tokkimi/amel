@@ -12,6 +12,8 @@ const fail = (status, message) => Object.assign(new Error(message), { status });
 const isUuid = (x) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
 const dateOrNull = (x) => (x && Number.isFinite(new Date(x).getTime()) ? new Date(x).toISOString() : null);
 const like = (q) => '%' + String(q).replace(/[\\%_]/g, (c) => '\\' + c) + '%';
+const safeAttachments = (value) => Array.isArray(value) ? value.slice(0, 5).flatMap((file) => { const data = typeof file?.data === 'string' ? file.data : ''; const name = clean(file?.name, 180) || 'Pièce jointe'; return /^data:(?:image\/(?:png|jpeg|webp)|application\/pdf);base64,[a-z0-9+/=]+$/i.test(data) && data.length <= 4500000 ? [{ name, data }] : []; }) : [];
+const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 const EVENT_TYPES = ['verification', 'finance', 'support', 'document', 'onboarding', 'appointment', 'operational', 'security'];
 const SEVERITIES = ['info', 'low', 'medium', 'high', 'critical'];
 const SEVERITY_RANK = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
@@ -28,7 +30,7 @@ const REQUIRED = {
   'cc-me': null, 'cc-badges': null, 'cc-home': null, 'cc-inbox': null, 'cc-event': null, 'cc-search': null, 'cc-notifications': null, 'cc-views': null, 'cc-ask': null,
   'cc-event-create': 'inbox.manage', 'cc-event-update': 'inbox.manage', 'cc-bulk': null, 'cc-note-add': null, 'cc-view-save': null, 'cc-view-delete': null,
   'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update', 'cc-cabinet-create': 'cabinet.update', 'cc-report': 'cabinet.read', 'cc-report-prepared': 'export.bulk',
-  'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply',
+  'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
   'cc-verifications': 'verification.read', 'cc-verification-update': null, 'cc-accounts': 'account.read',
   'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-pec-overview': 'pec.manage', 'cc-audit': 'audit.read',
   'cc-config': 'settings.read', 'cc-system': 'settings.read', 'cc-rule-update': 'settings.update', 'cc-automations-run': 'settings.update',
@@ -502,21 +504,47 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     send({ ok: true, id });
     return true;
   }
+  if (action === 'cc-pec-report-send' && POST) {
+    need('support.reply');
+    if (!isUuid(b.cabinet_id)) throw fail(400, 'Sélectionnez un cabinet.');
+    const [attachment] = safeAttachments([b.attachment]);
+    if (!attachment || !attachment.data.startsWith('data:application/pdf;')) throw fail(400, 'Le bilan PDF est invalide.');
+    const period = clean(b.period, 80), message = clean(b.message, 5000) || `Bonjour,\n\nVeuillez trouver ci-joint votre bilan SmilePec pour ${period}.\n\nBien cordialement,\nL’équipe SmilePec`;
+    if (!period) throw fail(400, 'La période du bilan est obligatoire.');
+    const [cabinet] = await sql`SELECT a.id,a.name,a.email,coalesce(nullif(p.clinic_name,''),a.name) AS clinic_name FROM accounts a JOIN profiles p ON p.account_id=a.id WHERE a.id=${b.cabinet_id} AND a.role='professional' AND NOT a.suspended`;
+    if (!cabinet) throw fail(404, 'Cabinet indisponible.');
+    const id = randomUUID(), subject = `Bilan SmilePec · ${period}`;
+    await sql.transaction([
+      sql`INSERT INTO support_tickets(id,account_id,subject,body,status,priority,category,owner_id,first_response_at,last_reply_at,resolved_at) VALUES(${id},${cabinet.id},${subject},${message},'resolved','normal','billing',${account.id},now(),now(),now())`,
+      sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body,attachments) VALUES(${randomUUID()},${id},${account.id},'public',${message},${JSON.stringify([attachment])}::jsonb)`,
+      sql`INSERT INTO notifications(id,account_id,kind,title,body,href,cabinet_id,category) VALUES(${randomUUID()},${cabinet.id},'support','Votre bilan SmilePec est disponible',${subject},'/pro?tab=SmilePec',${cabinet.id},'document')`,
+      audit({ action: 'pec_report_shared', entityType: 'ticket', entityId: id, tenantId: cabinet.id, after: { period, attachment: attachment.name, email_requested: !!b.send_email }, detail: 'Bilan PEC transmis au cabinet' }),
+    ]);
+    let email = { requested: !!b.send_email, sent: false, configured: Boolean(process.env.RESEND_API_KEY && process.env.BILLING_FROM_EMAIL) };
+    if (b.send_email && email.configured) {
+      try {
+        const response = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json', 'Idempotency-Key': 'pec-report-' + id }, body: JSON.stringify({ from: process.env.BILLING_FROM_EMAIL, to: [cabinet.email], subject, html: `<p>Bonjour,</p><p>Votre bilan SmilePec pour <strong>${escapeHtml(period)}</strong> est disponible en pièce jointe et dans votre espace SmilePec.</p><p>Bien cordialement,<br>SmilePec</p>`, attachments: [{ filename: attachment.name, content: attachment.data.split(',', 2)[1] }] }) });
+        email.sent = response.ok;
+      } catch { email.sent = false; }
+    }
+    send({ ok: true, ticket_id: id, email });
+    return true;
+  }
   if (action === 'cc-ticket-reply' && POST) {
     if (!isUuid(b.id)) throw fail(400, 'Ticket invalide.');
-    const body = clean(b.body, 5000);
-    if (!body) throw fail(400, 'Le message est vide.');
+    const body = clean(b.body, 5000), attachments = safeAttachments(b.attachments);
+    if (!body && !attachments.length) throw fail(400, 'Le message est vide.');
     if (!['public', 'internal'].includes(b.visibility)) throw fail(400, 'Précisez s’il s’agit d’une réponse au cabinet ou d’une note interne.');
     const [ticket] = await sql`SELECT * FROM support_tickets WHERE id=${b.id}`;
     if (!ticket) throw fail(404, 'Ticket introuvable.');
     const isPublic = b.visibility === 'public';
     const status = TICKET_STATUSES.includes(b.status) ? b.status : isPublic && ['new', 'open'].includes(ticket.status) ? 'waiting_customer' : ticket.status;
     const writes = [
-      sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body) VALUES(${randomUUID()},${b.id},${account.id},${b.visibility},${body})`,
+      sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body,attachments) VALUES(${randomUUID()},${b.id},${account.id},${b.visibility},${body},${JSON.stringify(attachments)}::jsonb)`,
       isPublic
         ? sql`UPDATE support_tickets SET admin_reply=${body},status=${status},first_response_at=coalesce(first_response_at,now()),last_reply_at=now(),owner_id=coalesce(owner_id,${account.id}),resolved_at=CASE WHEN ${status} IN('resolved','closed') THEN now() ELSE NULL END,updated_at=now() WHERE id=${b.id}`
         : sql`UPDATE support_tickets SET status=${status},updated_at=now() WHERE id=${b.id}`,
-      audit({ action: isPublic ? 'support_replied' : 'support_internal_note', entityType: 'ticket', entityId: b.id, tenantId: ticket.account_id, after: { visibility: b.visibility, status }, detail: isPublic ? 'Réponse envoyée au cabinet' : 'Note interne ajoutée au ticket' }),
+      audit({ action: isPublic ? 'support_replied' : 'support_internal_note', entityType: 'ticket', entityId: b.id, tenantId: ticket.account_id, after: { visibility: b.visibility, status, attachments: attachments.map((file) => file.name) }, detail: isPublic ? 'Réponse envoyée au cabinet' : 'Note interne ajoutée au ticket' }),
     ];
     if (isPublic) writes.push(sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${ticket.account_id},'support','Réponse de SmilePec',${ticket.subject},'/pro?tab=SmilePec')`);
     await sql.transaction(writes);
@@ -657,7 +685,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
         ORDER BY (count(*) FILTER(WHERE t.stage='DOSSIER EN ERREUR')) DESC,(count(*) FILTER(WHERE t.stage='PEC À FACTURER')) DESC,count(*) DESC LIMIT 100`,
       sql`SELECT coalesce(sum(initial_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS initial,
         coalesce(sum(final_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS final,
-        coalesce(sum(final_quote-initial_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS difference,
+        coalesce(sum(final_mutual_amount-initial_mutual_amount) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS mutual_optimization,
         coalesce(sum(recovered_amount) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS recovered
         FROM tasks WHERE stage = ANY(${stages}::text[])`,
     ]);

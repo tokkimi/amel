@@ -154,5 +154,11 @@ ALTER TABLE cabinet_crm ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 's
 ALTER TABLE cabinet_crm ADD COLUMN IF NOT EXISTS internal_summary text NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS cabinet_crm_source ON cabinet_crm(source,lifecycle);
 ` },
+  { id: '2026-10-13-003-pec-financial-breakdown', sql: `-- Financial breakdown for PEC optimisation reports. Amounts remain internal to SmilePec.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS initial_social_security_amount numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS final_social_security_amount numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS initial_mutual_amount numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS final_mutual_amount numeric(12,2) NOT NULL DEFAULT 0;
+` },
 ];
 export const statements = (text) => text.replace(/^\uFEFF/, '').split(';').map((s) => s.replace(/^\s*--.*$/gm, '').trim()).filter(Boolean);

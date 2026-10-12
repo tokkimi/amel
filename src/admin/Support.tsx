@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Lock, Send } from "lucide-react";
+import DocumentPreview from "../DocumentPreview";
 import { api } from "../client";
 import { useCC } from "./context";
 import DataTable, { Column } from "./DataTable";
@@ -8,6 +9,7 @@ import { ago, Avatar, Badge, Card, Chips, day, Drawer, Kpi, Loadable, TICKET_CAT
 type Ticket = { id: string; subject: string; status: string; priority: string; category: string; owner_id: string | null; owner_name: string | null; requester: string; cabinet_id: string; cabinet_name: string; created_at: string; updated_at: string; last_reply_at: string | null; internal_count: number; public_count: number; sla: { due: string; state: string } };
 const SLA: Record<string, { label: string; tone: string }> = { breached: { label: "SLA dépassé", tone: "critical" }, at_risk: { label: "SLA proche", tone: "warn" }, ok: { label: "Dans les délais", tone: "ok" }, answered: { label: "Répondu", tone: "ok" }, done: { label: "Terminé", tone: "neutral" } };
 const priorityTone = (p: string) => (p === "critical" ? "critical" : p === "high" ? "warn" : "neutral");
+const readAttachment = (file?: File) => new Promise<{ name: string; data: string } | null>((resolve, reject) => { if (!file) return resolve(null); if (file.size > 3300000) return reject(new Error("Le document dépasse 3 Mo.")); if (!["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(file.type)) return reject(new Error("Ajoutez un PDF, PNG, JPEG ou WEBP.")); const reader = new FileReader(); reader.onload = () => resolve({ name: file.name, data: String(reader.result) }); reader.onerror = () => reject(new Error("Lecture du fichier impossible.")); reader.readAsDataURL(file); });
 
 export default function Support() {
   const cc = useCC();
@@ -65,8 +67,8 @@ export default function Support() {
 export function TicketDrawer({ id, close }: { id: string; close: () => void }) {
   const cc = useCC();
   const { data, error, loading, reload } = useApi<any>(id ? "cc-ticket" : null, { id, v: cc.version });
-  const [mode, setMode] = useState<"public" | "internal">("public"), [body, setBody] = useState(""), [next, setNext] = useState(""), [busy, setBusy] = useState(false), [err, setErr] = useState("");
-  useEffect(() => { setBody(""); setMode("public"); setErr(""); }, [id]);
+  const [mode, setMode] = useState<"public" | "internal">("public"), [body, setBody] = useState(""), [next, setNext] = useState(""), [busy, setBusy] = useState(false), [err, setErr] = useState(""), [attachment, setAttachment] = useState<{ name: string; data: string } | null>(null);
+  useEffect(() => { setBody(""); setMode("public"); setErr(""); setAttachment(null); }, [id]);
   const t = data?.ticket;
   const update = async (patch: Record<string, unknown>) => { try { await api("cc-ticket-update", { id, ...patch }); cc.toast("Ticket mis à jour."); cc.bump(); } catch (e) { cc.toast((e as Error).message); } };
   const reply = cc.can("support.reply");
@@ -90,7 +92,7 @@ export function TicketDrawer({ id, close }: { id: string; close: () => void }) {
         {reply && <form className={"cc-reply " + mode} onSubmit={async (e) => {
           e.preventDefault(); if (!body.trim()) return;
           setBusy(true); setErr("");
-          try { const r = await api("cc-ticket-reply", { id, visibility: mode, body, status: next || undefined }); setBody(""); setNext(""); cc.toast(mode === "public" ? `Réponse envoyée au cabinet (statut : ${TICKET_STATUS[r.status]}).` : "Note interne ajoutée — non visible par le cabinet."); cc.bump(); }
+          try { const r = await api("cc-ticket-reply", { id, visibility: mode, body, status: next || undefined, attachments: attachment ? [attachment] : [] }); setBody(""); setNext(""); setAttachment(null); cc.toast(mode === "public" ? `Réponse envoyée au cabinet (statut : ${TICKET_STATUS[r.status]}).` : "Note interne ajoutée — non visible par le cabinet."); cc.bump(); }
           catch (e2) { setErr((e2 as Error).message); } finally { setBusy(false); }
         }}>
           <div className="cc-reply-switch" role="radiogroup" aria-label="Type de message">
@@ -99,6 +101,8 @@ export function TicketDrawer({ id, close }: { id: string; close: () => void }) {
           </div>
           <p className="cc-reply-hint">{mode === "public" ? "⚠ Visible par le cabinet. Il recevra une notification." : "🔒 Visible uniquement par l’équipe SmilePec. Jamais envoyé au cabinet."}</p>
           <textarea aria-label={mode === "public" ? "Réponse au cabinet" : "Note interne"} rows={4} value={body} onChange={(e) => setBody(e.target.value)} maxLength={5000} />
+          {mode === "public" && <label>Joindre un document à cette réponse<input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" onChange={async (e) => { try { setErr(""); setAttachment(await readAttachment(e.target.files?.[0])); } catch (error) { setErr((error as Error).message); e.currentTarget.value = ""; } }} /></label>}
+          {attachment && <DocumentPreview data={attachment.data} name={attachment.name} title="Aperçu avant envoi au cabinet" description="Cette pièce sera visible par le cabinet seulement après confirmation de la réponse." onCancel={() => setAttachment(null)} />}
           {err && <p className="cc-form-error" role="alert">{err}</p>}
           <div className="cc-inline"><label>Puis passer à<select value={next} onChange={(e) => setNext(e.target.value)}><option value="">{mode === "public" ? "Statut automatique" : "Statut inchangé"}</option>{Object.entries(TICKET_STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
             <button className={"cc-btn " + (mode === "public" ? "is-primary" : "is-internal")} disabled={busy || !body.trim()}>{mode === "public" ? "Envoyer au cabinet" : "Ajouter la note interne"}</button></div>

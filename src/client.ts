@@ -150,6 +150,10 @@ export type WorkTask = {
   initial_quote?: number;
   final_quote?: number;
   recovered_amount?: number;
+  initial_social_security_amount?: number;
+  final_social_security_amount?: number;
+  initial_mutual_amount?: number;
+  final_mutual_amount?: number;
   financial_date?: string;
   practitioner_id?: string;
   impression_date?: string;

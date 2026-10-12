@@ -33,6 +33,10 @@ try{
  const saved=await ok('amel','cc-pec-save',task,workspace);
  await ok('amel','cc-pec-stage',{id:saved.id,stage:'PEC À FACTURER'},workspace);
  assert.equal((await ok('amel','cc-pec-list',undefined,workspace)).tasks[0].stage,'PEC À FACTURER');
+ const report=await ok('amel','cc-pec-report',undefined,workspace);assert.equal(report.details.length,1);assert.equal(Number(report.details[0].difference),150);
+ assert.equal((await call('cabinet','pec-report',undefined)).status,403);
+const shared=await ok('amel','cc-pec-report-send',{cabinet_id:people.cabinet.id,period:'septembre 2026',message:'Bilan mensuel disponible.',attachment:{name:'Bilan SmilePec septembre 2026.pdf',data:file},send_email:false});assert(shared.ticket_id);
+const sharedThread=await ok('cabinet','support');const sharedTicket=sharedThread.tickets.find((item)=>item.id===shared.ticket_id);assert(sharedTicket);assert.equal(sharedTicket.messages[0].attachments[0].name,'Bilan SmilePec septembre 2026.pdf');
  assert.equal((await ok('amel','cc-pec-list',undefined,{workspace:people.other.id})).tasks.length,0);
  assert.equal((await call('amel','cc-pec-stage',{id:saved.id,stage:'PEC PAYÉE'},{workspace:people.other.id})).status,404);
  await ok('cabinet','support-create',{subject:'Discussion',body:'Bonjour Amel'});

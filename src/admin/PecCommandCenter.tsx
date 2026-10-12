@@ -32,7 +32,7 @@ export default function PecCommandCenter({ chooseCabinet }: { chooseCabinet: (id
           <div className="cc-mini-kpis boxed">
             <span>Devis initiaux<b>{eur(data.financial.initial)}</b></span>
             <span>Devis définitifs<b>{eur(data.financial.final)}</b></span>
-            <span>Différence<b>{eur(data.financial.difference)}</b></span>
+            <span>Mutuelle supplémentaire<b>{eur(data.financial.mutual_optimization)}</b></span>
             <span>Montants récupérés<b>{eur(data.financial.recovered)}</b></span>
           </div>
           <p className="cc-muted cc-pec-note">Indicateurs de suivi des dossiers pour les cabinets. Ils ne sont pas ajoutés au chiffre d’affaires de SmilePec.</p>

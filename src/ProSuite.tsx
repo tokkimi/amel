@@ -1,4 +1,3 @@
-import PecReport from "./PecReport";
 import {PecBoard,PecForm} from "./PecBoard";
 import {PEC_STAGES,normalizeStage} from "./pec";
 import React, { useEffect, useMemo, useState } from "react";
@@ -54,7 +53,8 @@ import {
 import { usePanel } from "./usePanel";
 import DentalChart from "./DentalChart";
 import DocumentEditor from './DocumentEditor';
-import {downloadSharedDocument} from './documents';
+import {downloadSharedDocument,prepareSharedDocument} from './documents';
+import DocumentPreview from './DocumentPreview';
 import {downloadPatientPdf, downloadWorkbook} from "./exports";
 import TeamPanel from './TeamPanel';
 import LiveTracking from './LiveTracking';
@@ -202,6 +202,13 @@ export default function ProSuite({
     ),
     [editingTask, setEditingTask] = useState<Partial<WorkTask> | null>(null);
   const [patientTab, setPatientTab] = useState("Synthèse");
+  const [documentPreview, setDocumentPreview] = useState<{ data: string; name: string; document: BusinessDocument; channel: "message" | "email" } | null>(null);
+  const previewDocumentFor = async (document: BusinessDocument, channel: "message" | "email") => {
+    setBusy(true); setError("");
+    try { const prepared = await prepareSharedDocument(document.id); setDocumentPreview({ data: prepared.data, name: prepared.name, document, channel }); setModal("document-preview"); }
+    catch (e) { setError((e as Error).message); }
+    finally { setBusy(false); }
+  };
   const load = async () => {
     try {
       const next=await api<Dashboard>("dashboard");setData(next);
@@ -795,23 +802,11 @@ export default function ProSuite({
                       >
                         <Download />
                       </button>
-                      <a
-                        className="icon-button"
-                        href={`mailto:${d.patient_email}?subject=${encodeURIComponent(`${d.doc_type === "quote" ? "Devis" : "Facture"} ${d.number}`)}&body=${encodeURIComponent(`Bonjour ${d.patient_name},\n\nVotre ${d.doc_type === "quote" ? "devis" : "facture"} ${d.number} d’un montant de ${money(Number(d.total))} est disponible dans votre messagerie SmilePec.${d.payment_url ? `\n\nLien de paiement Qonto : ${d.payment_url}` : ""}\n\nBien cordialement,\n${account.name}`)}`}
-                        aria-label="Préparer la copie par e-mail"
-                      >
-                        <Mail />
-                      </a>
+                      <button className="icon-button" onClick={() => void previewDocumentFor(d, "email")} aria-label="Aperçu avant e-mail"><Mail /></button>
                       {d.status === "draft" && (
                         <button
                           className="secondary"
-                          onClick={() =>
-                            act(
-                              "document-send",
-                              { id: d.id },
-                              "Document envoyé dans la messagerie.",
-                            )
-                          }
+                          onClick={() => void previewDocumentFor(d, "message")}
                         >
                           Envoyer
                         </button>
@@ -1051,7 +1046,6 @@ export default function ProSuite({
                   Nouvelle tâche
                 </button>,
               )}
-              {(!data.permissions || data.permissions.includes("billing")) && <PecReport revision={data.tasks} />}
               <PecBoard tasks={data.tasks} edit={task=>{setEditingTask(task);setModal("task")}} move={(id,stage)=>act('task-stage',{id,stage},'Statut de la fiche actualisé.',false)}/>
 
             </>
@@ -1510,6 +1504,9 @@ export default function ProSuite({
       </div>
 
       {modal === "edit-document" && editingDocument && <Modal title="Modifier le document" close={()=>setModal("")}><DocumentEditor doc={editingDocument} onSaved={()=>{setModal("");load()}}/></Modal>}
+      {modal === "document-preview" && documentPreview && <Modal title="Aperçu avant transmission" close={() => { setDocumentPreview(null); setModal(""); }} wide>
+        <DocumentPreview data={documentPreview.data} name={documentPreview.name} title={documentPreview.document.doc_type === "quote" ? "Aperçu du devis" : "Aperçu de la facture"} description={documentPreview.channel === "message" ? "Le document sera transmis dans la messagerie sécurisée du patient après confirmation." : "Vérifiez ce document avant d’ouvrir votre e-mail prérempli."} busy={busy} onCancel={() => { setDocumentPreview(null); setModal(""); }} confirmLabel={documentPreview.channel === "message" ? "Envoyer dans la messagerie" : "Préparer l’e-mail"} onConfirm={() => { const preview = documentPreview; if (preview.channel === "message") { void act("document-send", { id: preview.document.id }, "Document envoyé dans la messagerie."); setDocumentPreview(null); return; } const type = preview.document.doc_type === "quote" ? "Devis" : "Facture"; const body = "Bonjour " + preview.document.patient_name + ",\n\nVotre " + (preview.document.doc_type === "quote" ? "devis" : "facture") + " " + preview.document.number + " d’un montant de " + money(Number(preview.document.total)) + " est disponible dans votre messagerie SmilePec." + (preview.document.payment_url ? "\n\nLien de paiement Qonto : " + preview.document.payment_url : "") + "\n\nBien cordialement,\n" + account.name; window.location.href = "mailto:" + encodeURIComponent(preview.document.patient_email) + "?subject=" + encodeURIComponent(type + " " + preview.document.number) + "&body=" + encodeURIComponent(body); setDocumentPreview(null); setModal(""); setNotice("E-mail préparé après vérification du document."); }} />
+      </Modal>}
       {modal === "slot" && (
         <Modal title="Ouvrir un créneau" close={() => setModal("")}>
           <form
@@ -1992,7 +1989,7 @@ export default function ProSuite({
           <PecForm
             key={editingTask.id || ('new-'+(editingTask.parent_task_id||''))}
             task={editingTask}
-            canBill={!data.permissions || data.permissions.includes('billing')}
+            canBill={false}
             close={()=>setModal('')}
             related={data.tasks.filter(t=>t.id!==editingTask.id && (t.id===(editingTask.parent_task_id||editingTask.id)||t.parent_task_id===(editingTask.parent_task_id||editingTask.id)))}
             openPlan={plan=>setEditingTask(plan)}
