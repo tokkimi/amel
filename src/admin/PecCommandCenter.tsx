@@ -3,7 +3,7 @@ import { useCC } from "./context";
 import { Card, Empty, eur, Kpi, Loadable, useApi } from "./ui";
 
 const shortStage = (stage: string) => ({
-  "PEC À FAIRE": "À faire", "ESTIMATION À FAIRE": "Estimations", "PEC/ESTIM EN COURS": "En cours", "ACCORD PEC": "Accords",
+  "PEC À FAIRE": "À faire", "ESTIMATION À FAIRE": "Estimations", "PEC/ESTIM EN COURS": "En cours", "ACCORD PEC": "Accords PEC", "ACCORD ESTIM": "Accords estim",
   "DOSSIER EN ERREUR": "Erreurs", "PEC À FACTURER": "À facturer", "PEC FACTURÉE": "Facturées", "PEC PAYÉE": "Payées", "RAPPROCHEMENT FAIT": "Rapprochées",
 }[stage] || stage);
 
@@ -28,15 +28,15 @@ export default function PecCommandCenter({ chooseCabinet }: { chooseCabinet: (id
             {data.stages.map((row: any) => <div key={row.stage} className={row.stage === "DOSSIER EN ERREUR" && row.count ? "is-critical" : row.stage === "PEC À FACTURER" && row.count ? "is-warn" : ""}><span>{shortStage(row.stage)}</span><b>{row.count}</b></div>)}
           </div>
         </Card>
-        <Card title="Bilan opérationnel · année en cours" action={<Landmark size={16} aria-hidden="true" />}>
+        {data.financial && <Card title="Bilan opérationnel · année en cours" action={<Landmark size={16} aria-hidden="true" />}>
           <div className="cc-mini-kpis boxed">
             <span>Devis initiaux<b>{eur(data.financial.initial)}</b></span>
             <span>Devis définitifs<b>{eur(data.financial.final)}</b></span>
-            <span>Mutuelle supplémentaire<b>{eur(data.financial.mutual_optimization)}</b></span>
+            <span>Gain d’optimisation validé<b>{eur(data.financial.optimization_gain)}</b></span>
             <span>Montants récupérés<b>{eur(data.financial.recovered)}</b></span>
           </div>
           <p className="cc-muted cc-pec-note">Indicateurs de suivi des dossiers pour les cabinets. Ils ne sont pas ajoutés au chiffre d’affaires de SmilePec.</p>
-        </Card>
+        </Card>}
       </div>
       <Card title="Priorités par cabinet" action={<span className="cc-muted">Trié par erreurs puis dossiers à facturer</span>}>
         {data.cabinets.length ? <ul className="cc-pec-cabinets">

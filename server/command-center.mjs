@@ -660,7 +660,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
   // This is deliberately aggregate-only: Amel can direct work across cabinets without listing
   // patient names or clinical detail outside a selected cabinet workspace.
   if (action === 'cc-pec-overview' && GET) {
-    const stages = ['PEC À FAIRE', 'ESTIMATION À FAIRE', 'PEC/ESTIM EN COURS', 'ACCORD PEC', 'DOSSIER EN ERREUR', 'PEC À FACTURER', 'PEC FACTURÉE', 'PEC PAYÉE', 'RAPPROCHEMENT FAIT'];
+    const stages = ['PEC À FAIRE', 'ESTIMATION À FAIRE', 'PEC/ESTIM EN COURS', 'ACCORD PEC', 'ACCORD ESTIM', 'DOSSIER EN ERREUR', 'PEC À FACTURER', 'PEC FACTURÉE', 'PEC PAYÉE', 'RAPPROCHEMENT FAIT'];
     const [summary, byCabinet, financial] = await Promise.all([
       sql`SELECT
         count(*)::int AS plans,
@@ -683,16 +683,17 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
         FROM tasks t JOIN accounts a ON a.id=t.owner_id JOIN profiles p ON p.account_id=a.id
         WHERE t.stage = ANY(${stages}::text[]) GROUP BY t.owner_id,p.clinic_name,a.name
         ORDER BY (count(*) FILTER(WHERE t.stage='DOSSIER EN ERREUR')) DESC,(count(*) FILTER(WHERE t.stage='PEC À FACTURER')) DESC,count(*) DESC LIMIT 100`,
-      sql`SELECT coalesce(sum(initial_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS initial,
-        coalesce(sum(final_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS final,
-        coalesce(sum(final_mutual_amount-initial_mutual_amount) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS mutual_optimization,
-        coalesce(sum(recovered_amount) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS recovered
-        FROM tasks WHERE stage = ANY(${stages}::text[])`,
+      can('billing.read') ? sql`SELECT coalesce(sum(initial_quote),0)::float AS initial,
+        coalesce(sum(final_quote),0)::float AS final,
+        coalesce(sum(final_mutual_amount-initial_mutual_amount) FILTER(WHERE optimization_validated AND business_status NOT IN ('refused','cancelled')),0)::float AS mutual_optimization,
+        coalesce(sum(greatest(0,final_social_security_amount+final_mutual_amount-(initial_quote-initial_patient_share))) FILTER(WHERE optimization_validated AND final_quote>0 AND business_status NOT IN ('refused','cancelled')),0)::float AS optimization_gain,
+        coalesce(sum(recovered_amount),0)::float AS recovered
+        FROM tasks WHERE dossier_type='pec' AND stage NOT IN ('ESTIMATION À FAIRE','ACCORD ESTIM') AND financial_date>=date_trunc('year',current_date) AND financial_date<date_trunc('year',current_date)+interval '1 year'` : [],
     ]);
     const stageRows = await sql`SELECT stage,count(*)::int AS count FROM tasks WHERE stage = ANY(${stages}::text[]) GROUP BY stage`;
     const counts = Object.fromEntries(stages.map((stage) => [stage, 0]));
     for (const row of stageRows) counts[row.stage] = row.count;
-    send({ summary: summary[0], stages: stages.map((stage) => ({ stage, count: counts[stage] })), cabinets: byCabinet, financial: financial[0] });
+    send({ summary: summary[0], stages: stages.map((stage) => ({ stage, count: counts[stage] })), cabinets: byCabinet, financial: financial[0] || null });
     return true;
   }
 

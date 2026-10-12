@@ -16,6 +16,8 @@ for(const [key,name,role] of [['amel','Amel · démonstration locale','admin'],[
 }
 const task=randomUUID(),file='data:application/pdf;base64,JVBERi0xLjQKJUVPRg==';
 await sql`INSERT INTO tasks(id,owner_id,title,plan_name,stage,attachments,initial_quote,final_quote,recovered_amount,financial_date,practitioner_id) VALUES(${task},${ids.cabinet},'Patient exemple · fictif','Plan 1 · exemple','ACCORD PEC',${JSON.stringify([{kind:'devis',name:'Devis exemple.pdf',url:file},{kind:'mutuelle',name:'Mutuelle exemple.pdf',url:file}])}::jsonb,100,250,125,current_date,${ids.cabinet})`;
+await sql`UPDATE tasks SET initial_quote=1000,initial_patient_share=200,final_quote=1000,final_social_security_amount=150,final_mutual_amount=850,initial_mutual_amount=650,optimization_validated=true,business_status='agreed',act_codes='C MONO 23',valid_until='2026-12-31' WHERE id=${task}`;
+await sql`INSERT INTO tasks(id,owner_id,title,plan_name,stage,dossier_type,business_status,attachments) VALUES(${randomUUID()},${ids.cabinet},'Patient estimation · fictif','Plan estimation','ACCORD ESTIM','estimation','agreed','[]'::jsonb)`;
 await sql`INSERT INTO support_tickets(id,account_id,subject,body) VALUES(${randomUUID()},${ids.cabinet},'Demande de suivi · exemple','Bonjour Amel, pouvez-vous nous accompagner sur ce dossier de démonstration ?')`;
 const client=randomUUID();await sql`INSERT INTO billing_clients(id,owner_id,name,email,monthly_amount,service_label) VALUES(${client},${ids.amel},'Cabinet Rivoli · démo','cabinet@demo.invalid',12000,'Accompagnement mensuel · exemple')`;
 const root=resolve(fileURLToPath(new URL('../dist',import.meta.url)));

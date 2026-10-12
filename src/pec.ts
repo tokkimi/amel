@@ -1,4 +1,5 @@
-export const PEC_STAGES = ['PEC À FAIRE','ESTIMATION À FAIRE','PEC/ESTIM EN COURS','ACCORD PEC','DOSSIER EN ERREUR','PEC À FACTURER','PEC FACTURÉE','PEC PAYÉE','RAPPROCHEMENT FAIT'] as const;
+export {PEC_STAGES} from '../shared/pec.mjs';
+import {PEC_STAGES} from '../shared/pec.mjs';
 export const normalizeStage = (stage?: string) => ({'À faire':'PEC À FAIRE','En cours':'PEC/ESTIM EN COURS','En attente':'ACCORD PEC','Terminé':'RAPPROCHEMENT FAIT'}[stage || ''] || stage || PEC_STAGES[0]);
 
 export const PEC_GUIDANCE: Record<string,string> = {
@@ -6,6 +7,7 @@ export const PEC_GUIDANCE: Record<string,string> = {
  'ESTIMATION À FAIRE': 'Renseigner le devis initial et préparer l’estimation du plan de traitement.',
  'PEC/ESTIM EN COURS': 'Suivre les échanges et noter les relances dans le commentaire de la fiche.',
  'ACCORD PEC': 'Vérifier l’accord reçu et le devis définitif. Utiliser « Facturer » pour envoyer ce plan dans « PEC À FACTURER ».',
+ 'ACCORD ESTIM': 'Estimation accordée. Si les soins sont engagés, créez une PEC liée à cette estimation. Elle reste hors du bilan et de la facturation.',
  'DOSSIER EN ERREUR': 'Préciser le motif dans le commentaire, corriger les informations ou remplacer le document concerné, puis choisir le statut adapté.',
  'PEC À FACTURER': 'Préparer la facture correspondant au plan. La déplacer vers « PEC FACTURÉE » une fois la facture émise.',
  'PEC FACTURÉE': 'Suivre le règlement et les éventuelles relances. La déplacer vers « PEC PAYÉE » à réception du paiement.',

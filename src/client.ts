@@ -141,6 +141,32 @@ export type BusinessDocument = {
   pdf_name: string;
 };
 export type WorkTask = {
+  dossier_type?: 'pec' | 'estimation';
+  source_estimation_id?: string;
+  business_status?: string;
+  agreement_confirmed?: boolean;
+  documents_validated?: boolean;
+  valid_until?: string;
+  act_codes?: string;
+  mutual_provider?: string;
+  initial_patient_share?: number;
+  optimization_validated?: boolean;
+  billing_type?: string;
+  billing_amount?: number | null;
+  billing_status?: string;
+  invoice_date?: string;
+  invoice_number?: string;
+  transfer_date?: string;
+  transfer_amount?: number | null;
+  billing_notes?: string;
+  updated_at?: string;
+  revision_token?: string;
+  automatic_summary?: string;
+  optimization_gain?: number;
+  optimized?: boolean;
+  total_reimbursed?: number;
+  patient_share?: number;
+
   id: string;
   title: string;
   description: string;
@@ -165,7 +191,7 @@ export type WorkTask = {
   patient_id?: string;
   patient_name?: string;
   checklist: { id: string; text: string; done: boolean }[];
-  attachments: { name: string; url: string; kind?: string }[];
+  attachments: { id?: string; name: string; url: string; kind?: string; has_data?: boolean }[];
 };
 export type Mission = {
   id: string;

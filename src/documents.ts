@@ -7,7 +7,7 @@ export async function prepareSharedDocument(id:string):Promise<PreparedDocument>
  if(doc.pdf_data)return {data:doc.pdf_data,name,doc,profile};
  const {createInvoicePdf}=await import('./invoicePdf');
  const pdf=createInvoicePdf({...doc,payment_label:paymentLabels[doc.payment_method]||paymentLabels.sur_place},profile);
- return {data:pdf.output('datauristring'),name,doc,profile};
+ return {data:'data:application/pdf;base64,'+pdf.output('datauristring').split(',')[1],name,doc,profile};
 }
 export async function downloadSharedDocument(id:string){
  const prepared=await prepareSharedDocument(id);

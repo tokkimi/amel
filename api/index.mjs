@@ -1,3 +1,4 @@
+import {savePec,pecReport,presentTask} from '../server/pec.mjs';
 import {billingAction} from "../server/billing.mjs";
 import { database } from "../server/db.mjs";
 import { workspaceAction } from "../server/workspace.mjs";
@@ -185,7 +186,7 @@ export default async function handler(req, res) {
     }
     if (!account)
       throw fail(401, "Connectez-vous pour accéder à votre espace.");
-    const centralPec = ['cc-pec-list','cc-pec-save','cc-pec-stage','cc-pec-report'].includes(action);
+    const centralPec = ['cc-pec-list','cc-pec-read','cc-pec-save','cc-pec-stage','cc-pec-report'].includes(action);
     let internal = account.role==='admin' ? await adminContext(sql,account) : null;
     if(centralPec){
       if(!internal?.permissions.has('pec.manage'))throw fail(403,'Accès au suivi PEC SmilePec requis.');
@@ -209,12 +210,21 @@ export default async function handler(req, res) {
     if(centralPec){
       const [clinic]=await sql`SELECT a.id,a.name,p.clinic_name FROM accounts a JOIN profiles p ON p.account_id=a.id WHERE a.id=${workspaceId} AND a.role='professional' AND NOT a.suspended`;
       if(!clinic)throw fail(404,'Cabinet indisponible.');
+      if(action==='cc-pec-read'){
+        if(!uuid(req.query.id))throw fail(400,'Dossier invalide.');
+        const [task]=await sql`SELECT *,updated_at::text AS revision_token FROM tasks WHERE id=${req.query.id} AND owner_id=${workspaceId}`;
+        if(!task)throw fail(404,'Dossier introuvable dans ce cabinet.');
+        const history=await sql`SELECT l.created_at,l.action,l.detail,l."before",l."after",a.name AS author FROM audit_log l JOIN accounts a ON a.id=l.actor_id WHERE l.entity_type='pec' AND l.entity_id=${task.id}::text AND l.tenant_id=${workspaceId} ORDER BY l.created_at DESC LIMIT 30`;
+        return send({task:presentTask(task,can('billing')),history:can('billing')?history:history.map(({before,after,...h})=>h)});
+      }
       if(action==='cc-pec-list'){
-        const [tasks,members]=await Promise.all([
-          sql`SELECT * FROM tasks WHERE owner_id=${workspaceId} ORDER BY updated_at DESC LIMIT 500`,
-          sql`SELECT m.member_id,m.active,m.job_title,a.name,a.role FROM clinic_members m JOIN accounts a ON a.id=m.member_id WHERE m.owner_id=${workspaceId} AND m.active AND m.accepted`
+        const offset=Math.max(0,Math.min(100000,Math.floor(Number(req.query.offset)||0)));
+        const [records,members,total]=await Promise.all([
+          sql`SELECT to_jsonb(t)-'attachments' AS record,(SELECT coalesce(jsonb_agg(jsonb_build_object('id',d->>'id','kind',d->>'kind','name',d->>'name','has_data',length(coalesce(d->>'url',''))>0)),'[]'::jsonb) FROM jsonb_array_elements(t.attachments) d) AS attachments FROM tasks t WHERE t.owner_id=${workspaceId} ORDER BY t.updated_at DESC,t.id LIMIT 200 OFFSET ${offset}`,
+          sql`SELECT m.member_id,m.active,m.job_title,a.name,a.role FROM clinic_members m JOIN accounts a ON a.id=m.member_id WHERE m.owner_id=${workspaceId} AND m.active AND m.accepted`,
+          sql`SELECT count(*)::int AS count FROM tasks WHERE owner_id=${workspaceId}`
         ]);
-        return send({clinic,tasks:tasks.map(t=>{if(account.role==='admin'&&can('billing'))return t;const {initial_quote,final_quote,recovered_amount,initial_social_security_amount,final_social_security_amount,initial_mutual_amount,final_mutual_amount,financial_date,practitioner_id,...visible}=t;return visible;}),members});
+        return send({clinic,tasks:records.map(t=>presentTask({...t.record,attachments:t.attachments},can('billing'))),members,total:total[0].count,next_offset:offset+records.length<total[0].count?offset+records.length:null});
       }
       action=({'cc-pec-save':'task-save','cc-pec-stage':'task-stage','cc-pec-report':'pec-report'})[action];
     }
@@ -366,7 +376,7 @@ export default async function handler(req, res) {
             : [],
         services: can("billing") ? services : [],
         documents: can("billing") ? documents : [],
-        tasks: can("tasks") ? tasks.map(t=>{if(account.role==='admin'&&can("billing"))return t;const {initial_quote,final_quote,recovered_amount,initial_social_security_amount,final_social_security_amount,initial_mutual_amount,final_mutual_amount,financial_date,practitioner_id,...visible}=t;return visible;}) : [],
+        tasks: can("tasks") ? tasks.map(t=>presentTask(t,account.role==='admin'&&can("billing"))) : [],
         missions: can("tasks") ? missions.map(m=>({...m,latitude:new Date(m.location_expires_at)>new Date()?m.latitude:null,longitude:new Date(m.location_expires_at)>new Date()?m.longitude:null})) : [],
         members: can('tasks') ? members.filter(m=>m.active) : [],
       });
@@ -736,50 +746,11 @@ export default async function handler(req, res) {
     if (action==='pec-report'&&req.method==='GET') {
       if(account.role!=='admin'||!can('billing'))throw fail(403,'Le bilan PEC est réservé à l’administration SmilePec.');
       const year=Number(req.query.year||new Date().getFullYear());if(!Number.isInteger(year)||year<2000||year>2100)throw fail(400,'Année invalide.');
-      const [rows,details]=await Promise.all([
-        sql`SELECT to_char(t.financial_date,'YYYY-MM') AS month,t.practitioner_id,coalesce(a.name,'Non attribué') AS practitioner,count(*)::int AS plans,sum(t.initial_quote) AS initial,sum(t.final_quote) AS final,sum(t.final_quote-t.initial_quote) AS difference,sum(t.recovered_amount) AS recovered FROM tasks t LEFT JOIN accounts a ON a.id=t.practitioner_id WHERE t.owner_id=${workspaceId} AND t.financial_date>=${year+'-01-01'}::date AND t.financial_date<${(year+1)+'-01-01'}::date GROUP BY month,t.practitioner_id,a.name ORDER BY month,a.name`,
-        sql`SELECT t.id,to_char(t.financial_date,'YYYY-MM') AS month,t.financial_date,t.title,t.plan_name,t.stage,t.practitioner_id,coalesce(a.name,'Non attribué') AS practitioner,t.initial_quote::float AS initial,t.final_quote::float AS final,(t.final_quote-t.initial_quote)::float AS difference,t.recovered_amount::float AS recovered,t.initial_social_security_amount::float AS initial_social_security,t.final_social_security_amount::float AS final_social_security,t.initial_mutual_amount::float AS initial_mutual,t.final_mutual_amount::float AS final_mutual,(t.final_mutual_amount-t.initial_mutual_amount)::float AS mutual_optimization FROM tasks t LEFT JOIN accounts a ON a.id=t.practitioner_id WHERE t.owner_id=${workspaceId} AND t.financial_date>=${year+'-01-01'}::date AND t.financial_date<${(year+1)+'-01-01'}::date ORDER BY t.financial_date DESC,t.updated_at DESC`
-      ]);
-      return send({year,rows,details});
+      return send(await pecReport(sql,workspaceId,year));
     }
     if (['task-save','task-stage'].includes(action) && req.method === 'POST') {
       roleCheck(account,'professional','worker','admin');
-      const stages=['PEC À FAIRE','ESTIMATION À FAIRE','PEC/ESTIM EN COURS','ACCORD PEC','DOSSIER EN ERREUR','PEC À FACTURER','PEC FACTURÉE','PEC PAYÉE','RAPPROCHEMENT FAIT'];
-      if(!stages.includes(b.stage))throw fail(400,'Choisissez une colonne PEC valide.');
-      let existing;
-      if(b.id){if(!uuid(b.id))throw fail(400,'Fiche invalide.');[existing]=await sql`SELECT * FROM tasks WHERE id=${b.id} AND owner_id=${workspaceId}`;if(!existing)throw fail(404,'Fiche introuvable dans ce cabinet.');}
-      if(action==='task-stage'){
-        if(!existing)throw fail(404,'Fiche introuvable.');
-        if(!['devis','mutuelle'].every(kind=>existing.attachments.some(a=>a.kind===kind&&safeFile(a.url))))throw fail(400,'Ajoutez les documents Devis et Mutuelle dans la fiche avant de changer son statut.');
-        await sql`UPDATE tasks SET stage=${b.stage},updated_at=now() WHERE id=${b.id} AND owner_id=${workspaceId}`;
-        if(centralPec)await sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},'pec_stage_changed',${b.id},${'Statut PEC : '+b.stage})`;
-        return send({ok:true});
-      }
-      const title=clean(b.title,200);if(!title)throw fail(400,'Indiquez le nom du patient ou le titre de la fiche.');
-      const attachments=(Array.isArray(b.attachments)?b.attachments:[]).slice(0,2).map(a=>({kind:a.kind,name:clean(a.name,180),url:safeFile(a.url)}));
-      if(!['devis','mutuelle'].every(kind=>attachments.some(a=>a.kind===kind&&a.name&&a.url)))throw fail(400,'Les documents nominatifs Devis et Mutuelle sont obligatoires.');
-      if(JSON.stringify(attachments).length>3400000)throw fail(400,'Les deux documents doivent totaliser moins de 2,4 Mo.');
-      const patient=b.patient_id===undefined?(existing?.patient_id||null):(uuid(b.patient_id)?b.patient_id:null);
-      if(patient){const [linked]=await sql`SELECT 1 FROM patient_records WHERE owner_id=${workspaceId} AND patient_id=${patient}`;if(!linked)throw fail(403,'Ce patient n’appartient pas au cabinet sélectionné.');}
-      const assigneeId=uuid(b.assignee_id)?b.assignee_id:null;
-      let assignee='';
-      if(assigneeId){const [member]=await sql`SELECT a.name FROM accounts a WHERE a.id=${assigneeId} AND (a.id=${workspaceId} OR EXISTS(SELECT 1 FROM clinic_members cm WHERE cm.owner_id=${workspaceId} AND cm.member_id=a.id AND cm.active AND cm.accepted))`;if(!member)throw fail(403,'Ce responsable n’appartient pas au cabinet.');assignee=member.name;}
-      const date=(value)=>{if(!value)return null;if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value)))throw fail(400,'Date invalide.');return value;};
-      const impression=date(b.impression_date),placement=date(b.placement_date);
-      if(b.parent_task_id&&!uuid(b.parent_task_id))throw fail(400,'Fiche parent invalide.');
-      const parentId=existing?existing.parent_task_id:(uuid(b.parent_task_id)?b.parent_task_id:null);
-      if(parentId){const [parent]=await sql`SELECT id FROM tasks WHERE id=${parentId} AND owner_id=${workspaceId} AND parent_task_id IS NULL`;if(!parent)throw fail(400,'La fiche parent doit appartenir au même cabinet.');}
-      const moneyValue=(value,fallback)=>{if(value===undefined)return Number(fallback||0);const amount=Number(value);if(!Number.isFinite(amount)||amount<0||amount>100000000)throw fail(400,'Les montants doivent être positifs et inférieurs à 100 millions d’euros.');return Math.round(amount*100)/100;};
-      if(account.role!=='admin'&&['initial_quote','final_quote','recovered_amount','initial_social_security_amount','final_social_security_amount','initial_mutual_amount','final_mutual_amount','financial_date','practitioner_id'].some(key=>b[key]!==undefined))throw fail(403,'Les montants d’optimisation sont réservés à l’administration SmilePec.');
-      const initial=moneyValue(b.initial_quote,existing?.initial_quote),final=moneyValue(b.final_quote,existing?.final_quote),recovered=moneyValue(b.recovered_amount,existing?.recovered_amount),initialSocial=moneyValue(b.initial_social_security_amount,existing?.initial_social_security_amount),finalSocial=moneyValue(b.final_social_security_amount,existing?.final_social_security_amount),initialMutual=moneyValue(b.initial_mutual_amount,existing?.initial_mutual_amount),finalMutual=moneyValue(b.final_mutual_amount,existing?.final_mutual_amount);
-      const financialDate=b.financial_date===undefined?existing?.financial_date||null:date(b.financial_date);
-      if((initial||final||recovered||initialSocial||finalSocial||initialMutual||finalMutual)&&!financialDate)throw fail(400,'Indiquez la date de rattachement des montants.');
-      const practitionerId=b.practitioner_id===undefined?existing?.practitioner_id||null:(uuid(b.practitioner_id)?b.practitioner_id:null);
-      if(practitionerId){const [practitioner]=await sql`SELECT id FROM accounts a WHERE a.id=${practitionerId} AND (a.id=${workspaceId} OR (a.role='professional' AND EXISTS(SELECT 1 FROM clinic_members cm WHERE cm.owner_id=${workspaceId} AND cm.member_id=a.id AND cm.active AND cm.accepted)))`;if(!practitioner)throw fail(403,'Choisissez un praticien du cabinet.');}
-      const id=existing?.id||randomUUID();
-      await sql`INSERT INTO tasks(id,owner_id,title,description,stage,assignee,assignee_id,patient_id,attachments,impression_date,placement_date,due_at,parent_task_id,plan_name,initial_quote,final_quote,recovered_amount,initial_social_security_amount,final_social_security_amount,initial_mutual_amount,final_mutual_amount,financial_date,practitioner_id) VALUES(${id},${workspaceId},${title},${clean(b.description,5000)},${b.stage},${assignee},${assigneeId},${patient},${JSON.stringify(attachments)}::jsonb,${impression},${placement},${placement||impression},${parentId},${clean(b.plan_name,180)},${initial},${final},${recovered},${initialSocial},${finalSocial},${initialMutual},${finalMutual},${financialDate},${practitionerId}) ON CONFLICT(id) DO UPDATE SET title=excluded.title,description=excluded.description,stage=excluded.stage,assignee=excluded.assignee,assignee_id=excluded.assignee_id,patient_id=excluded.patient_id,attachments=excluded.attachments,impression_date=excluded.impression_date,placement_date=excluded.placement_date,due_at=excluded.due_at,plan_name=excluded.plan_name,initial_quote=excluded.initial_quote,final_quote=excluded.final_quote,recovered_amount=excluded.recovered_amount,initial_social_security_amount=excluded.initial_social_security_amount,final_social_security_amount=excluded.final_social_security_amount,initial_mutual_amount=excluded.initial_mutual_amount,final_mutual_amount=excluded.final_mutual_amount,financial_date=excluded.financial_date,practitioner_id=excluded.practitioner_id,updated_at=now() WHERE tasks.owner_id=${workspaceId}`;
-      if(centralPec)await sql`INSERT INTO audit_log(id,actor_id,action,target_id,detail) VALUES(${randomUUID()},${account.id},'pec_saved',${id},'Plan PEC enregistré pour le cabinet sélectionné')`;
-      return send({ok:true,id});
+      return send(await savePec({action,b,sql,account,workspaceId,can,ctx:requestContext(req,token,hash)}));
     }
     if (action === "mission-save" && req.method === "POST") {
       roleCheck(account, "professional", "worker", "admin");

@@ -1,0 +1,23 @@
+-- PEC dossier workflow, estimation links and internal billing tracking.
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS dossier_type text NOT NULL DEFAULT 'pec' CHECK(dossier_type IN ('pec','estimation'));
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS source_estimation_id uuid REFERENCES tasks(id);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS business_status text NOT NULL DEFAULT 'pending' CHECK(business_status IN ('pending','agreed','refused','cancelled'));
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS agreement_confirmed boolean NOT NULL DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS documents_validated boolean NOT NULL DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS valid_until date;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS act_codes text NOT NULL DEFAULT '';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS mutual_provider text NOT NULL DEFAULT '';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS initial_patient_share numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS optimization_validated boolean NOT NULL DEFAULT false;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS billing_type text NOT NULL DEFAULT 'direct';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS billing_amount numeric(12,2);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS billing_status text NOT NULL DEFAULT 'À facturer';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS invoice_date date;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS invoice_number text NOT NULL DEFAULT '';
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS transfer_date date;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS transfer_amount numeric(12,2);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS billing_notes text NOT NULL DEFAULT '';
+UPDATE tasks SET dossier_type='estimation' WHERE stage IN ('ESTIMATION À FAIRE','ACCORD ESTIM');
+UPDATE tasks SET business_status='agreed' WHERE stage IN ('ACCORD PEC','PEC À FACTURER','PEC FACTURÉE','PEC PAYÉE','RAPPROCHEMENT FAIT');
+CREATE INDEX IF NOT EXISTS tasks_owner_stage_updated ON tasks(owner_id,stage,updated_at DESC);
+CREATE INDEX IF NOT EXISTS tasks_estimation_origin ON tasks(source_estimation_id) WHERE source_estimation_id IS NOT NULL;
