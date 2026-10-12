@@ -39,3 +39,11 @@ Passer à PEC à facturer ne crée pas une facture. Numéro/date de facture, sta
 `tests/pec-workflow.mjs` utilise une base locale isolée et des données fictives : exemple 1000/200/1000/150/850 => remboursé 1000, RÀC 0, gain 200 ; plusieurs pièces ; déplacement incomplet ; suppression puis validation bloquée ; notes préservées ; estimation non facturable et non comptée ; PEC liée ; facturation/virement distincts ; historique ; version concurrente ; absence de fichiers dans la liste ; isolation des montants ; transmission d’un vrai PDF dans le fil cabinet.
 
 Les suites unit, stability, separation et command-center complètent cette recette. La prévisualisation `scripts/preview-amel.mjs` reste entièrement locale et n’utilise aucune donnée de production.
+
+## Mise en ligne et base de données
+
+Le projet Vercel actuel ne définit pas AMELIB_AUTO_MIGRATE. Les migrations doivent donc précéder la mise en ligne, dans l’environnement explicitement choisi :
+
+`node --env-file=.env.production.local scripts/migrate-pec-workflow.mjs`
+
+Cette commande applique uniquement les migrations additives PEC 003 et 004 si elles manquent, enregistre leur état et vérifie les colonnes. Elle ne reconstruit pas le schéma de base. Les fichiers locaux de test et les fichiers d’environnement sont exclus des uploads Vercel.
