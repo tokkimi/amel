@@ -28,9 +28,9 @@ const REQUIRED = {
   'cc-me': null, 'cc-badges': null, 'cc-home': null, 'cc-inbox': null, 'cc-event': null, 'cc-search': null, 'cc-notifications': null, 'cc-views': null, 'cc-ask': null,
   'cc-event-create': 'inbox.manage', 'cc-event-update': 'inbox.manage', 'cc-bulk': null, 'cc-note-add': null, 'cc-view-save': null, 'cc-view-delete': null,
   'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update', 'cc-cabinet-create': 'cabinet.update', 'cc-report': 'cabinet.read', 'cc-report-prepared': 'export.bulk',
-  'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply',
+  'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply',
   'cc-verifications': 'verification.read', 'cc-verification-update': null, 'cc-accounts': 'account.read',
-  'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-audit': 'audit.read',
+  'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-pec-overview': 'pec.manage', 'cc-audit': 'audit.read',
   'cc-config': 'settings.read', 'cc-system': 'settings.read', 'cc-rule-update': 'settings.update', 'cc-automations-run': 'settings.update',
   'cc-flag-save': 'settings.update', 'cc-flag-override': 'settings.update', 'cc-role-assign': 'rbac.manage',
   'cc-assist-start': 'impersonation.readonly', 'cc-assist-view': 'impersonation.readonly', 'cc-assist-end': 'impersonation.readonly',
@@ -484,6 +484,24 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     send({ ticket: { ...ticket, sla: slaState(ticket), cabinet_name: cabinet[0]?.name || ticket.requester }, messages: [...legacy, ...messages], history });
     return true;
   }
+  if (action === 'cc-ticket-create' && POST) {
+    if (!isUuid(b.cabinet_id)) throw fail(400, 'Sélectionnez un cabinet.');
+    const subject = clean(b.subject, 180), body = clean(b.body, 5000);
+    if (!subject || !body) throw fail(400, 'Indiquez l’objet et les informations attendues.');
+    const [cabinet] = await sql`SELECT a.id,a.name FROM accounts a WHERE a.id=${b.cabinet_id} AND a.role='professional' AND NOT a.suspended`;
+    if (!cabinet) throw fail(404, 'Cabinet indisponible.');
+    const priority = TICKET_PRIORITIES.includes(b.priority) ? b.priority : 'high';
+    const category = TICKET_CATEGORIES.includes(b.category) ? b.category : 'data';
+    const id = randomUUID();
+    await sql.transaction([
+      sql`INSERT INTO support_tickets(id,account_id,subject,body,status,priority,category,owner_id,due_at,first_response_at,last_reply_at) VALUES(${id},${cabinet.id},${subject},${body},'waiting_customer',${priority},${category},${account.id},${dateOrNull(b.due_at)},now(),now())`,
+      sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body) VALUES(${randomUUID()},${id},${account.id},'public',${body})`,
+      sql`INSERT INTO notifications(id,account_id,kind,title,body,href,cabinet_id,category) VALUES(${randomUUID()},${cabinet.id},'support','Informations demandées par SmilePec',${subject},'/pro?tab=SmilePec',${cabinet.id},'document')`,
+      audit({ action: 'support_request_created', entityType: 'ticket', entityId: id, tenantId: cabinet.id, after: { subject, priority, category, due_at: dateOrNull(b.due_at) }, detail: 'Demande d’informations envoyée au cabinet' }),
+    ]);
+    send({ ok: true, id });
+    return true;
+  }
   if (action === 'cc-ticket-reply' && POST) {
     if (!isUuid(b.id)) throw fail(400, 'Ticket invalide.');
     const body = clean(b.body, 5000);
@@ -607,6 +625,46 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     if (totals[0].overdue_count) alerts.push({ severity: 'high', text: `${totals[0].overdue_count} facture(s) cabinet ont dépassé leur échéance.` });
     for (const c of byCabinet.filter((c) => c.overdue > 0).sort((x, y) => y.overdue - x.overdue).slice(0, 5)) alerts.push({ severity: c.max_days_late > 30 ? 'high' : 'medium', cabinet_id: c.id, text: `${c.name} : ${Math.round(c.overdue)} € en retard (${c.overdue_count} facture(s), jusqu’à ${c.max_days_late} j).` });
     send({ totals: totals[0], aging, cabinets: byCabinet, overdue: open.filter((d) => d.due_date && d.days_late > 0), monthly, alerts, platform: platform[0] });
+    return true;
+  }
+
+  // ── PEC command center ─────────────────────────────────────────────────────────────────────
+  // This is deliberately aggregate-only: Amel can direct work across cabinets without listing
+  // patient names or clinical detail outside a selected cabinet workspace.
+  if (action === 'cc-pec-overview' && GET) {
+    const stages = ['PEC À FAIRE', 'ESTIMATION À FAIRE', 'PEC/ESTIM EN COURS', 'ACCORD PEC', 'DOSSIER EN ERREUR', 'PEC À FACTURER', 'PEC FACTURÉE', 'PEC PAYÉE', 'RAPPROCHEMENT FAIT'];
+    const [summary, byCabinet, financial] = await Promise.all([
+      sql`SELECT
+        count(*)::int AS plans,
+        count(*) FILTER(WHERE stage='DOSSIER EN ERREUR')::int AS errors,
+        count(*) FILTER(WHERE stage IN ('PEC À FAIRE','ESTIMATION À FAIRE','PEC/ESTIM EN COURS'))::int AS in_progress,
+        count(*) FILTER(WHERE stage='ACCORD PEC')::int AS to_validate,
+        count(*) FILTER(WHERE stage='PEC À FACTURER')::int AS to_invoice,
+        count(*) FILTER(WHERE stage IN ('PEC FACTURÉE','PEC PAYÉE'))::int AS awaiting_payment,
+        count(*) FILTER(WHERE stage='RAPPROCHEMENT FAIT')::int AS reconciled,
+        count(*) FILTER(WHERE updated_at<now()-interval '7 days' AND stage<>'RAPPROCHEMENT FAIT')::int AS stale,
+        count(*) FILTER(WHERE NOT EXISTS(SELECT 1 FROM jsonb_array_elements(coalesce(attachments,'[]'::jsonb)) a WHERE a->>'kind'='devis') OR NOT EXISTS(SELECT 1 FROM jsonb_array_elements(coalesce(attachments,'[]'::jsonb)) a WHERE a->>'kind'='mutuelle'))::int AS missing_documents
+        FROM tasks WHERE stage = ANY(${stages}::text[])`,
+      sql`SELECT t.owner_id AS id,coalesce(nullif(p.clinic_name,''),a.name) AS name,
+        count(*)::int AS plans,
+        count(*) FILTER(WHERE t.stage='DOSSIER EN ERREUR')::int AS errors,
+        count(*) FILTER(WHERE t.stage='ACCORD PEC')::int AS to_validate,
+        count(*) FILTER(WHERE t.stage='PEC À FACTURER')::int AS to_invoice,
+        count(*) FILTER(WHERE t.updated_at<now()-interval '7 days' AND t.stage<>'RAPPROCHEMENT FAIT')::int AS stale,
+        count(*) FILTER(WHERE NOT EXISTS(SELECT 1 FROM jsonb_array_elements(coalesce(t.attachments,'[]'::jsonb)) d WHERE d->>'kind'='devis') OR NOT EXISTS(SELECT 1 FROM jsonb_array_elements(coalesce(t.attachments,'[]'::jsonb)) m WHERE m->>'kind'='mutuelle'))::int AS missing_documents
+        FROM tasks t JOIN accounts a ON a.id=t.owner_id JOIN profiles p ON p.account_id=a.id
+        WHERE t.stage = ANY(${stages}::text[]) GROUP BY t.owner_id,p.clinic_name,a.name
+        ORDER BY (count(*) FILTER(WHERE t.stage='DOSSIER EN ERREUR')) DESC,(count(*) FILTER(WHERE t.stage='PEC À FACTURER')) DESC,count(*) DESC LIMIT 100`,
+      sql`SELECT coalesce(sum(initial_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS initial,
+        coalesce(sum(final_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS final,
+        coalesce(sum(final_quote-initial_quote) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS difference,
+        coalesce(sum(recovered_amount) FILTER(WHERE financial_date>=date_trunc('year',current_date)),0)::float AS recovered
+        FROM tasks WHERE stage = ANY(${stages}::text[])`,
+    ]);
+    const stageRows = await sql`SELECT stage,count(*)::int AS count FROM tasks WHERE stage = ANY(${stages}::text[]) GROUP BY stage`;
+    const counts = Object.fromEntries(stages.map((stage) => [stage, 0]));
+    for (const row of stageRows) counts[row.stage] = row.count;
+    send({ summary: summary[0], stages: stages.map((stage) => ({ stage, count: counts[stage] })), cabinets: byCabinet, financial: financial[0] });
     return true;
   }
 

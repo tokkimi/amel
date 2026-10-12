@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { clean } from './security.mjs';
 const fail=(status,message)=>Object.assign(new Error(message),{status});
 const permissions=['agenda','patients_admin','clinical','billing','messages','tasks'];
+const safeAttachments=(value)=>Array.isArray(value)?value.slice(0,5).flatMap((file)=>{const data=typeof file?.data==='string'?file.data:'';const name=clean(file?.name,180)||'Pièce jointe';return /^data:(?:image\/(?:png|jpeg|webp)|application\/pdf);base64,[a-z0-9+/=]+$/i.test(data)&&data.length<=4500000?[{name,data}]:[];}):[];
 export async function workspaceAction({action,req,b,sql,account,workspaceId,membership,can,send}) {
  if(action==='document-read'&&req.method==='GET') {
   const [doc]=await sql`SELECT d.*,pa.name AS patient_name,pa.email AS patient_email,pr.name AS professional_name FROM business_documents d JOIN accounts pa ON pa.id=d.patient_id JOIN accounts pr ON pr.id=d.owner_id WHERE d.id=${req.query.id} AND ((d.owner_id=${workspaceId} AND ${can('billing')&&account.role!=='patient'}) OR (d.patient_id=${account.id} AND d.status<>'draft'))`;
@@ -48,8 +49,8 @@ export async function workspaceAction({action,req,b,sql,account,workspaceId,memb
   send({missions:rows});return true;
  }
  if(action==='support'&&req.method==='GET') {
-  const tickets=account.role==='admin'?await sql`SELECT t.*,a.name,a.email FROM support_tickets t JOIN accounts a ON a.id=t.account_id ORDER BY t.updated_at DESC LIMIT 300`:await sql`SELECT * FROM support_tickets WHERE account_id=${account.id} ORDER BY updated_at DESC`;
-  const messages=account.role==='admin'?[]:await sql`SELECT m.id,m.ticket_id,m.body,m.created_at,a.name AS author FROM support_messages m JOIN accounts a ON a.id=m.author_id JOIN support_tickets t ON t.id=m.ticket_id WHERE t.account_id=${account.id} AND m.visibility='public' ORDER BY m.created_at`;
+  const tickets=account.role==='admin'?await sql`SELECT t.*,a.name,a.email FROM support_tickets t JOIN accounts a ON a.id=t.account_id ORDER BY t.updated_at DESC LIMIT 300`:await sql`SELECT * FROM support_tickets WHERE account_id=${workspaceId} ORDER BY updated_at DESC`;
+  const messages=account.role==='admin'?[]:await sql`SELECT m.id,m.ticket_id,m.body,m.attachments,m.created_at,a.name AS author FROM support_messages m JOIN accounts a ON a.id=m.author_id JOIN support_tickets t ON t.id=m.ticket_id WHERE t.account_id=${workspaceId} AND m.visibility='public' ORDER BY m.created_at`;
   send({tickets:tickets.map(t=>({...t,messages:messages.filter(m=>m.ticket_id===t.id)}))});return true;
  }
  if(action==='support-create'&&req.method==='POST') {
@@ -58,13 +59,15 @@ export async function workspaceAction({action,req,b,sql,account,workspaceId,memb
  }
  if(action==='support-reply'&&req.method==='POST') {
   if(account.role==='admin')throw fail(403,'Utilisez la messagerie de l’espace Amel.');
-  const body=clean(b.body,5000);if(!body)throw fail(400,'Écrivez votre message.');
-  const [ticket]=await sql`SELECT id,status FROM support_tickets WHERE id=${b.id} AND account_id=${account.id}`;
+  const body=clean(b.body,5000),attachments=safeAttachments(b.attachments);if(!body&&!attachments.length)throw fail(400,'Écrivez un message ou joignez un document.');
+  const [ticket]=await sql`SELECT id,status,owner_id FROM support_tickets WHERE id=${b.id} AND account_id=${workspaceId}`;
   if(!ticket)throw fail(404,'Demande introuvable.');
-  await sql.transaction([
-   sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body) VALUES(${randomUUID()},${ticket.id},${account.id},'public',${body})`,
+  const changes=[
+   sql`INSERT INTO support_messages(id,ticket_id,author_id,visibility,body,attachments) VALUES(${randomUUID()},${ticket.id},${account.id},'public',${body},${JSON.stringify(attachments)}::jsonb)`,
    sql`UPDATE support_tickets SET status='open',resolved_at=NULL,reopened_count=reopened_count+CASE WHEN status IN('resolved','closed') THEN 1 ELSE 0 END,updated_at=now() WHERE id=${ticket.id}`
-  ]);send({ok:true});return true;
+  ];
+  if(ticket.owner_id&&ticket.owner_id!==account.id)changes.push(sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${ticket.owner_id},'support','Réponse d’un cabinet',${body||'Des documents ont été transmis.'},${'/admin?view=support&ticket='+ticket.id})`);
+  await sql.transaction(changes);send({ok:true});return true;
  }
  if(action==='support-update'&&req.method==='POST') {
   if(account.role!=='admin')throw fail(403,'Accès administrateur requis.');

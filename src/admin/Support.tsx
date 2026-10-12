@@ -12,8 +12,9 @@ const priorityTone = (p: string) => (p === "critical" ? "critical" : p === "high
 export default function Support() {
   const cc = useCC();
   const { data, error, loading, reload } = useApi<any>("cc-support", { v: cc.version });
+  const { data: cabinetData } = useApi<any>(cc.can("cabinet.read") ? "cc-cabinets" : null, { v: cc.version });
   const [sub, setSub] = useUrlParam("sub");
-  const [status, setStatus] = useState("active"), [owner, setOwner] = useState(""), [priority, setPriority] = useState("");
+  const [status, setStatus] = useState("active"), [owner, setOwner] = useState(""), [priority, setPriority] = useState(""), [request, setRequest] = useState(false), [busy, setBusy] = useState(false), [requestError, setRequestError] = useState("");
   useEffect(() => { if (sub) { setStatus(sub); setSub("", true); } }, [sub]);
   const tickets: Ticket[] = data?.tickets || [];
   const rows = tickets.filter((t) => (status === "active" ? !["resolved", "closed"].includes(t.status) : status === "all" ? true : status === "breached" ? t.sla.state === "breached" : t.status === status)
@@ -30,7 +31,7 @@ export default function Support() {
   ];
   const k = data?.kpis;
   return <div className="cc-stack">
-    <header className="cc-page-head"><div><h1>Demandes SmilePec</h1><p>Demandes des cabinets, délais de réponse et échanges — réponses au cabinet et notes internes séparées.</p></div></header>
+    <header className="cc-page-head"><div><h1>Demandes SmilePec</h1><p>Demandes des cabinets, délais de réponse et échanges — réponses au cabinet et notes internes séparées.</p></div>{cc.can("support.reply") && <button className="cc-btn is-primary" onClick={() => setRequest(true)}><Send size={15} />Demander des informations</button>}</header>
     {k && <div className="cc-kpis">
       <Kpi label="Nouveaux" value={k.new} tone={k.new ? "info" : "neutral"} onClick={() => setStatus("new")} />
       <Kpi label="En cours" value={k.open} onClick={() => setStatus("active")} />
@@ -49,6 +50,15 @@ export default function Support() {
           empty={status === "active" ? <div className="cc-empty"><span>✓</span><strong>Aucun ticket à traiter 🎉</strong><p>Tout est sous contrôle pour le moment.</p></div> : undefined} />
       </Loadable>
     </Card>
+    <Drawer open={request} onClose={() => { setRequest(false); setRequestError(""); }} title="Demander des informations à un cabinet" subtitle="Le cabinet recevra une notification et pourra répondre ou déposer ses pièces depuis son espace SmilePec.">
+      <form className="cc-stack" onSubmit={async (e) => { e.preventDefault(); const f = new FormData(e.currentTarget); setBusy(true); setRequestError(""); try { await api("cc-ticket-create", { cabinet_id: f.get("cabinet_id"), subject: f.get("subject"), body: f.get("body"), due_at: f.get("due_at") ? new Date(String(f.get("due_at")) + "T18:00:00").toISOString() : null, priority: f.get("priority"), category: "document" }); cc.toast("Demande envoyée au cabinet."); cc.bump(); reload(); setRequest(false); } catch (e2) { setRequestError((e2 as Error).message); } finally { setBusy(false); } }}>
+        <label>Cabinet client<select name="cabinet_id" required defaultValue=""><option value="" disabled>Sélectionner un cabinet</option>{(cabinetData?.cabinets || []).map((c: any) => <option key={c.id} value={c.id}>{c.clinic_name || c.name}</option>)}</select></label>
+        <label>Objet<input name="subject" required maxLength={180} placeholder="Ex. Pièces nécessaires pour finaliser le dossier" /></label>
+        <label>Informations et pièces attendues<textarea name="body" required rows={7} maxLength={5000} placeholder="Précisez les documents, informations ou corrections à transmettre. Le cabinet pourra joindre ses fichiers et répondre dans ce fil." /></label>
+        <div className="cc-form-grid"><label>Échéance<input name="due_at" type="date" /></label><label>Priorité<select name="priority" defaultValue="high"><option value="normal">Normale</option><option value="high">Haute</option><option value="critical">Critique</option></select></label></div>
+        {requestError && <p className="cc-form-error" role="alert">{requestError}</p>}<div className="cc-inline"><button className="cc-btn is-primary" disabled={busy}>Envoyer la demande</button><button type="button" className="cc-btn" onClick={() => setRequest(false)}>Annuler</button></div>
+      </form>
+    </Drawer>
   </div>;
 }
 
@@ -74,7 +84,7 @@ export function TicketDrawer({ id, close }: { id: string; close: () => void }) {
         <div className="cc-thread">
           <article className="msg from-cabinet"><header><Avatar name={t.requester} size={22} /><strong>{t.requester}</strong><time>{day(t.created_at)} {time(t.created_at)}</time></header><p>{t.body}</p><small>Pièces jointes : aucune</small></article>
           {data.messages.map((m: any) => <article key={m.id} className={"msg " + (m.visibility === "internal" ? "internal" : "public")}>
-            <header>{m.visibility === "internal" ? <Lock size={13} aria-hidden /> : <Send size={13} aria-hidden />}<strong>{m.author}</strong><Badge tone={m.visibility === "internal" ? "warn" : "info"}>{m.visibility === "internal" ? "Note interne" : "Réponse au cabinet"}</Badge><time>{day(m.created_at)} {time(m.created_at)}</time></header><p>{m.body}</p>
+            <header>{m.visibility === "internal" ? <Lock size={13} aria-hidden /> : <Send size={13} aria-hidden />}<strong>{m.author}</strong><Badge tone={m.visibility === "internal" ? "warn" : "info"}>{m.visibility === "internal" ? "Note interne" : "Réponse au cabinet"}</Badge><time>{day(m.created_at)} {time(m.created_at)}</time></header><p>{m.body}</p>{m.attachments?.length ? <ul className="cc-message-files">{m.attachments.map((file: any, i: number) => <li key={i}><a href={file.data} download={file.name} target="_blank" rel="noreferrer">{file.name}</a></li>)}</ul> : null}
           </article>)}
         </div>
         {reply && <form className={"cc-reply " + mode} onSubmit={async (e) => {
