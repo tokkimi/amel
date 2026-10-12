@@ -1,0 +1,9 @@
+node_modules
+.git
+.vercel
+.env*
+dist
+tmp
+.agents
+.test-account.json
+*.tsbuildinfo

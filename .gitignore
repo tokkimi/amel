@@ -9,3 +9,4 @@ dist
 .agents/
 skills-lock.json
 .test-account.json
+tmp/
