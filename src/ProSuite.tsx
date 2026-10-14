@@ -64,7 +64,6 @@ import CollaborationPanel from './CollaborationPanel';
 import NotificationCenter from "./NotificationCenter";
 
 const pages = [
-  "Agenda",
   "Patients",
   "Comptabilité",
   "Messages",
@@ -188,7 +187,7 @@ export default function ProSuite({
 }) {
   const [editingDocument,setEditingDocument]=useState<BusinessDocument|null>(null);
   const [data, setData] = useState<Dashboard | null>(null),
-    [page, setPage] = usePanel("Agenda", pages),
+    [page, setPage] = usePanel("SmilePec", pages),
     [menu, setMenu] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
@@ -297,7 +296,7 @@ export default function ProSuite({
     </div>
   );
   const nav = [
-    ["Agenda", CalendarDays],
+    ["SmilePec", Heart],
     ["Patients", Users],
     ["Comptabilité", Wallet],
     ["Messages", MessageCircle],
@@ -305,7 +304,6 @@ export default function ProSuite({
     ["Tâches", Kanban],
     ["Mon profil", Settings],
     ["Équipe", Users],
-    ["SmilePec", Heart],
   ] as const;
   const photoInput = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -342,7 +340,7 @@ export default function ProSuite({
               onClick={() => go(n)}
             >
               <I size={18} />
-              {n}
+              {n === "SmilePec" ? "Mon suivi SmilePec" : n === "Tâches" ? "Dossiers PEC" : n === "Messages" ? "Messages patients" : n}
               {n === "Courses" && activeMissions.length > 0 && (
                 <b>{activeMissions.length}</b>
               )}
@@ -357,9 +355,9 @@ export default function ProSuite({
       <div className="pro-main">
         <header className="pro-topbar">
           <button className="icon-button pro-menu-toggle" aria-label="Tous les outils" aria-expanded={menu} onClick={()=>setMenu(!menu)}><Menu/></button>
-          <button className="text-button" onClick={() => go("Agenda")}>
+          <button className="text-button" onClick={() => go("SmilePec")}>
             <ArrowLeft size={15} />
-            Aujourd’hui
+            Mon suivi SmilePec
           </button>
           <div className="pro-top-actions">
             <button
@@ -375,7 +373,7 @@ export default function ProSuite({
               }}
             >
               <Plus size={15} />
-              Tâche
+              Dossier PEC
             </button>
             <a className="icon-button" href="/" aria-label="Voir le site">
               <ExternalLink size={17} />
@@ -393,7 +391,7 @@ export default function ProSuite({
         <main>
           {account.role==='admin'&&!!data.workspaces?.length&&<label className="workspace-picker">Cabinet sélectionné<select value={data.workspaceId||account.id} onChange={e=>{const url=new URL(window.location.href);url.searchParams.set('workspace',e.target.value);window.location.assign(url.toString())}}>{data.workspaces.map(w=><option value={w.id} key={w.id}>{w.clinic_name||w.name}</option>)}</select><small>Les patients, dossiers PEC et documents affichés appartiennent à ce cabinet.</small></label>}
 
-          <nav className="pro-shortcuts" aria-label="Outils du cabinet"><button onClick={()=>go('Équipe')}><Users size={16}/>Équipe & rôles</button><button onClick={()=>go('Mon profil')}><Settings size={16}/>Cabinet & horaires</button><button onClick={()=>go('Tâches')}><Kanban size={16}/>Tâches</button><button onClick={()=>go('SmilePec')}><Heart size={16}/>SmilePec</button>{account.role==='admin'&&<a href="/admin">Administration</a>}</nav>
+          <nav className="pro-shortcuts" aria-label="Outils du cabinet"><button onClick={()=>go('Équipe')}><Users size={16}/>Équipe & rôles</button><button onClick={()=>go('Mon profil')}><Settings size={16}/>Mon cabinet</button><button onClick={()=>go('Tâches')}><Kanban size={16}/>Dossiers PEC</button><button onClick={()=>go('SmilePec')}><Heart size={16}/>Mon suivi SmilePec</button>{account.role==='admin'&&<a href="/admin">Administration</a>}</nav>
           {error && <p className="form-error">{error}</p>}
           {notice && (
             <div className="save-notice">
@@ -403,191 +401,6 @@ export default function ProSuite({
                 <X size={14} />
               </button>
             </div>
-          )}
-
-          {page === "Agenda" && (
-            <>
-              {heading(
-                "Votre agenda.",
-                "Les demandes, les rendez-vous et les actions utiles réunis dans une seule journée.",
-                <button className="primary" onClick={() => setModal("slot")}>
-                  <Plus size={16} />
-                  Nouveau créneau
-                </button>,
-              )}
-              <div className="pro-kpis">
-                {[
-                  ["À venir", upcoming.length, CalendarDays],
-                  ["Patients", data.patients.length, Users],
-                  [
-                    "À encaisser",
-                    money(
-                      data.ledger
-                        .filter((x) => x.kind === "income" && !x.paid)
-                        .reduce((s, x) => s + Number(x.amount), 0),
-                    ),
-                    Receipt,
-                  ],
-                  [
-                    "Tâches ouvertes",
-                    data.tasks.filter((t) => normalizeStage(t.stage) !== "RAPPROCHEMENT FAIT").length,
-                    CheckCircle2,
-                  ],
-                ].map(([l, v, I]: any) => (
-                  <div className="glass pro-kpi" key={l}>
-                    <I />
-                    <span>{l}</span>
-                    <strong>{v}</strong>
-                  </div>
-                ))}
-              </div>
-              <section className="glass panel priority-planner">
-                <div className="section-title"><div><h2>Mes priorités de pose</h2><p>Les dates renseignées dans les fiches patient, dans l’ordre d’échéance.</p></div><button className="text-button" onClick={()=>go("Patients")}>Voir les dossiers</button></div>
-                {prosthesisPriorities.length ? prosthesisPriorities.map((p) => {
-                  const days = Math.ceil((new Date(String(p.prosthesis_date)).getTime() - Date.now()) / 86400000);
-                  return <button className="priority-patient" key={p.patient_id} onClick={()=>{setPatient(p);setPatientTab("Synthèse");setModal("patient")}}><Avatar name={p.name}/><div><strong>{p.name}</strong><small>Pose prévue le {new Date(String(p.prosthesis_date)).toLocaleDateString("fr-FR")}</small></div><span className={days < 0 ? "late" : days <= 7 ? "soon" : ""}>{days < 0 ? "En retard" : days === 0 ? "Aujourd’hui" : `J-${days}`}</span></button>;
-                }) : <p className="empty">Aucune pose de prothèse programmée. Ajoutez une date dans une fiche patient.</p>}
-              </section>
-              <section className="glass pro-day">
-                <div className="section-title">
-                  <div>
-                    <h2>Prochains rendez-vous</h2>
-                    <p>
-                      {new Date().toLocaleDateString("fr-FR", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                      })}
-                    </p>
-                  </div>
-                  {profile.booking_url && (
-                    <a
-                      className="secondary"
-                      href={profile.booking_url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <Link size={15} />
-                      {profile.calendar_provider || "Agenda connecté"}
-                    </a>
-                  )}
-                </div>
-                {upcoming.length ? (
-                  upcoming.slice(0, 8).map((a) => (
-                    <article className="pro-appointment" key={a.id}>
-                      <div className="pro-time">
-                        {new Date(a.starts_at).toLocaleTimeString("fr-FR", {
-                          timeZone: "Europe/Paris",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                      <Avatar name={a.patient_name} />
-                      <div className="grow">
-                        <strong>{a.patient_name}</strong>
-                        <span>
-                          {a.reason} · {a.duration} min
-                        </span>
-                      </div>
-                      <button
-                        className="icon-button"
-                        aria-label="Message"
-                        onClick={() => {
-                          setConversation(a);
-                          go("Messages");
-                        }}
-                      >
-                        <MessageCircle size={17} />
-                      </button>
-                      <button
-                        className="secondary"
-                        onClick={() => {
-                          const p = data.patients.find(
-                            (x) => x.patient_id === a.patient_id,
-                          );
-                          if (p) {
-                            setDocumentPatient(p);
-                            setModal("document");
-                          }
-                        }}
-                      >
-                        Envoyer un devis
-                      </button>
-                    </article>
-                  ))
-                ) : (
-                  <p className="empty">Aucun rendez-vous à venir.</p>
-                )}
-              </section>
-              <div className="pro-home-grid">
-                <section className="glass panel">
-                  <div className="section-title">
-                    <h2>À faire maintenant</h2>
-                    <button
-                      className="text-button"
-                      onClick={() => go("Tâches")}
-                    >
-                      Tout voir
-                    </button>
-                  </div>
-                  {data.tasks
-                    .filter((t) => normalizeStage(t.stage) !== "RAPPROCHEMENT FAIT")
-                    .slice(0, 4)
-                    .map((t) => (
-                      <button
-                        className="mini-task"
-                        key={t.id}
-                        onClick={() => {
-                          setEditingTask(t);
-                          setModal("task");
-                        }}
-                      >
-                        <span
-                          className={`priority ${t.priority.toLowerCase()}`}
-                        />
-                        <div>
-                          <strong>{t.title}</strong>
-                          <small>
-                            {t.assignee || "Non assignée"}
-                            {t.due_at
-                              ? " · " +
-                                new Date(t.due_at).toLocaleDateString("fr-FR")
-                              : ""}
-                          </small>
-                        </div>
-                        <ChevronRight />
-                      </button>
-                    ))}
-                </section>
-                <section className="glass panel">
-                  <div className="section-title">
-                    <h2>Courses en cours</h2>
-                    <button
-                      className="text-button"
-                      onClick={() => go("Courses")}
-                    >
-                      Suivre
-                    </button>
-                  </div>
-                  {activeMissions.slice(0, 3).map((m) => (
-                    <div className="mini-mission" key={m.id}>
-                      <Avatar name={m.assignee} src={m.photo_data} />
-                      <div>
-                        <strong>{m.assignee}</strong>
-                        <small>
-                          {statusLabels[m.status]} ·{" "}
-                          {m.eta ? m.eta + " min" : "heure à confirmer"}
-                        </small>
-                      </div>
-                      <span className="live-dot" />
-                    </div>
-                  ))}
-                  {!activeMissions.length && (
-                    <p className="empty">Aucune course active.</p>
-                  )}
-                </section>
-              </div>
-            </>
           )}
 
           {page === "Patients" && (
@@ -1060,7 +873,7 @@ export default function ProSuite({
           {page === "Mon profil" && (
             <>
               {heading(
-                "Votre présence SmilePec.",
+                "Les informations de votre cabinet.",
                 "Votre image, votre présentation, vos contacts et votre agenda public au même endroit.",
               )}
               <div className="profile-studio">
@@ -1267,7 +1080,7 @@ export default function ProSuite({
                       }
                     />
                   </label>
-                  <h2>Agenda de référence</h2>
+                  <h2>Votre outil de rendez-vous patients</h2>
                   <div className="form-grid">
                     <label>
                       Outil de prise de rendez-vous
@@ -1283,7 +1096,7 @@ export default function ProSuite({
                           })
                         }
                       >
-                        <option value="">Agenda SmilePec</option>
+                        <option value="">Aucun outil renseigné</option>
                         <option>Calendly</option>
                         <option>Cal.com</option>
                         <option>Google Calendar</option>
@@ -1309,7 +1122,7 @@ export default function ProSuite({
                       />
                     </label>
                   </div>
-                  {profile.calendar_provider === "Doctolib" && <p className="muted">Le lien Doctolib reste votre canal de prise de rendez-vous. L’affichage automatique des rendez-vous dans SmilePec sera activé avec une intégration Doctolib autorisée pour votre cabinet.</p>}
+                  {profile.calendar_provider === "Doctolib" && <p className="muted">Votre agenda patients reste dans Doctolib. Ce lien est conservé à titre de référence ; les rendez-vous avec SmilePec se trouvent dans « Mon suivi SmilePec ».</p>}
                   <h2>Horaires habituels</h2>
                   <div className="hours-editor">
                     {[
@@ -1486,11 +1299,11 @@ export default function ProSuite({
         </main>
         <nav className="pro-dock" aria-label="Navigation professionnelle">
           {[
-            ["Agenda", CalendarDays],
+            ["SmilePec", Heart],
+            ["Tâches", Kanban],
             ["Patients", Users],
             ["Comptabilité", Wallet],
-            ["Messages", MessageCircle],
-            ["SmilePec", Heart],
+            ["Mon profil", Settings],
           ].map(([n, I]: any) => (
             <button
               key={n}
@@ -1498,7 +1311,7 @@ export default function ProSuite({
               onClick={() => go(n)}
             >
               <I />
-              {n === "Comptabilité" ? "Compta" : n}
+              {n === "Comptabilité" ? "Compta" : n === "Tâches" ? "Dossiers PEC" : n === "Mon profil" ? "Mon cabinet" : n}
               {n === "Courses" && activeMissions.length > 0 && (
                 <b>{activeMissions.length}</b>
               )}
