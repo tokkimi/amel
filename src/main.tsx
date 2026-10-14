@@ -10,6 +10,7 @@ import "./experience.css";
 import "./pro-suite.css";
 import "./brand-glass.css";
 import "./stability.css";
+import "./smilepec-home.css";
 createRoot(document.getElementById("root")!).render(
   <>
     <Portal />
