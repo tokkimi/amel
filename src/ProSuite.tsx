@@ -1,6 +1,7 @@
+import {useDraftExtras} from './SessionDrafts';
 import {PecBoard,PecForm} from "./PecBoard";
 import {PEC_STAGES,normalizeStage} from "./pec";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -59,6 +60,7 @@ import {downloadPatientPdf, downloadWorkbook} from "./exports";
 import TeamPanel from './TeamPanel';
 import LiveTracking from './LiveTracking';
 import SupportPanel from './SupportPanel';
+import CollaborationPanel from './CollaborationPanel';
 import NotificationCenter from "./NotificationCenter";
 
 const pages = [
@@ -262,6 +264,8 @@ export default function ProSuite({
       ) || [],
     [data, search],
   );
+  const profileDraftRef=useRef<HTMLFormElement>(null);
+  useDraftExtras(profileDraftRef,data?.profile,value=>{if(value)setData(current=>current?{...current,profile:value}:current)});
   if (!data)
     return (
       <div className="pro-loading">
@@ -322,7 +326,7 @@ export default function ProSuite({
     <div className="pro-suite">
       {menu&&<button className="pro-menu-shade" aria-label="Fermer le menu" onClick={()=>setMenu(false)}/>}
       <aside className={`pro-sidebar ${menu ? "open" : ""}`}>
-        <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
+        <a className="brand" href="/"><img className="brand-full-logo" src="/brand/smilepec-original-logo.svg" alt="SmilePec" /></a>
         <div className="pro-identity">
           <Avatar name={account.name} src={profile.photo_data} />
           <div>
@@ -1052,7 +1056,7 @@ export default function ProSuite({
           )}
 
           {page === 'Équipe' && <TeamPanel/>}
-          {page === 'SmilePec' && <SupportPanel/>}
+          {page === 'SmilePec' && <CollaborationPanel account={account}/>}
           {page === "Mon profil" && (
             <>
               {heading(
@@ -1102,7 +1106,7 @@ export default function ProSuite({
                   <p>{profile.specialty}</p>
                 </section>
                 <form
-                  className="glass panel profile-editor"
+                  ref={profileDraftRef} className="glass panel profile-editor" data-draft-key={'profile:'+data.workspaceId} data-draft-action="profile"
                   onSubmit={(e) => {
                     e.preventDefault();
                     act(
@@ -1117,7 +1121,7 @@ export default function ProSuite({
                     <label>
                       Nom du cabinet
                       <input
-                        value={profile.clinic_name || ""}
+                        name="clinic_name" value={profile.clinic_name || ""}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1133,7 +1137,7 @@ export default function ProSuite({
                     <label>
                       Accroche
                       <input
-                        value={profile.headline}
+                        name="headline" value={profile.headline}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1146,7 +1150,7 @@ export default function ProSuite({
                     <label>
                       Spécialité
                       <input
-                        value={profile.specialty}
+                        name="specialty" value={profile.specialty}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1158,7 +1162,7 @@ export default function ProSuite({
                     <label>
                       Téléphone
                       <input
-                        value={profile.phone}
+                        name="phone" value={profile.phone}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1200,7 +1204,7 @@ export default function ProSuite({
                     <label>
                       Identifiant RPPS / SIRET
                       <input
-                        value={profile.identifier}
+                        name="identifier" value={profile.identifier}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1212,7 +1216,7 @@ export default function ProSuite({
                     <label>
                       Ville
                       <input
-                        value={profile.city}
+                        name="city" value={profile.city}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1224,7 +1228,7 @@ export default function ProSuite({
                     <label>
                       Adresse
                       <input
-                        value={profile.address}
+                        name="address" value={profile.address}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1268,7 +1272,7 @@ export default function ProSuite({
                     <label>
                       Outil de prise de rendez-vous
                       <select
-                        value={profile.calendar_provider}
+                        name="calendar_provider" value={profile.calendar_provider}
                         onChange={(e) =>
                           setData({
                             ...data,
@@ -1486,7 +1490,7 @@ export default function ProSuite({
             ["Patients", Users],
             ["Comptabilité", Wallet],
             ["Messages", MessageCircle],
-            ["Courses", Navigation],
+            ["SmilePec", Heart],
           ].map(([n, I]: any) => (
             <button
               key={n}
@@ -1583,7 +1587,7 @@ export default function ProSuite({
             ))}
           </div>
           {patientTab === "Synthèse" && (
-            <form
+            <form data-draft-key={'patient:'+patient.patient_id} data-draft-action="patient-record-save"
               onSubmit={(e) => {
                 e.preventDefault();
                 const f = new FormData(e.currentTarget);

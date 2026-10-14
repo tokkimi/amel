@@ -25,6 +25,7 @@ try {
     await sql`INSERT INTO profiles(account_id,identifier,clinic_name,city) VALUES(${ids[k]},${role === 'professional' ? 'RPPS-' + k : ''},${role === 'professional' ? 'Cabinet CCTest ' + k : ''},'Paris')`;
     await sql`INSERT INTO sessions(token_hash,account_id,expires_at) VALUES(${hash(tokens[k])},${ids[k]},now()+interval '1 hour')`;
   }
+ await sql`INSERT INTO service_access(cabinet_id,active) SELECT id,true FROM accounts WHERE role='professional' ON CONFLICT(cabinet_id) DO UPDATE SET active=true`;
   await sql`INSERT INTO admin_members(account_id,internal_role) VALUES(${ids.agent},'support_agent')`;
   await sql`INSERT INTO patient_records(id,owner_id,patient_id,allergies,medications,medical_alerts,mutual_provider) VALUES(${randomUUID()},${ids.cabinet},${ids.patient},'Pénicilline','Aspirine','Diabète','MGEN')`;
   const invoice = randomUUID();
@@ -50,6 +51,7 @@ try {
   const report = await ok('owner', 'cc-report');
   assert(report.summary.manually_added >= 1 && report.cabinets.some((c) => c.id === manual.cabinet.id));
   await sql`DELETE FROM audit_log WHERE target_id=${manual.cabinet.id}`;
+  await sql`DELETE FROM service_mail_outbox WHERE cabinet_id=ANY(${Object.values(ids)}::uuid[])`;await sql`DELETE FROM service_access WHERE cabinet_id=ANY(${Object.values(ids)}::uuid[])`;
   await sql`DELETE FROM accounts WHERE id=${manual.cabinet.id}`;
 
   // Support: private notes never reach the cabinet.
@@ -202,6 +204,8 @@ try {
   await sql.query(`DELETE FROM business_documents WHERE owner_id=ANY($1::uuid[])`, [all]);
   await sql.query(`DELETE FROM appointments WHERE professional_id=ANY($1::uuid[])`, [all]);
   await sql.query(`DELETE FROM slots WHERE professional_id=ANY($1::uuid[])`, [all]);
+  await sql.query(`DELETE FROM service_mail_outbox WHERE cabinet_id=ANY($1::uuid[])`,[all]);
+  await sql.query(`DELETE FROM service_access WHERE cabinet_id=ANY($1::uuid[])`,[all]);
   await sql.query(`DELETE FROM accounts WHERE id=ANY($1::uuid[]) AND email LIKE 'amelib-cc-test-%@example.invalid'`, [all]);
   await sql.query(`DELETE FROM rate_limits WHERE key LIKE 'write:%' AND key=ANY($1::text[])`, [all.map((i) => 'write:' + i)]);
   console.log('Temporary Command Center test records removed.');

@@ -26,7 +26,7 @@ export function permissionsFor(internalRole) {
 }
 export async function adminContext(sql, account) {
   if (account?.role !== 'admin') return null;
-  const [member] = await sql`SELECT internal_role FROM admin_members WHERE account_id=${account.id}`.catch(() => []);
+  const [member] = await sql`SELECT internal_role FROM admin_members WHERE account_id=${account.id}`;
   const role = member?.internal_role && INTERNAL_ROLES[member.internal_role] ? member.internal_role : 'platform_owner';
   return { role, label: INTERNAL_ROLES[role].label, permissions: permissionsFor(role) };
 }

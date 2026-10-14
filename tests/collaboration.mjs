@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import {randomUUID,randomBytes} from 'node:crypto';
+import {createTestDatabase} from '../scripts/local-test-db.mjs';
+import {collaborationSchema} from '../server/collaboration-schema.mjs';
+import {hash} from '../server/security.mjs';
+const {sql,db}=await createTestDatabase();
+const {default:handler}=await import('../api/index.mjs');
+const users={};
+async function user(name,role='professional'){const id=randomUUID(),token=randomBytes(32).toString('hex');users[name]={id,token};await sql`INSERT INTO accounts(id,email,name,role,password_hash,recovery_hash) VALUES(${id},${name+'@example.invalid'},${name},${role},'unused','unused')`;await sql`INSERT INTO profiles(account_id,clinic_name) VALUES(${id},${name})`;await sql`INSERT INTO sessions(token_hash,account_id,expires_at) VALUES(${hash(token)},${id},now()+interval '1 hour')`;}
+async function call(who,action,body,query={},origin='http://localhost:3001'){let status=200,data;await handler({method:body===undefined?'GET':'POST',url:'/api',query:{action,...query},headers:{host:'localhost:3001',origin,'content-type':'application/json',cookie:'amelib_session='+users[who].token},body},{setHeader(){},status(s){status=s;return this},json(d){data=d},end(d){data=d}});return{status,data};}
+const ok=async(...args)=>{const r=await call(...args);assert.equal(r.status,200,JSON.stringify(r));return r.data};
+try{
+ await user('existing');await user('admin','admin');await db.exec(collaborationSchema);await user('new');await user('other');await user('limited','admin');await sql`INSERT INTO admin_members(account_id,internal_role) VALUES(${users.limited.id},'read_only_analyst')`;
+ assert.equal((await ok('existing','collaboration')).access.active,true);
+ assert.equal((await ok('new','collaboration')).access.active,false);
+ assert.equal((await call('new','profile',{clinic_name:'Blocked'})).status,403);
+ const q={cabinet:users.new.id};
+ const t=await ok('new','collaboration-request',{subject:'Accompagnement fictif',body:'Cabinet de test'});
+ const content=Buffer.from('%PDF-1.4\nFake test only\n%%EOF');
+ const f=await ok('admin','collaboration-file-start',{name:'Devis test.pdf',mime:'application/pdf',size:content.length},q);
+ assert.equal((await call('other','collaboration-file-read',undefined,{id:f.id})).status,404);
+ assert.equal((await call('new','collaboration-file-read',undefined,{id:f.id})).status,403);
+ assert.equal((await call('admin','collaboration-file-finish',{id:f.id},q)).status,400);
+ await ok('admin','collaboration-file-chunk',{id:f.id,part:0,data:content.toString('base64')},q);
+ await ok('admin','collaboration-file-finish',{id:f.id},q);
+ assert.equal((await call('limited','collaboration-quote',{ticket_id:t.id,file_id:f.id},q)).status,403);
+ const quote=await ok('admin','collaboration-quote',{ticket_id:t.id,file_id:f.id},q);
+ assert.equal((await ok('new','collaboration-file-read',undefined,{id:f.id})).name,'Devis test.pdf');
+ assert.equal((await call('other','collaboration-quote-decide',{id:quote.id,status:'accepted'})).status,409);
+ await ok('new','collaboration-quote-decide',{id:quote.id,status:'rejected'});assert.equal((await ok('new','collaboration')).access.active,false);
+ const replacement=await ok('admin','collaboration-quote',{ticket_id:t.id,file_id:f.id},q);
+ await ok('new','collaboration-quote-decide',{id:replacement.id,status:'accepted'});
+ assert.equal((await ok('new','collaboration')).access.active,true);
+ assert.equal((await call('new','collaboration-quote-decide',{id:replacement.id,status:'accepted'})).status,409);
+ const starts_at=new Date(Date.now()+1200000).toISOString();const meet=await ok('new','collaboration-meeting',{ticket_id:t.id,starts_at,duration:30});
+ assert.equal((await call('new','collaboration-meeting-update',{id:meet.id,status:'confirmed'})).status,403);
+ await ok('admin','collaboration-meeting-update',{id:meet.id,status:'confirmed'},q);
+ assert.equal((await call('other','collaboration-call-start',{id:meet.id})).status,404);
+ const clientCall=await ok('new','collaboration-call-start',{id:meet.id});const adminCall=await ok('admin','collaboration-call-start',{id:meet.id},q);
+ assert.equal((await ok('new','collaboration-call',undefined,{id:meet.id,generation:clientCall.generation})).restart,true);
+ assert.equal((await call('new','collaboration-signal',{id:meet.id,generation:adminCall.generation,kind:'offer',payload:{}})).status,403);
+ await ok('new','workspace-drafts',{scope:'pec:example',payload:{title:'Brouillon conservé'}});
+ assert.equal((await ok('other','workspace-drafts')).drafts.length,0);
+ const previousToken=users.new.token;users.new.token=randomBytes(32).toString('hex');await sql`INSERT INTO sessions(token_hash,account_id,expires_at) VALUES(${hash(users.new.token)},${users.new.id},now()+interval '1 hour')`;
+ assert.equal((await ok('new','workspace-drafts')).drafts[0].payload.title,'Brouillon conservé');
+ await ok('new','workspace-drafts',{scope:'pec:example',clear:true});assert.equal((await ok('new','workspace-drafts')).drafts.length,0);
+ assert.equal((await call('new','workspace-drafts',{scope:'invalid',payload:{password:'secret'}})).status,400);
+ assert.equal((await call('new','collaboration-request',{subject:'x',body:'x'},{},'https://evil.example')).status,403);
+ const rows=await sql`SELECT * FROM service_mail_outbox`;assert(rows.length>0);assert(rows.every(r=>r.status==='pending'));assert(!JSON.stringify(rows).includes('%PDF'));
+ console.log('PASS: existing accounts preserved, onboarding gate, private uploads, cross-cabinet denial, role restrictions, quote reject/accept/replay, meetings, visio generation, cross-session drafts, CSRF, durable email queue.');
+}finally{await sql.end()}

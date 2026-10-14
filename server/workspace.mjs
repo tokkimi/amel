@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { clean } from './security.mjs';
+import { communicationNotice } from './collaboration.mjs';
 const fail=(status,message)=>Object.assign(new Error(message),{status});
 const permissions=['agenda','patients_admin','clinical','billing','messages','tasks'];
 const safeAttachments=(value)=>Array.isArray(value)?value.slice(0,5).flatMap((file)=>{const data=typeof file?.data==='string'?file.data:'';const name=clean(file?.name,180)||'Pièce jointe';return /^data:(?:image\/(?:png|jpeg|webp)|application\/pdf);base64,[a-z0-9+/=]+$/i.test(data)&&data.length<=4500000?[{name,data}]:[];}):[];
@@ -55,7 +56,8 @@ export async function workspaceAction({action,req,b,sql,account,workspaceId,memb
  }
  if(action==='support-create'&&req.method==='POST') {
   if(!clean(b.subject,180)||!clean(b.body,5000))throw fail(400,'Indiquez un sujet et votre demande.');
-  await sql`INSERT INTO support_tickets(id,account_id,subject,body) VALUES(${randomUUID()},${account.id},${clean(b.subject,180)},${clean(b.body,5000)})`;send({ok:true});return true;
+  await sql`INSERT INTO support_tickets(id,account_id,subject,body) VALUES(${randomUUID()},${workspaceId},${clean(b.subject,180)},${clean(b.body,5000)})`;
+  await communicationNotice(sql,workspaceId,'Demande reçue par SmilePec','Une nouvelle demande est disponible.');send({ok:true});return true;
  }
  if(action==='support-reply'&&req.method==='POST') {
   if(account.role==='admin')throw fail(403,'Utilisez la messagerie de l’espace Amel.');
@@ -67,7 +69,7 @@ export async function workspaceAction({action,req,b,sql,account,workspaceId,memb
    sql`UPDATE support_tickets SET status='open',resolved_at=NULL,reopened_count=reopened_count+CASE WHEN status IN('resolved','closed') THEN 1 ELSE 0 END,updated_at=now() WHERE id=${ticket.id}`
   ];
   if(ticket.owner_id&&ticket.owner_id!==account.id)changes.push(sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${ticket.owner_id},'support','Réponse d’un cabinet',${body||'Des documents ont été transmis.'},${'/admin?view=support&ticket='+ticket.id})`);
-  await sql.transaction(changes);send({ok:true});return true;
+  await sql.transaction(changes);await communicationNotice(sql,workspaceId,'Message reçu par SmilePec','Votre réponse est enregistrée dans le fil SmilePec.');send({ok:true});return true;
  }
  if(action==='support-update'&&req.method==='POST') {
   if(account.role!=='admin')throw fail(403,'Accès administrateur requis.');

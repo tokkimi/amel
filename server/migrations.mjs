@@ -1,5 +1,6 @@
 // Versioned schema migrations, embedded so the deployed API can apply them itself (Vercel bundles no .sql files).
 // Source of truth: scripts/migrations/*.sql — keep both in sync (tests/unit.mjs checks it).
+import { collaborationSchema } from './collaboration-schema.mjs';
 export const MIGRATIONS = [
   { id: '2026-09-28-001-command-center', sql: `-- Amelib Command Center — migration 001 (additive, backward compatible)
 -- Rollback: scripts/migrations/2026-09-28-001-command-center.down.sql
@@ -184,5 +185,6 @@ UPDATE tasks SET business_status='agreed' WHERE stage IN ('ACCORD PEC','PEC À F
 CREATE INDEX IF NOT EXISTS tasks_owner_stage_updated ON tasks(owner_id,stage,updated_at DESC);
 CREATE INDEX IF NOT EXISTS tasks_estimation_origin ON tasks(source_estimation_id) WHERE source_estimation_id IS NOT NULL;
 ` },
+  { id: '2026-10-14-005-cabinet-collaboration', sql: collaborationSchema },
 ];
 export const statements = (text) => text.replace(/^\uFEFF/, '').split(';').map((s) => s.replace(/^\s*--.*$/gm, '').trim()).filter(Boolean);

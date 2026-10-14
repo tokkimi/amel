@@ -12,6 +12,7 @@ try{
   await sql`INSERT INTO profiles(account_id,clinic_name) VALUES(${id},${key})`;
   await sql`INSERT INTO sessions(token_hash,account_id,expires_at) VALUES(${hash(token)},${id},now()+interval '1 hour')`;
  }
+ await sql`INSERT INTO service_access(cabinet_id,active) SELECT id,true FROM accounts WHERE role='professional' ON CONFLICT(cabinet_id) DO UPDATE SET active=true`;
  await sql`INSERT INTO admin_members(account_id,internal_role) VALUES(${people.support.id},'support_agent')`;
  async function call(who,action,body,query={}){let status=200,data;await handler({method:body?'POST':'GET',url:'/api',query:{action,...query},headers:{host:'localhost:3001',origin:'http://localhost:3001','content-type':'application/json',cookie:'amelib_session='+people[who].token},body},{setHeader(){},status(s){status=s;return this},json(d){data=d}});return {status,data}}
  const ok=async(...args)=>{const r=await call(...args);assert.equal(r.status,200,JSON.stringify(r));return r.data};

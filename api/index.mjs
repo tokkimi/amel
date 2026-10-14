@@ -1,4 +1,6 @@
 import {savePec,pecReport,presentTask} from '../server/pec.mjs';
+import { cabinetAccess, collaborationAction } from '../server/collaboration.mjs';
+import { draftAction } from '../server/drafts.mjs';
 import {billingAction} from "../server/billing.mjs";
 import { database } from "../server/db.mjs";
 import { workspaceAction } from "../server/workspace.mjs";
@@ -262,7 +264,19 @@ export default async function handler(req, res) {
     };
     if (permissionByAction[action] && !can(permissionByAction[action]))
       throw fail(403, "Votre rôle dans le cabinet ne permet pas cette action.");
-    if (req.method === "POST") await limit("write:" + account.id, 150);
+    if (req.method === "POST") await limit((action==='collaboration-file-chunk'?"upload:":"write:") + account.id, action==='collaboration-file-chunk'?1000:150);
+    if(await draftAction({action,req,b,sql,account,send})) return;
+    if(await collaborationAction({action,req,res,b,sql,account,workspaceId,membership,internal,send,limit})) return;
+    if(account.role!=='admin' && (account.role==='professional'||membership)) {
+      const access=await cabinetAccess(sql,workspaceId);
+      if(!access.active){
+        if(action==='dashboard'&&req.method==='GET'){
+          const [profile]=await sql`SELECT * FROM profiles WHERE account_id=${workspaceId}`;
+          return send({account:safeAccount(account),workspaceId,profile,access,appointments:[],slots:[],ledger:[],patients:[],services:[],documents:[],tasks:[],missions:[],members:[],permissions:[],isOwner:!membership});
+        }
+        if(!['logout','support','support-create','support-reply','notifications','notification-read','feature-flags'].includes(action))throw fail(403,'Les outils du cabinet seront ouverts après acceptation du devis SmilePec. Retrouvez votre demande dans l’onglet SmilePec.');
+      }
+    }
     if(await billingAction({action,req,b,sql,account,workspaceId,can,send,internal})) return;
     // Internal RBAC: legacy admin actions keep working for full admins and are refused to narrower internal roles.
     const legacyPermission = account.role === "admin" && (LEGACY_ACTION_PERMISSION[action] || (action === "support" ? "support.read" : null));

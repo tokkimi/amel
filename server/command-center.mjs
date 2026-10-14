@@ -1,4 +1,5 @@
 import {smilepecFinance} from './smilepec-finance.mjs';
+import { queueCommunication } from './collaboration-mail.mjs';
 // Amelib Command Center — admin-only API actions (prefix "cc-").
 // Every action checks the internal permission it needs; every mutation is audited.
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -501,6 +502,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
       sql`INSERT INTO notifications(id,account_id,kind,title,body,href,cabinet_id,category) VALUES(${randomUUID()},${cabinet.id},'support','Informations demandées par SmilePec',${subject},'/pro?tab=SmilePec',${cabinet.id},'document')`,
       audit({ action: 'support_request_created', entityType: 'ticket', entityId: id, tenantId: cabinet.id, after: { subject, priority, category, due_at: dateOrNull(b.due_at) }, detail: 'Demande d’informations envoyée au cabinet' }),
     ]);
+    await queueCommunication(sql,cabinet.id,'Informations demandées par SmilePec');
     send({ ok: true, id });
     return true;
   }
@@ -548,6 +550,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     ];
     if (isPublic) writes.push(sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${ticket.account_id},'support','Réponse de SmilePec',${ticket.subject},'/pro?tab=SmilePec')`);
     await sql.transaction(writes);
+    if(isPublic)await queueCommunication(sql,ticket.account_id,'Nouveau message de SmilePec');
     send({ ok: true, status });
     return true;
   }

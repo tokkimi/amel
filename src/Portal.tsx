@@ -1,3 +1,4 @@
+import SessionDrafts from './SessionDrafts';
 import {SMILEPEC_HERO,SmilePecOffers,SmilePecServiceDetails} from './SmilePecHome';
 import ConnectedTools from "./ConnectedTools";
 import React, { useEffect, useRef, useState } from "react";
@@ -42,11 +43,12 @@ import Workspace from "./Workspace";
 import ProSuite from "./ProSuite";
 import ToolsPage, { ToolsPreview } from "./Experience";
 import AdminConsole from "./AdminConsole";
+import CollaborationPanel, { CabinetAccess } from './CollaborationPanel';
 import SmilePecAssistant from "./SmilePecAssistant";
 
 function Logo() {
   return (
-    <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
+    <a className="brand" href="/"><img className="brand-full-logo" src="/brand/smilepec-original-logo.svg" alt="SmilePec" /></a>
   );
 }
 function ToothIcon({ size = 22 }: { size?: number }) {
@@ -161,6 +163,7 @@ export default function Portal() {
     "/intervenant",
     "/admin",
     "/mon-espace",
+    "/smilepec",
   ].includes(path);
   const [view, setView] = useState(path === "/outils" ? "tools" : "home");
   const [account, setAccount] = useState<Account | null>(null),
@@ -456,7 +459,7 @@ export default function Portal() {
           </h2>
           <p>
             {modal === "signup"
-              ? "Votre type de compte détermine votre espace et ses accès."
+              ? "Créez votre accès pour contacter SmilePec. Après votre rendez-vous et l’acceptation du devis, les outils de votre cabinet seront ouverts."
               : "Connectez-vous avec votre e-mail et votre mot de passe."}
           </p>
           {authRole !== "admin" && (
@@ -647,7 +650,7 @@ export default function Portal() {
                   "login",
                   path === "/admin"
                     ? "admin"
-                    : path === "/pro"
+                    : path === "/pro" || path === "/smilepec"
                       ? "professional"
                       : path === "/intervenant"
                         ? "worker"
@@ -663,7 +666,7 @@ export default function Portal() {
                 onClick={() =>
                   auth(
                     "signup",
-                    path === "/pro"
+                    path === "/pro" || path === "/smilepec"
                       ? "professional"
                       : path === "/intervenant"
                         ? "worker"
@@ -682,6 +685,7 @@ export default function Portal() {
           )}
         </div>
       );
+    if(path === '/smilepec' && ['admin','professional','worker'].includes(account.role)) return <><SessionDrafts accountId={account.id}/><CollaborationPanel account={account} standalone /></>;
     if (
       path !== homeFor(account.role) &&
       path !== "/mon-espace" &&
@@ -703,14 +707,15 @@ export default function Portal() {
         </div>
       );
     return <>
+      <SessionDrafts accountId={account.id}/>
       {account.role === "admin" ? (
         <AdminConsole account={account} logout={logout} />
       ) : account.role === "patient" ? (
         <Workspace account={account} logout={logout} />
       ) : (
-        <ProSuite account={account} logout={logout} />
+        <CabinetAccess account={account} logout={logout}><ProSuite account={account} logout={logout} /><SmilePecAssistant role={account.role}/></CabinetAccess>
       )}
-      <SmilePecAssistant role={account.role} />
+      {["admin","patient"].includes(account.role)&&<SmilePecAssistant role={account.role} />}
     </>;
   }
   return (

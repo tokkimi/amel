@@ -108,7 +108,7 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
   return <CommandContext.Provider value={cc}>
     <div className="cc-app">
       <aside className={"cc-sidebar" + (menu ? " open" : "")} aria-label="Navigation administration">
-        <a className="cc-brand" href="/admin"><img src="/smilepec-logo.png" alt="SmilePec" /></a>
+        <a className="cc-brand" href="/admin"><img src="/brand/smilepec-original-logo.svg" alt="SmilePec" /></a>
         <span className="cc-nav-label">Administration générale</span>
         <nav>{MENU.filter((m) => allowed(m.perm)).map((m) => { const on = menuActive(m, section, sub); const I = m.icon; return <button key={m.label} className={on ? "active" : ""} aria-current={on ? "page" : undefined} onClick={() => cc.go(m.section, m.sub)}><I size={17} aria-hidden />{m.label}{!!badge(m.badge) && <span className={"cc-nav-badge" + (m.badge === "inbox" && badges.urgent ? " urgent" : "")} aria-label={`${badge(m.badge)} en attente`}>{badge(m.badge)}</span>}</button>; })}</nav>
         <p className="cc-nav-label">Espace Amel · gestion des cabinets clients</p>

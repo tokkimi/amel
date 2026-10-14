@@ -533,7 +533,7 @@ export function MobileSplash() {
       <span className="splash-star star-two">✧</span>
       <div className="splash-content">
         <div className="splash-logo">
-          <img src="/smilepec-logo.png" alt="SmilePec" />
+          <img src="/brand/smilepec-original-stacked.svg" alt="SmilePec" />
         </div>
         <p>Le soin, ensemble.</p>
         <div className="splash-line" />

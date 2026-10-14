@@ -241,8 +241,11 @@ export async function api<T = any>(action: string, data?: unknown): Promise<T> {
     body: data === undefined ? undefined : JSON.stringify(data),
   });
   const result = await response.json();
-  if (!response.ok)
+  if (!response.ok) {
+    if(data!==undefined && action!=='workspace-drafts')window.dispatchEvent(new CustomEvent('smilepec:save-failed',{detail:{action}}));
     throw new Error(result.error || "Le service est indisponible.");
+  }
+  if(data!==undefined && !['workspace-drafts','logout','login','signup','recover'].includes(action) && !action.startsWith('collaboration-file') && !action.startsWith('collaboration-call') && !action.startsWith('collaboration-signal')) window.dispatchEvent(new CustomEvent('smilepec:saved',{detail:{action}}));
   return result;
 }
 export const roleLabel = (role: string) =>

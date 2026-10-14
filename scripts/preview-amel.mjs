@@ -14,6 +14,8 @@ for(const [key,name,role] of [['amel','Amel · démonstration locale','admin'],[
  await sql`INSERT INTO accounts(id,email,name,role,password_hash,recovery_hash) VALUES(${id},${key+'@demo.invalid'},${name},${role},${await passwordHash(password)},'local-demo')`;
  await sql`INSERT INTO profiles(account_id,clinic_name,city) VALUES(${id},${key==='amel'?'SmilePec':key==='cabinet'?'Cabinet Rivoli · démo':'Cabinet Lumière · démo'},'Démonstration')`;
 }
+await sql`INSERT INTO service_access(cabinet_id,active) SELECT id,true FROM accounts WHERE role='professional' ON CONFLICT(cabinet_id) DO UPDATE SET active=true`;
+await sql`UPDATE service_access SET active=false WHERE cabinet_id=${ids.second}`;
 const task=randomUUID(),file='data:application/pdf;base64,JVBERi0xLjQKJUVPRg==';
 await sql`INSERT INTO tasks(id,owner_id,title,plan_name,stage,attachments,initial_quote,final_quote,recovered_amount,financial_date,practitioner_id) VALUES(${task},${ids.cabinet},'Patient exemple · fictif','Plan 1 · exemple','ACCORD PEC',${JSON.stringify([{kind:'devis',name:'Devis exemple.pdf',url:file},{kind:'mutuelle',name:'Mutuelle exemple.pdf',url:file}])}::jsonb,100,250,125,current_date,${ids.cabinet})`;
 await sql`UPDATE tasks SET initial_quote=1000,initial_patient_share=200,final_quote=1000,final_social_security_amount=150,final_mutual_amount=850,initial_mutual_amount=650,optimization_validated=true,business_status='agreed',act_codes='C MONO 23',valid_until='2026-12-31' WHERE id=${task}`;

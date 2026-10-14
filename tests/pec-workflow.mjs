@@ -8,6 +8,7 @@ const {sql}=await createTestDatabase();const {default:handler}=await import('../
 const users={};
 try{
  for(const [who,role] of [['admin','admin'],['cabinet','professional'],['other','professional']]){const id=randomUUID(),token=randomBytes(32).toString('hex');users[who]={id,token};await sql`INSERT INTO accounts(id,email,name,role,password_hash,recovery_hash) VALUES(${id},${who+'@example.invalid'},${who},${role},${await passwordHash('LocalRandom'+randomUUID())},'test')`;await sql`INSERT INTO profiles(account_id,clinic_name) VALUES(${id},${who})`;await sql`INSERT INTO sessions(token_hash,account_id,expires_at) VALUES(${hash(token)},${id},now()+interval '1 hour')`;}
+ await sql`INSERT INTO service_access(cabinet_id,active) SELECT id,true FROM accounts WHERE role='professional' ON CONFLICT(cabinet_id) DO UPDATE SET active=true`;
  async function call(who,action,body,query={}){let status=200,data;await handler({method:body===undefined?'GET':'POST',url:'/api',query:{action,...query},headers:{host:'localhost:3001',origin:'http://localhost:3001','content-type':'application/json',cookie:'amelib_session='+users[who].token},body},{setHeader(){},status(s){status=s;return this},json(d){data=d}});return {status,data}}
  const workspace={workspace:users.cabinet.id};
  const ok=async(action,body,query=workspace)=>{const r=await call('admin',action,body,query);assert.equal(r.status,200,JSON.stringify(r));return r.data};
