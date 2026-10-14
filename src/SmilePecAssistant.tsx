@@ -97,7 +97,7 @@ export default function SmilePecAssistant({ role }: { role: Role }) {
   return (
     <div className={`smilepec-assistant-float ${open ? "is-open" : ""} ${dragging ? "is-dragging" : ""}`} style={position ? { left: position.x, top: position.y, right: "auto", bottom: "auto" } : undefined}>
       {open && <section className="smilepec-assistant-panel" role="dialog" aria-label={copy.title}>
-        <header><span className="assistant-orb" aria-hidden="true"><img src="/smilepec-emblem.png" alt="" /></span><div><span className="eyebrow">ASSISTANT SMILEPEC</span><h2>{copy.title}</h2></div><button className="assistant-close" type="button" onClick={() => setOpen(false)} aria-label="Fermer l’assistant"><X size={18} /></button></header>
+        <header><span className="assistant-orb" aria-hidden="true"><img src="/brand/smilepec-mark.svg" alt="" /></span><div><span className="eyebrow">ASSISTANT SMILEPEC</span><h2>{copy.title}</h2></div><button className="assistant-close" type="button" onClick={() => setOpen(false)} aria-label="Fermer l’assistant"><X size={18} /></button></header>
         <div className="assistant-history" ref={history} role="log" aria-live="polite" aria-relevant="additions text">
           <p className="assistant-intro">{copy.description}</p>
           {messages.length === 0 && <div className="assistant-prompts">{copy.prompts.map((prompt) => <button key={prompt} type="button" disabled={busy} onClick={() => ask(prompt)}>{prompt}</button>)}</div>}
@@ -107,7 +107,7 @@ export default function SmilePecAssistant({ role }: { role: Role }) {
         <form onSubmit={(event) => { event.preventDefault(); ask(); }} className="assistant-form"><input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={copy.placeholder} aria-label="Votre question à l’assistant" /><button className="assistant-send" disabled={busy || !question.trim()} aria-label="Envoyer la question"><Send size={17} /></button></form>
       </section>}
       <button className="smilepec-assistant-trigger" type="button" aria-label={open ? "Fermer l’assistant SmilePec" : "Ouvrir l’assistant SmilePec"} aria-expanded={open} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={stopDrag} onPointerCancel={stopDrag} onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } setOpen((value) => !value); }}>
-        <img src="/smilepec-emblem.png" alt="" />
+        <img src="/brand/smilepec-mark.svg" alt="" />
       </button>
     </div>
   );

@@ -1,4 +1,5 @@
 import ConnectedTools from "./ConnectedTools";
+import { SMILEPEC_HERO, SmilePecOffers, SmilePecServices } from "./SmilePecHome";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -43,9 +44,15 @@ import ToolsPage, { ToolsPreview } from "./Experience";
 import AdminConsole from "./AdminConsole";
 import SmilePecAssistant from "./SmilePecAssistant";
 
-function Logo() {
+function Logo({ stacked = false }: { stacked?: boolean }) {
   return (
-    <a className="brand" href="/"><img className="brand-full-logo" src="/smilepec-logo.png" alt="SmilePec" /></a>
+    <a className="brand" href="/" aria-label="SmilePec — accueil">
+      <img
+        className="brand-full-logo"
+        src={stacked ? "/brand/smilepec-logo.svg" : "/brand/smilepec-logo-horizontal.svg"}
+        alt="SmilePec"
+      />
+    </a>
   );
 }
 function ToothIcon({ size = 22 }: { size?: number }) {
@@ -722,9 +729,11 @@ export default function Portal() {
             if ((e.target as Element).closest("a,button")) setMobile(false);
           }}
         >
-          <a href="#accompagnement">L’accompagnement SmilePec</a>
+          <a href={view === "home" ? "#preuve" : "/#preuve"}>Offres</a>
+          <a href={view === "home" ? "#reprise" : "/#reprise"}>Reprise des impayés</a>
+          <a href={view === "home" ? "#contact" : "/#contact"}>Contact</a>
           <a href="/outils">Les outils SmilePec</a>
-          <a href="#professionnels">Pour votre cabinet</a>
+          <a href={view === "home" ? "#professionnels" : "/#professionnels"}>Pour votre cabinet</a>
         </nav>
         <div className="public-auth">
           {account ? (
@@ -767,18 +776,12 @@ export default function Portal() {
       )}
       {view === "home" && (
         <>
-          <section className="public-hero">
+          <section className="public-hero" id="hero">
             <div className="hero-copy">
               <span className="hero-kicker">
-                <span className="dot" /> L’EXPERTISE DU TIERS PAYANT DENTAIRE
+                <span className="dot" /> TIERS PAYANT · OPTIMISÉ
               </span>
-              <h1>
-                Votre cabinet.
-                <br />
-                Mieux accompagné.
-                <br />
-                <span>À chaque étape.</span>
-              </h1>
+              <h1 className="home-original-headline">{SMILEPEC_HERO}</h1>
               <p>
                 SmilePec accompagne les cabinets dentaires dans le tiers
                 payant, l’organisation clinique et le pilotage quotidien.
@@ -896,62 +899,15 @@ export default function Portal() {
               </div>
             </div>
           </section>
+          <SmilePecOffers />
           <ConnectedTools />
           <section className="smilepec-services public-section">
             <div className="assistant-home glass">
               <div><div className="eyebrow">ASSISTANT SMILEPEC</div><h2>Vos informations utiles, au bon moment.</h2><p>Dans chaque espace, l’assistant répond à partir des données autorisées : priorités de pose, agenda, tâches, devis et factures pour le cabinet ; pilotage global pour Amel.</p></div>
               <div className="assistant-home-chat"><strong>Que dois-je prioriser aujourd’hui ?</strong><span>Les poses de prothèse, les échéances et les tâches ouvertes sont réunies dans votre espace.</span></div>
             </div>
-            <div className="public-section-heading">
-              <div>
-                <div className="eyebrow">
-                  SMILEPEC POUR LES CABINETS DENTAIRES
-                </div>
-                <h2>Le tiers payant, pris en charge de bout en bout.</h2>
-                <p>
-                  Une gestion à distance partout en France, adaptée à votre
-                  organisation.
-                </p>
-              </div>
-              <button className="secondary" onClick={() => auth("signup", "professional")}>
-                Inscrire mon cabinet <ArrowUpRight size={15} />
-              </button>
-            </div>
-            <div className="smilepec-service-grid">
-              {[
-                {
-                  title: "Gestion complète",
-                  text: "De la demande d’accord au rapprochement mensuel, déléguez le cycle administratif complet.",
-                },
-                {
-                  title: "Estimation optimisée",
-                  text: "Sécurisez vos plans de traitement avec une estimation précise et adaptée au dossier.",
-                },
-                {
-                  title: "Optimisation du tiers payant",
-                  text: "Associez estimation et gestion complète pour limiter les écarts et les retards.",
-                },
-                {
-                  title: "Reprise des impayés",
-                  text: "Confiez les dossiers tiers payant impayés des six derniers mois à une spécialiste.",
-                },
-              ].map((s, i) => (
-                <article className="glass" key={s.title}>
-                  <h3>{s.title}</h3>
-                  <p>{s.text}</p>
-                </article>
-              ))}
-            </div>
-            <div className="smilepec-callout">
-              <div>
-                <strong>Analyse gratuite de 5 dossiers impayés</strong>
-                <small>Un premier diagnostic concret, sans engagement.</small>
-              </div>
-              <a className="primary" href="mailto:contact@smilepec.fr">
-                Demander mon analyse
-              </a>
-            </div>
           </section>
+          <SmilePecServices />
           <section className="public-section cabinet-method-section">
             <div className="public-section-heading">
               <div>
@@ -1018,7 +974,7 @@ export default function Portal() {
             <div>
               <div className="eyebrow">ON VOUS RÉPOND</div>
               <h2>
-                Avant de faire
+                Avant de faire{" "}
                 <br />
                 le premier pas.
               </h2>
@@ -1364,13 +1320,16 @@ export default function Portal() {
       </nav>
       <footer className="public-footer">
         <div>
-          <Logo />
+          <Logo stacked />
           <p>Le tiers payant dentaire, maîtrisé.</p>
+          <small>PENSÉ DANS LES MOINDRES DÉTAILS</small>
         </div>
         <div>
           <strong>Cabinets dentaires</strong>
-          <a href="#professionnels">L’espace cabinet</a>
-          <a href="#accompagnement">L’accompagnement SmilePec</a>
+          <a href={view === "home" ? "#professionnels" : "/#professionnels"}>L’espace cabinet</a>
+          <a href={view === "home" ? "#preuve" : "/#preuve"}>Offres</a>
+          <a href={view === "home" ? "#reprise" : "/#reprise"}>Reprise des impayés</a>
+          <a href={view === "home" ? "#contact" : "/#contact"}>Contact</a>
           <a href="/outils">Tous les outils</a>
           <button onClick={() => auth("signup", "Praticien")}>
             Inscrire mon cabinet

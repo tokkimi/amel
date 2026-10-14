@@ -54,7 +54,7 @@
 
 /* Layout */
 .cc-sidebar { position: fixed; inset: 0 auto 0 0; width: 236px; background: var(--cc-surface); border-right: 1px solid var(--cc-border); padding: 20px 14px 16px; display: flex; flex-direction: column; gap: 4px; z-index: 50; overflow-y: auto; }
-.cc-brand img { height: 30px; width: auto; margin: 0 8px 10px; }
+.cc-brand img { height: 26px; width: auto; max-width: 100%; margin: 0 8px 10px; }
 .cc-nav-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--cc-faint); font-weight: 700; margin: 14px 10px 6px; }
 .cc-sidebar nav { display: flex; flex-direction: column; gap: 2px; }
 .cc-app .cc-sidebar nav button { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 9px; font-size: 14px; color: var(--cc-muted) !important; text-align: left; cursor: pointer; }
