@@ -1080,49 +1080,6 @@ export default function ProSuite({
                       }
                     />
                   </label>
-                  <h2>Votre outil de rendez-vous patients</h2>
-                  <div className="form-grid">
-                    <label>
-                      Outil de prise de rendez-vous
-                      <select
-                        name="calendar_provider" value={profile.calendar_provider}
-                        onChange={(e) =>
-                          setData({
-                            ...data,
-                            profile: {
-                              ...profile,
-                              calendar_provider: e.target.value,
-                            },
-                          })
-                        }
-                      >
-                        <option value="">Aucun outil renseigné</option>
-                        <option>Calendly</option>
-                        <option>Cal.com</option>
-                        <option>Google Calendar</option>
-                        <option>Outlook</option>
-                        <option>Doctolib</option>
-                      </select>
-                    </label>
-                    <label>
-                      Lien de votre agenda
-                      <input
-                        type="url"
-                        value={profile.booking_url}
-                        onChange={(e) =>
-                          setData({
-                            ...data,
-                            profile: {
-                              ...profile,
-                              booking_url: e.target.value,
-                            },
-                          })
-                        }
-                        placeholder="https://www.doctolib.fr/…"
-                      />
-                    </label>
-                  </div>
-                  {profile.calendar_provider === "Doctolib" && <p className="muted">Votre agenda patients reste dans Doctolib. Ce lien est conservé à titre de référence ; les rendez-vous avec SmilePec se trouvent dans « Mon suivi SmilePec ».</p>}
                   <h2>Horaires habituels</h2>
                   <div className="hours-editor">
                     {[

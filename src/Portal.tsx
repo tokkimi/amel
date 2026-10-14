@@ -1,6 +1,5 @@
 import SessionDrafts from './SessionDrafts';
 import {SMILEPEC_HERO,SmilePecOffers,SmilePecServiceDetails} from './SmilePecHome';
-import ConnectedTools from "./ConnectedTools";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -41,7 +40,7 @@ import {
 } from "./client";
 import Workspace from "./Workspace";
 import ProSuite from "./ProSuite";
-import ToolsPage, { ToolsPreview } from "./Experience";
+import ToolsPage from "./PublicServiceTools";
 import AdminConsole from "./AdminConsole";
 import CollaborationPanel, { CabinetAccess } from './CollaborationPanel';
 import SmilePecAssistant from "./SmilePecAssistant";
@@ -725,14 +724,12 @@ export default function Portal() {
         <nav
           className={mobile ? "public-links expanded" : "public-links"}
           onClick={(e) => {
-            if ((e.target as Element).closest("a,button")) setMobile(false);
+            if ((e.target as Element).closest("a,button")){setMobile(false);const menu=(e.target as Element).closest("details");if(menu)menu.open=false;}
           }}
         >
-          <a href={view==='home'?'#preuve':'/#preuve'}>Offres</a>
-          <a href={view==='home'?'#reprise':'/#reprise'}>Reprise des impayés</a>
-          <a href={view==='home'?'#contact':'/#contact'}>Contact</a>
-          <a href="/outils">Les outils SmilePec</a>
-          <a href={view==='home'?'#professionnels':'/#professionnels'}>Pour votre cabinet</a>
+          <details className="public-offers-menu"><summary>Nos offres</summary><div>{[['gestion','Gestion Tiers Payant complète'],['estimation','Optimisation des Estimations'],['optimisation','Optimisation Tiers Payant'],['conventionnement','Conventionnement'],['reprise','Reprise de portefeuille']].map(([id,label])=><a key={id} href={'/#'+id}>{label}</a>)}</div></details>
+          <a href="/outils">Nos outils</a>
+          <a href="/#contact">Nous contacter</a>
         </nav>
         <div className="public-auth">
           {account ? (
@@ -754,7 +751,7 @@ export default function Portal() {
                 Connexion
               </button>
               <button className="primary" onClick={() => auth("signup")}>
-                Inscription <ArrowUpRight size={15} />
+                Créer mon compte cabinet <ArrowUpRight size={15} />
               </button>
             </>
           )}
@@ -782,10 +779,7 @@ export default function Portal() {
               </span>
               <h1 className="home-original-headline">{SMILEPEC_HERO}</h1>
               <p>
-                SmilePec accompagne les cabinets dentaires dans le tiers
-                payant, l’organisation clinique et le pilotage quotidien.
-                <br className="desktop-break" /> Vos patients restent au cœur de
-                votre cabinet, avec vos propres canaux de prise de rendez-vous.
+                Gestion et optimisation du tiers payant dentaire : estimations optimisées, suivi des prises en charge et reprise des dossiers impayés.
               </p>
               <div className="hero-people">
                 <span>
@@ -808,167 +802,13 @@ export default function Portal() {
             </aside>
             <div className="hero-search-wrap">
               <div className="hero-actions">
-                <button className="primary" onClick={() => auth("signup", "Praticien")}>Inscrire mon cabinet <ArrowRight size={16} /></button>
-                <button className="secondary" onClick={() => auth("login", "Praticien")}>Accéder à mon espace</button>
-              </div>
-            </div>
-            <div className="public-benefits hero-benefits">
-              <div>
-                <CalendarDays />
-                <span>
-                  Un agenda patient
-                  <br />
-                  <strong>connecté à votre cabinet</strong>
-                </span>
-              </div>
-              <div>
-                <Users />
-                <span>
-                  Une équipe
-                  <br />
-                  <strong>qui travaille ensemble</strong>
-                </span>
-              </div>
-              <div>
-                <Heart />
-                <span>
-                  Une gestion
-                  <br />
-                  <strong>à chaque échéance</strong>
-                </span>
-              </div>
-              <div>
-                <Smile />
-                <span>
-                  Au cabinet, à domicile
-                  <br />
-                  <strong>toujours à vos côtés</strong>
-                </span>
-              </div>
-            </div>
-          </section>
-          <section className="pro-banner public-section" id="professionnels">
-            <div>
-              <span className="pill">
-                <Stethoscope size={13} /> SMILEPEC POUR LES DENTISTES
-              </span>
-              <h2>
-                Soignez. Pilotez.
-                <br />
-                SmilePec gère le reste.
-              </h2>
-              <p>
-                Agenda, dossiers dentaires, équipe, factures et tiers payant :
-                <br />
-                votre cabinet dispose enfin d’un espace complet, avec
-                l’expertise SmilePec à la demande.
-              </p>
-              <div className="pro-banner-actions">
-                <button
-                  className="primary"
-                  onClick={() => auth("signup", "Praticien")}
-                >
-                  Rejoindre comme professionnel <ArrowRight size={16} />
-                </button>
-                <a className="secondary" href="/pro">
-                  Explorer l’espace pro
-                </a>
-              </div>
-            </div>
-            <div className="pro-visual glass">
-              <div className="section-title">
-                <span className="stat-icon blue">
-                  <Stethoscope size={21} />
-                </span>
-                <span className="pill">Votre cabinet, connecté</span>
-              </div>
-              <h3>
-                Plus de liens.
-                <br />
-                Moins de distance.
-              </h3>
-              <div className="pro-feature">
-                <Check size={15} /> Votre tableau de bord et votre profil
-              </div>
-              <div className="pro-feature">
-                <Check size={15} /> Vos rendez-vous et vos patients
-              </div>
-              <div className="pro-feature">
-                <Check size={15} /> Votre équipe, au même endroit
+                <a className="primary" href="#preuve">Découvrir nos offres <ArrowRight size={16}/></a><a className="secondary" href="#contact">Nous contacter</a>
               </div>
             </div>
           </section>
           <SmilePecOffers />
-          <ConnectedTools />
-          <section className="smilepec-services public-section">
-            <div className="assistant-home glass">
-              <div><div className="eyebrow">ASSISTANT SMILEPEC</div><h2>Vos informations utiles, au bon moment.</h2><p>Dans chaque espace, l’assistant répond à partir des données autorisées : priorités de pose, agenda, tâches, devis et factures pour le cabinet ; pilotage global pour Amel.</p></div>
-              <div className="assistant-home-chat"><strong>Que dois-je prioriser aujourd’hui ?</strong><span>Les poses de prothèse, les échéances et les tâches ouvertes sont réunies dans votre espace.</span></div>
-            </div>
-          </section>
           <SmilePecServiceDetails />
-          <section className="public-section cabinet-method-section">
-            <div className="public-section-heading">
-              <div>
-                <div className="eyebrow">UN ESPACE, VOTRE MÉTHODE</div>
-                <h2>Votre cabinet garde la main.</h2>
-                <p>
-                  SmilePec centralise les opérations du cabinet sans devenir un
-                  annuaire ni un intermédiaire entre vous et vos patients.
-                </p>
-              </div>
-              <button
-                className="text-button"
-                onClick={() => auth("signup", "Praticien")}
-              >
-                Découvrir l’espace cabinet <ArrowRight size={16} />
-              </button>
-            </div>
-            <div className="public-professionals cabinet-method-grid">
-              {[
-                { title: "Dossiers dentaires", text: "Fiches patients, schéma dentaire, photos, radios, mutuelle et suivi des soins.", note: "TOUT CENTRALISER", icon: Folder },
-                { title: "Agenda de cabinet", text: "Vos rendez-vous sont centralisés avec vos disponibilités et vos outils de prise de rendez-vous.", note: "GAGNER DU TEMPS", icon: CalendarDays },
-                { title: "Pilotage financier", text: "Devis, factures, règlements, tiers payant et exports comptables au même endroit.", note: "PLUS DE CLARTÉ", icon: ChartNoAxesCombined },
-              ].map(({ title, text, note, icon: Icon }, index) => <article className={`glass practitioner-card cabinet-method-card cabinet-method-card-${index}`} key={title}><span className="cabinet-card-icon"><Icon size={25}/></span><span className="cabinet-card-arrow"><ArrowRight size={20}/></span><h3>{title}</h3><p>{text}</p><span className="cabinet-card-illustration" aria-hidden="true"/><small>{note}</small></article>)}
-            </div>
-            <p className="cabinet-method-signoff"><span />UN OUTIL PENSÉ POUR LES PROFESSIONNELS, PAR DES PROFESSIONNELS<span /></p>
-          </section>
-          <ToolsPreview />
-          <section className="how-section public-section" id="accompagnement">
-            <div className="eyebrow">C’EST SIMPLE, ET ÇA CHANGE TOUT</div>
-            <h2>
-              Moins d’administratif.
-              <br />
-              Plus de temps au fauteuil.
-            </h2>
-            <div className="how-grid">
-              {[
-                {
-                  icon: Stethoscope,
-                  title: "Créez votre cabinet",
-                  text: "Installez votre organisation, vos règles d’équipe et vos accès en quelques étapes.",
-                },
-                {
-                  icon: CalendarDays,
-                  title: "Gardez votre agenda",
-                  text: "Pilotez vos rendez-vous patients depuis votre espace et reliez vos outils existants.",
-                },
-                {
-                  icon: Heart,
-                  title: "Déléguez avec précision",
-                  text: "Confiez le tiers payant et les priorités à SmilePec tout en gardant une vision claire.",
-                },
-              ].map((s, i) => (
-                <article key={s.title}>
-                  <div className="how-icon">
-                    <s.icon size={24} />
-                  </div>
-                  <h3>{s.title}</h3>
-                  <p>{s.text}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+          <ToolsPage compact />
           <section className="public-section faq-section">
             <div>
               <div className="eyebrow">ON VOUS RÉPOND</div>
@@ -978,314 +818,10 @@ export default function Portal() {
                 le premier pas.
               </h2>
             </div>
-            <div className="faq-list">
-              <details>
-                <summary>À qui s’adresse SmilePec ?</summary>
-                <p>
-                  Aux chirurgiens-dentistes, orthodontistes et équipes de
-                  cabinet qui veulent centraliser leur organisation et leur
-                  tiers payant avec l’appui de SmilePec.
-                </p>
-              </details>
-              <details>
-                <summary>SmilePec prend-il les rendez-vous patients ?</summary>
-                <p>
-                  Non. SmilePec n’est pas un annuaire ni une plateforme de
-                  réservation publique. Le cabinet conserve ses canaux, dont
-                  Doctolib, et retrouve ses rendez-vous dans son espace.
-                </p>
-              </details>
-              <details>
-                <summary>
-                  Comment se passe l’accompagnement à domicile ?
-                </summary>
-                <p>
-                  Les membres autorisés de votre équipe choisissent de partager
-                  ou non leur position pendant une mission. Le suivi n’est
-                  jamais activé par défaut.
-                </p>
-              </details>
-              <details>
-                <summary>Comment rejoindre le réseau professionnel ?</summary>
-                <p>
-                  Inscrivez votre cabinet, complétez son organisation puis
-                  invitez vos collaborateurs avec les droits adaptés. SmilePec
-                  peut ensuite accompagner le tiers payant et vos priorités.
-                </p>
-              </details>
-            </div>
-          </section>
-          <section className="join-strip">
-            <Smile size={28} />
-            <div>
-              <h2>Votre cabinet mérite un espace à sa mesure.</h2>
-              <p>Vos patients, votre équipe, l’expertise SmilePec.</p>
-            </div>
-            <button className="primary" onClick={() => auth("signup", "Praticien")}>
-              Inscrire mon cabinet <ArrowRight size={16} />
-            </button>
-          </section>
+            <div className="faq-list"><details><summary>À qui s’adresse SmilePec ?</summary><p>Aux cabinets dentaires qui souhaitent déléguer la gestion du tiers payant, optimiser leurs estimations ou reprendre des dossiers impayés.</p></details><details><summary>Comment démarrer avec SmilePec ?</summary><p>Créez votre compte cabinet, transmettez votre demande puis organisez un rendez-vous avec l’équipe SmilePec. Votre proposition est disponible dans votre espace pour consultation et décision.</p></details><details><summary>Comment transmettre mes dossiers ?</summary><p>Après acceptation de votre devis SmilePec, transmettez les fiches et pièces nécessaires dans votre espace cabinet. Retrouvez vos échanges, documents reçus et rendez-vous avec l’équipe au même endroit.</p></details></div></section>
         </>
       )}
-
       {view === "tools" && <ToolsPage />}
-      {view === "search" && (
-        <section className="public-section search-page">
-          <div className="eyebrow">PRENEZ LE TEMPS DE CHOISIR</div>
-          <h1>Trouvez votre dentiste.</h1>
-          <p>
-            Des profils de dentistes et des créneaux publiés directement par les
-            cabinets.
-          </p>
-          {searchForm}
-          <div className="filter-row">
-            {["Tout", "Dentiste", "Orthodontiste", "Chirurgien-dentiste"].map(
-              (c) => (
-                <button
-                  className={category === c ? "selected" : ""}
-                  onClick={() => setCategory(c)}
-                  key={c}
-                >
-                  {c}
-                </button>
-              ),
-            )}
-          </div>
-          <div className="results-heading">
-            <h2>
-              {results.length} professionnel{results.length > 1 ? "s" : ""}
-            </h2>
-          </div>
-          <div className="public-practitioners">{results.map(card)}</div>
-          {!directoryReady ? (
-            <p className="empty">Recherche des praticiens…</p>
-          ) : (
-            !results.length && (
-              <div className="glass search-empty">
-                <Search size={32} />
-                <h2>Aucun profil publié pour cette recherche.</h2>
-                <p>
-                  Le réseau ouvre ses portes. Les praticiens apparaissent dès
-                  qu’ils publient leur profil.
-                </p>
-                <button
-                  className="secondary"
-                  onClick={() => {
-                    setQuery("");
-                    setCity("");
-                    setCategory("Tout");
-                  }}
-                >
-                  Réinitialiser la recherche
-                </button>
-                <button
-                  className="primary"
-                  onClick={() => auth("signup", "Praticien")}
-                >
-                  Inscrire mon cabinet
-                </button>
-              </div>
-            )
-          )}
-        </section>
-      )}
-      {view === "profile" &&
-        (selected ? (
-          <section className="public-section public-profile">
-            <button
-              className="text-button"
-              onClick={() => navigate("search", "/recherche")}
-            >
-              <ChevronLeft size={16} />
-              Retour aux praticiens
-            </button>
-            <div className="public-profile-layout">
-              <div>
-                <div className="glass profile-summary">
-                  <div className="public-profile-cover blue">
-                    {selected.logo_data && (
-                      <img src={selected.logo_data} alt="Logo du cabinet" />
-                    )}
-                    <span>
-                      {selected.headline || "Chaque sourire compte. ✧"}
-                    </span>
-                  </div>
-                  <Portrait p={selected} large />
-                  <span className="public-demo-tag">
-                    {selected.verified
-                      ? "Identité professionnelle vérifiée"
-                      : "Informations déclarées par le professionnel"}
-                  </span>
-                  <h1>{selected.name}</h1>
-                  <strong className="specialty">{selected.specialty}</strong>
-                  <p className="location">
-                    <MapPin size={16} />
-                    {selected.city}
-                  </p>
-                </div>
-                <div className="glass profile-details">
-                  <h2>Présentation</h2>
-                  <p>
-                    {selected.bio ||
-                      "Le professionnel complètera bientôt sa présentation."}
-                  </p>
-                  <h2>Prestations & tarifs</h2>
-                  {selected.services?.length ? (
-                    <div className="public-services">
-                      {selected.services.map((s) => (
-                        <div key={s.id}>
-                          <div>
-                            <strong>{s.name}</strong>
-                            <small>
-                              {s.duration} min · {s.description}
-                            </small>
-                          </div>
-                          <b>{money(Number(s.price))}</b>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p>Le catalogue détaillé sera bientôt publié.</p>
-                  )}
-                  <h2>Formation et qualifications</h2>
-                  <p>{selected.qualifications || "Non renseignées"}</p>
-                  <h2>Langues</h2>
-                  <p>{selected.languages || "Non renseignées"}</p>
-                  <h2>Lieu de consultation</h2>
-                  <p>{selected.address}</p>
-                </div>
-              </div>
-              <aside className="glass public-booking-aside">
-                <CalendarDays size={25} />
-                <h2>Votre prochain rendez-vous</h2>
-                <p>Avec {selected.name}</p>
-                <div className="detail-block">
-                  <span>Prochaine disponibilité</span>
-                  <strong>
-                    {selected.next_slot
-                      ? dateFormat(selected.next_slot)
-                      : "Aucun créneau publié"}
-                  </strong>
-                </div>
-                {selected.services?.length > 0 && (
-                  <p>
-                    Prestations à partir de{" "}
-                    {money(
-                      Math.min(
-                        ...selected.services.map((s) => Number(s.price)),
-                      ),
-                    )}
-                  </p>
-                )}
-                <button
-                  className="primary full"
-                  onClick={() =>
-                    selected.booking_url
-                      ? window.open(
-                          selected.booking_url,
-                          "_blank",
-                          "noopener,noreferrer",
-                        )
-                      : openBooking(selected)
-                  }
-                >
-                  {selected.booking_url
-                    ? "Ouvrir l’agenda connecté"
-                    : "Choisir un créneau"}
-                  <ArrowRight size={16} />
-                </button>
-                <button
-                  className="secondary full contact-trigger"
-                  onClick={() => setContactOpen(!contactOpen)}
-                >
-                  <MessageCircle />
-                  Contacter
-                </button>
-                <small>
-                  Heures affichées à l’heure de Paris. Aucun paiement en ligne.
-                </small>
-              </aside>
-            </div>
-            <div
-              className={`profile-contact-glass ${contactOpen ? "open" : ""}`}
-            >
-              <button
-                className="icon-button"
-                onClick={() => setContactOpen(false)}
-                aria-label="Fermer"
-              >
-                <X />
-              </button>
-              <div className="contact-person">
-                <Portrait p={selected} />
-                <div>
-                  <strong>{selected.name}</strong>
-                  <small>{selected.specialty}</small>
-                </div>
-              </div>
-              {selected.phone && (
-                <a href={"tel:" + selected.phone}>
-                  <Phone />
-                  <span>
-                    <strong>Appeler</strong>
-                    <small>{selected.phone}</small>
-                  </span>
-                </a>
-              )}
-              {selected.phone && (
-                <a href={"sms:" + selected.phone}>
-                  <MessageCircle />
-                  <span>
-                    <strong>Envoyer un SMS</strong>
-                    <small>Réponse directe sur mobile</small>
-                  </span>
-                </a>
-              )}
-              {selected.contact_email && (
-                <a href={"mailto:" + selected.contact_email}>
-                  <Mail />
-                  <span>
-                    <strong>Envoyer un courriel</strong>
-                    <small>{selected.contact_email}</small>
-                  </span>
-                </a>
-              )}
-              {selected.booking_url && (
-                <a href={selected.booking_url} target="_blank" rel="noreferrer">
-                  <CalendarDays />
-                  <span>
-                    <strong>Prendre rendez-vous</strong>
-                    <small>
-                      Ouvrir {selected.calendar_provider || "l’agenda connecté"}
-                    </small>
-                  </span>
-                </a>
-              )}
-              {selected.website && (
-                <a href={selected.website} target="_blank" rel="noreferrer">
-                  <Globe />
-                  <span>
-                    <strong>Voir le site</strong>
-                    <small>
-                      {selected.website.replace(/^https?:\/\//, "")}
-                    </small>
-                  </span>
-                </a>
-              )}
-            </div>
-          </section>
-        ) : (
-          <section className="public-section search-empty">
-            <h1>
-              {directoryReady
-                ? "Profil introuvable ou non publié."
-                : "Chargement du profil…"}
-            </h1>
-            <a href="/recherche" className="secondary">
-              Retour à la recherche
-            </a>
-          </section>
-        ))}
       <nav className="public-app-dock" aria-label="Navigation mobile">
         <button
           className={view === "home" ? "active" : ""}
@@ -1298,14 +834,14 @@ export default function Portal() {
           onClick={() => { if (view !== "home") { location.href = "/#preuve"; return; } document.getElementById("preuve")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" }); }}
         >
           <ToothIcon size={22} />
-          Accompagnement
+          Nos offres
         </button>
         <button
           className={view === "tools" ? "active" : ""}
           onClick={() => navigate("tools", "/outils")}
         >
           <CalendarDays size={22} />
-          Outils
+          Nos outils
         </button>
         <button
           onClick={() => {
@@ -1325,21 +861,15 @@ export default function Portal() {
         </div>
         <div>
           <strong>Cabinets dentaires</strong>
-          <a href={view==='home'?'#professionnels':'/#professionnels'}>L’espace cabinet</a>
-          <a href={view==='home'?'#preuve':'/#preuve'}>Offres</a>
+          <a href="/#preuve">Nos offres</a>
           <a href={view==='home'?'#reprise':'/#reprise'}>Reprise des impayés</a>
           <a href={view==='home'?'#contact':'/#contact'}>Contact</a>
           <a href="/outils">Tous les outils</a>
-          <button onClick={() => auth("signup", "Praticien")}>
-            Inscrire mon cabinet
-          </button>
+
         </div>
         <div>
-          <strong>Professionnels</strong>
-          <button onClick={() => auth("signup", "Praticien")}>
-            Inscrire mon cabinet
-          </button>
-          <a href="/pro">Espace professionnel</a>
+          <strong>Espace cabinet</strong>
+          <a href="/pro">Connexion</a>
           <span>Les membres de l’équipe reçoivent une invitation interne.</span>
         </div>
         <div>
@@ -1365,174 +895,15 @@ export default function Portal() {
             Informations sur les données
           </button>
         </div>
-        <div className="coming-apps">
-          <span>Bientôt dans votre poche</span>
-          <div>
-            <span>
-              <SiApple /> App Store
-              <small>Bientôt sur iPhone</small>
-            </span>
-            <span>
-              <SiAndroid /> Android
-              <small>Bientôt sur Google Play</small>
-            </span>
-          </div>
-        </div>
         <div className="public-footer-bottom">
           <span>
             © {new Date().getFullYear()} SmilePec · Le tiers payant dentaire,
             maîtrisé.
           </span>
-          <span>Imaginé pour rapprocher le soin.</span>
+          <span>Pensé dans les moindres détails.</span>
         </div>
       </footer>
-      {modal && (
-        <Dialog
-          title={
-            modal === "booking"
-              ? "Prendre rendez-vous"
-              : "Votre espace SmilePec"
-          }
-          close={close}
-        >
-          {["signup", "login", "recover"].includes(modal) ? (
-            authContent
-          ) : modal === "info" ? (
-            <>
-              <h2>Vos informations</h2>
-              <p>{info}</p>
-            </>
-          ) : (
-            modal === "booking" &&
-            selected &&
-            (success ? (
-              <div className="booking-success">
-                <span className="success-check">
-                  <Check size={30} />
-                </span>
-                <h2>Votre rendez-vous est confirmé.</h2>
-                <p>
-                  Il est enregistré dans votre espace patient et dans l’agenda
-                  du professionnel.
-                </p>
-                <a className="primary full" href="/patient">
-                  Voir mon rendez-vous
-                </a>
-              </div>
-            ) : (
-              <>
-                <div className="booking-doctor">
-                  <Portrait p={selected} />
-                  <div>
-                    <h2>{selected.name}</h2>
-                    <p>{selected.specialty}</p>
-                  </div>
-                </div>
-                <h2>Choisissez votre rendez-vous.</h2>
-                {account && account.role !== "patient" ? (
-                  <>
-                    <p>
-                      Vous êtes connecté avec un compte{" "}
-                      {roleLabel(account.role).toLowerCase()}. La réservation
-                      nécessite un compte patient distinct.
-                    </p>
-                    <button className="secondary full" onClick={logout}>
-                      Me déconnecter
-                    </button>
-                  </>
-                ) : (
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      setError("");
-                      if (!slotId) {
-                        setError("Choisissez un créneau disponible.");
-                        return;
-                      }
-                      if (!account) {
-                        setPending(true);
-                        auth("signup");
-                        return;
-                      }
-                      setBusy(true);
-                      try {
-                        await api("book", { slot_id: slotId, reason });
-                        setSuccess(true);
-                      } catch (e) {
-                        setError((e as Error).message);
-                        loadSlots(selected);
-                        setSlotId("");
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    <label>
-                      Motif
-                      <select
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                      >
-                        {[
-                          "Première consultation",
-                          "Suivi orthodontique",
-                          "Bilan bucco-dentaire",
-                          "Contention",
-                          "Coordination d’accompagnement",
-                        ].map((r) => (
-                          <option key={r}>{r}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <p className="slot-caption">
-                      Créneaux disponibles · Heure de Paris
-                    </p>
-                    <div className="real-slot-grid">
-                      {slots.map((s) => (
-                        <button
-                          type="button"
-                          key={s.id}
-                          aria-pressed={slotId === s.id}
-                          className={slotId === s.id ? "selected" : ""}
-                          onClick={() => setSlotId(s.id)}
-                        >
-                          {dateFormat(s.starts_at)}
-                          <small>{s.duration} min</small>
-                        </button>
-                      ))}
-                    </div>
-                    {slotsLoading ? (
-                      <p className="empty">Chargement…</p>
-                    ) : (
-                      !slots.length && (
-                        <p className="empty">
-                          Ce professionnel n’a pas de créneau disponible.
-                        </p>
-                      )
-                    )}
-                    {error && (
-                      <p className="form-error" role="alert">
-                        {error}
-                      </p>
-                    )}
-                    <button className="primary full" disabled={busy || !slotId}>
-                      {busy
-                        ? "Réservation…"
-                        : account
-                          ? "Confirmer mon rendez-vous"
-                          : "Continuer avec mon compte"}
-                      <ArrowRight size={16} />
-                    </button>
-                    <small>
-                      Votre réservation est partagée avec ce professionnel.
-                    </small>
-                  </form>
-                )}
-              </>
-            ))
-          )}
-        </Dialog>
-      )}
+      {modal&&modal!=='booking'&&<Dialog title="Votre espace SmilePec" close={close}>{modal==='info'?<><h2>Vos informations</h2><p>{info}</p></>:authContent}</Dialog>}
     </div>
   );
 }
