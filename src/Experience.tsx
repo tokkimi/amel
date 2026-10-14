@@ -496,8 +496,8 @@ export function MobileSplash() {
   const [visible, setVisible] = useState(() => {
     try {
       return (
-        window.matchMedia("(max-width: 850px)").matches &&
-        !sessionStorage.getItem("amelib-welcome-v1")
+        !sessionStorage.getItem("smilepec-welcome-v2") &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches
       );
     } catch {
       return false;
@@ -509,11 +509,11 @@ export function MobileSplash() {
     document.body.style.overflow = "hidden";
     const end = () => {
       try {
-        sessionStorage.setItem("amelib-welcome-v1", "1");
+        sessionStorage.setItem("smilepec-welcome-v2", "1");
       } catch {}
       setVisible(false);
     };
-    const timer = setTimeout(end, 1700);
+    const timer = setTimeout(end, 900);
     return () => {
       clearTimeout(timer);
       document.body.style.overflow = old;
@@ -542,7 +542,7 @@ export function MobileSplash() {
       <button
         onClick={() => {
           try {
-            sessionStorage.setItem("amelib-welcome-v1", "1");
+            sessionStorage.setItem("smilepec-welcome-v2", "1");
           } catch {}
           setVisible(false);
         }}

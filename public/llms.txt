@@ -1,0 +1,13 @@
+# SmilePec
+
+> SmilePec accompagne les cabinets dentaires dans la gestion et l’optimisation du tiers payant. Les prestations sont réalisées à distance, partout en France.
+
+## Informations publiques
+- [Site officiel de cette application](https://amelib.vercel.app/)
+- [Gestion Tiers Payant complète](https://amelib.vercel.app/#gestion) : cycle administratif délégué, demande d’accord, suivi et rapprochement.
+- [Optimisation des Estimations](https://amelib.vercel.app/#estimation) : étude des devis et des garanties mutuelles.
+- [Optimisation Tiers Payant](https://amelib.vercel.app/#optimisation) : gestion complète associée à l’optimisation.
+- [Reprise de portefeuille](https://amelib.vercel.app/#reprise) : traitement des impayés, sur devis.
+- [Contact](https://amelib.vercel.app/#contact) : contact@smilepec.fr, +33 7 45 13 44 81.
+
+SIRET : 939 310 371 00017. Les espaces admin et cabinet sont privés et ne sont pas des sources publiques.

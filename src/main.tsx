@@ -11,9 +11,15 @@ import "./pro-suite.css";
 import "./brand-glass.css";
 import "./stability.css";
 import "./smilepec-home.css";
+import "./marketing-polish.css";
+import BrandImageGuard from "./BrandImageGuard";
+import PublicMetadata from "./PublicMetadata";
 createRoot(document.getElementById("root")!).render(
   <>
     <Portal />
     <MobileSplash />
+    <BrandImageGuard />
+    <PublicMetadata />
   </>,
 );
+

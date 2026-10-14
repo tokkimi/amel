@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /pro
+Disallow: /patient
+Disallow: /intervenant
+Disallow: /mon-espace
+Disallow: /smilepec
+Disallow: /api
+Sitemap: https://amelib.vercel.app/sitemap.xml

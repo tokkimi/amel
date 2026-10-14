@@ -1,0 +1,2 @@
+import {useEffect} from 'react';
+export default function BrandImageGuard(){useEffect(()=>{const prevent=(e:Event)=>{const image=e.target as HTMLElement;if(image.tagName==='IMG'&&image.closest('.public-site,.mobile-splash'))e.preventDefault()};document.addEventListener('dragstart',prevent);document.addEventListener('contextmenu',prevent);return()=>{document.removeEventListener('dragstart',prevent);document.removeEventListener('contextmenu',prevent)}},[]);return null;}
