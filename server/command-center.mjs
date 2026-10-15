@@ -453,6 +453,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
 
   // ── Support Center ──────────────────────────────────────────────────────────────────────────
   if (action === 'cc-support' && GET) {
+    const contactRequests=await sql`SELECT value FROM platform_state WHERE key LIKE 'contact-request:%' ORDER BY updated_at DESC LIMIT 100`;
     const rows = await sql`SELECT t.id,t.subject,t.status,t.priority,t.category,t.owner_id,t.due_at,t.first_response_at,t.resolved_at,t.reopened_count,t.last_reply_at,t.created_at,t.updated_at,
       a.name AS requester,a.email AS requester_email,o.name AS owner_name,
       coalesce((SELECT cm.owner_id FROM clinic_members cm WHERE cm.member_id=a.id AND cm.active AND cm.accepted LIMIT 1),a.id) AS cabinet_id,
@@ -462,7 +463,7 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
       FROM support_tickets t JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts o ON o.id=t.owner_id ORDER BY t.updated_at DESC LIMIT 500`;
     const tickets = rows.map((t) => ({ ...t, sla: slaState(t) }));
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    send({ tickets, kpis: {
+    send({ tickets, contact_requests:contactRequests.map(r=>r.value), kpis: {
       new: tickets.filter((t) => t.status === 'new').length,
       open: tickets.filter((t) => ['open', 'in_progress'].includes(t.status)).length,
       waiting: tickets.filter((t) => t.status === 'waiting_customer').length,

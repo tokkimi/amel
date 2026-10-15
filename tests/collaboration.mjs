@@ -14,6 +14,11 @@ try{
  assert.equal((await ok('existing','collaboration')).access.active,true);
  assert.equal((await ok('new','collaboration')).access.active,false);
  assert.equal((await call('new','profile',{clinic_name:'Blocked'})).status,403);
+ const lead=await ok('new','public-contact',{name:'Cabinet fictif',email:'prospect@example.invalid',phone:'0102030405',reason:'Demande de visio de test'});
+ assert(lead.reference.startsWith('SP-'));
+ const support=await ok('admin','cc-support');assert(support.contact_requests.some(r=>r.reference===lead.reference));
+ assert.equal((await call('new','cc-support')).status,403);
+ assert.equal((await call('new','public-contact',{name:'x',email:'bad',reason:'x'})).status,400);
  const q={cabinet:users.new.id};
  const t=await ok('new','collaboration-request',{subject:'Accompagnement fictif',body:'Cabinet de test'});
  const content=Buffer.from('%PDF-1.4\nFake test only\n%%EOF');

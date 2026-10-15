@@ -1,3 +1,4 @@
+import PublicContact from './PublicContact';
 import OriginalHeadline from './OriginalHeadline';
 import SessionDrafts from './SessionDrafts';
 import {SMILEPEC_HERO,SmilePecOffers,SmilePecServiceDetails} from './SmilePecHome';
@@ -729,7 +730,7 @@ export default function Portal() {
           }}
         >
           <details className="public-offers-menu"><summary>Nos offres</summary><div>{[['gestion','Gestion Tiers Payant complète'],['estimation','Optimisation des Estimations'],['optimisation','Optimisation Tiers Payant'],['conventionnement','Conventionnement'],['reprise','Reprise de portefeuille']].map(([id,label])=><a key={id} href={'/#'+id}>{label}</a>)}</div></details>
-          <a href="/outils">Nos outils</a>
+          <a href="/outils">Nos outils</a><a href="/#application-smilepec">Application</a>
           <a href="/#contact">Nous contacter</a>
         </nav>
         <div className="public-auth">
@@ -773,6 +774,7 @@ export default function Portal() {
       )}
       {view === "home" && (
         <>
+          <nav className="home-content-nav top-content-nav" aria-label="Rubriques du site">{[['preuve','Offres'],['optimisation','Optimisation'],['avantages','Avantages'],['reprise','Reprise'],['temoignages','Avis'],['outils-smilepec','Nos outils'],['application-smilepec','Application'],['contact','Contact']].map(([id,label])=><a key={id} href={'#'+id}>{label}</a>)}</nav>
           <section className="public-hero" id="hero">
             <div className="hero-copy">
               <span className="hero-kicker">
@@ -793,7 +795,7 @@ export default function Portal() {
             <div className="public-hero-art" aria-hidden="true">
               <img
                 className="hero-care-photo"
-                src="/amelib-care-team.webp"
+                src="/smilepec-reception.png"
                 alt=""
               />
             </div>
@@ -807,6 +809,7 @@ export default function Portal() {
               </div>
             </div>
           </section>
+
           <SmilePecOffers />
           <SmilePecServiceDetails />
           <ToolsPage compact />
@@ -819,7 +822,9 @@ export default function Portal() {
                 le premier pas.
               </h2>
             </div>
-            <div className="faq-list"><details><summary>À qui s’adresse SmilePec ?</summary><p>Aux cabinets dentaires qui souhaitent déléguer la gestion du tiers payant, optimiser leurs estimations ou reprendre des dossiers impayés.</p></details><details><summary>Comment démarrer avec SmilePec ?</summary><p>Créez votre compte cabinet, transmettez votre demande puis organisez un rendez-vous avec l’équipe SmilePec. Votre proposition est disponible dans votre espace pour consultation et décision.</p></details><details><summary>Comment transmettre mes dossiers ?</summary><p>Après acceptation de votre devis SmilePec, transmettez les fiches et pièces nécessaires dans votre espace cabinet. Retrouvez vos échanges, documents reçus et rendez-vous avec l’équipe au même endroit.</p></details></div></section>
+            <div className="faq-list"><details><summary>À qui s’adresse SmilePec ?</summary><p>Aux cabinets dentaires qui souhaitent déléguer la gestion du tiers payant, optimiser leurs estimations ou reprendre des dossiers impayés.</p></details><details><summary>Comment démarrer avec SmilePec ?</summary><p>Vous pouvez nous contacter sur WhatsApp, remplir le formulaire de demande de rendez-vous ou créer directement votre espace cabinet. Choisissez le moyen qui vous convient ; nous échangeons ensuite sur votre besoin et votre proposition.</p></details><details><summary>Comment transmettre mes dossiers ?</summary><p>Après acceptation de votre devis SmilePec, transmettez les fiches et pièces nécessaires dans votre espace cabinet. Retrouvez vos échanges, documents reçus et rendez-vous avec l’équipe au même endroit.</p></details></div></section>
+          <section className="public-section application-section" id="application-smilepec"><span className="eyebrow">L’APPLICATION SMILEPEC</span><h2>Votre accompagnement, à portée de main.</h2><p>L’application mobile viendra compléter votre espace cabinet pour retrouver vos échanges et documents. Elle est en préparation ; vous pouvez déjà utiliser le site sur téléphone.</p><span className="pill">À venir sur iPhone et Android</span></section>
+          <PublicContact/>
         </>
       )}
       {view === "tools" && <ToolsPage />}

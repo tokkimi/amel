@@ -86,6 +86,21 @@ export default async function handler(req, res) {
       if (rows[0].count > max)
         throw fail(429, "Trop de tentatives. Réessayez dans 15 minutes.");
     };
+    if(action==='public-contact'){
+      if(req.method!=='POST')throw fail(405,'Requête POST nécessaire.');
+      const ip=String(req.headers['x-vercel-forwarded-for']||req.headers['x-forwarded-for']||'unknown').split(',')[0];
+      await limit('contact-ip:'+hash(ip),5);
+      if(b.website)throw fail(400,'Demande invalide.');
+      const name=clean(b.name,120),email=clean(b.email,254).toLowerCase(),phone=clean(b.phone,40),reason=clean(b.reason,2000);
+      if(!name||!reason||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw fail(400,'Indiquez votre nom, votre e-mail et le motif du rendez-vous.');
+      await limit('contact-email:'+hash(email),3);
+      const id=randomUUID(),reference='SP-'+id.slice(0,8).toUpperCase();
+      const value=JSON.stringify({id,reference,name,email,phone,reason,status:'new',created_at:new Date().toISOString()});
+      const admins=await sql`SELECT a.id FROM accounts a LEFT JOIN admin_members m ON m.account_id=a.id WHERE a.role='admin' AND NOT a.suspended AND coalesce(m.internal_role,'platform_owner') IN('platform_owner','operations_admin','support_agent')`;
+      if(!admins.length)throw fail(503,'Le formulaire est momentanément indisponible. Contactez-nous par WhatsApp ou téléphone.');
+      await sql.transaction([sql`INSERT INTO platform_state(key,value) VALUES(${'contact-request:'+id},${value}::jsonb)`,...admins.map(a=>sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${a.id},'support','Nouvelle demande de rendez-vous','Une demande du formulaire public est disponible.','/admin?tab=Demandes+SmilePec')`)]);
+      return send({ok:true,reference});
+    }
     const cookie = (token, age = 604800) =>
       res.setHeader(
         "Set-Cookie",
