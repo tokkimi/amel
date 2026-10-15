@@ -1,3 +1,4 @@
+import OriginalHeadline from './OriginalHeadline';
 import SessionDrafts from './SessionDrafts';
 import {SMILEPEC_HERO,SmilePecOffers,SmilePecServiceDetails} from './SmilePecHome';
 import React, { useEffect, useRef, useState } from "react";
@@ -777,7 +778,7 @@ export default function Portal() {
               <span className="hero-kicker">
                 <span className="dot" /> TIERS PAYANT · OPTIMISÉ
               </span>
-              <h1 className="home-original-headline">{SMILEPEC_HERO}</h1>
+              <OriginalHeadline/>
               <p>
                 Gestion et optimisation du tiers payant dentaire : estimations optimisées, suivi des prises en charge et reprise des dossiers impayés.
               </p>
