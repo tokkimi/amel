@@ -75,7 +75,7 @@ export function TicketDrawer({ id, close }: { id: string; close: () => void }) {
   const reply = cc.can("support.reply");
   return <Drawer open={!!id} onClose={close} title={t?.subject || "Ticket"} subtitle={t && <span className="cc-inline"><button className="cc-link" onClick={() => cc.open("cabinet", t.cabinet_id)}>{t.cabinet_name}</button>· {t.requester} · ouvert {ago(t.created_at)} · #{t.id.slice(0, 8)}</span>}>
     <Loadable loading={loading && !data} error={error} retry={reload}>
-      {t && <div className="cc-stack">
+      {t && <div className="cc-stack"><a className="cc-btn is-primary" href={'/smilepec?cabinet='+encodeURIComponent(t.cabinet_id)}>Ouvrir les échanges, rendez-vous et devis de ce cabinet</a>
         <div className="cc-kv">
           <span>Statut</span><select disabled={!reply} aria-label="Statut" value={t.status} onChange={(e) => update({ status: e.target.value })}>{Object.entries(TICKET_STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
           <span>Priorité</span><select disabled={!reply} aria-label="Priorité" value={t.priority} onChange={(e) => update({ priority: e.target.value })}>{Object.entries(TICKET_PRIORITY).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
