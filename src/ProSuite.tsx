@@ -58,7 +58,6 @@ import {downloadSharedDocument,prepareSharedDocument} from './documents';
 import DocumentPreview from './DocumentPreview';
 import {downloadPatientPdf, downloadWorkbook} from "./exports";
 import TeamPanel from './TeamPanel';
-import LiveTracking from './LiveTracking';
 import SupportPanel from './SupportPanel';
 import CollaborationPanel from './CollaborationPanel';
 import NotificationCenter from "./NotificationCenter";
@@ -67,7 +66,6 @@ const pages = [
   "Patients",
   "Comptabilité",
   "Messages",
-  "Courses",
   "Tâches",
   "Mon profil",
   "Équipe",
@@ -300,7 +298,6 @@ export default function ProSuite({
     ["Patients", Users],
     ["Comptabilité", Wallet],
     ["Messages", MessageCircle],
-    ["Courses", Navigation],
     ["Tâches", Kanban],
     ["Mon profil", Settings],
     ["Équipe", Users],
@@ -341,9 +338,6 @@ export default function ProSuite({
             >
               <I size={18} />
               {n === "SmilePec" ? "Mon suivi SmilePec" : n === "Tâches" ? "Dossiers PEC" : n === "Messages" ? "Messages patients" : n}
-              {n === "Courses" && activeMissions.length > 0 && (
-                <b>{activeMissions.length}</b>
-              )}
             </button>
           ))}
         </nav>
@@ -758,85 +752,6 @@ export default function ProSuite({
                       </p>
                     </div>
                   )}
-                </section>
-              </div>
-            </>
-          )}
-
-          {page === "Courses" && (
-            <>
-              {heading(
-                "Courses en cours.",
-                "Planifiez une visite, suivez son statut et partagez une heure d’arrivée claire.",
-                <button className="primary" onClick={() => setModal("mission")}>
-                  <Plus />
-                  Nouvelle course
-                </button>,
-              )}
-              <div className="mission-layout">
-                <LiveTracking missions={data.missions}/>
-                <section className="glass mission-map" hidden>
-                  <div className="fake-map">
-                    <div className="map-road one" />
-                    <div className="map-road two" />
-                    {activeMissions.slice(0, 4).map((m, i) => (
-                      <div className={`map-person p${i}`} key={m.id}>
-                        <Avatar name={m.assignee} src={m.photo_data} />
-                        <span>
-                          {m.eta ? m.eta + " min" : statusLabels[m.status]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="map-note">
-                    <Navigation />
-                    <span>Position illustrative</span>
-                    <small>
-                      Le branchement GPS temps réel nécessite le consentement de
-                      l’intervenant.
-                    </small>
-                  </div>
-                </section>
-                <section className="mission-list">
-                  {data.missions.map((m) => (
-                    <article className="glass" key={m.id}>
-                      <Avatar
-                        name={m.assignee}
-                        src={m.photo_data}
-                        size="large"
-                      />
-                      <div className="grow">
-                        <span className="feature-state">
-                          {statusLabels[m.status]}
-                        </span>
-                        <h2>{m.title}</h2>
-                        <p>
-                          {m.assignee} · {m.address}
-                        </p>
-                        <strong>
-                          {m.eta
-                            ? `Arrivée estimée dans ${m.eta} min`
-                            : "Horaire à confirmer"}
-                        </strong>
-                      </div>
-                      <select
-                        value={m.status}
-                        onChange={(e) =>
-                          act(
-                            "mission-status",
-                            { id: m.id, status: e.target.value, eta: m.eta },
-                            "Statut de la course actualisé.",
-                          )
-                        }
-                      >
-                        <option value="planned">Planifiée</option>
-                        <option value="en_route">En route</option>
-                        <option value="nearby">À proximité</option>
-                        <option value="arrived">Arrivée</option>
-                        <option value="completed">Terminée</option>
-                      </select>
-                    </article>
-                  ))}
                 </section>
               </div>
             </>
@@ -1269,9 +1184,6 @@ export default function ProSuite({
             >
               <I />
               {n === "Comptabilité" ? "Compta" : n === "Tâches" ? "Dossiers PEC" : n === "Mon profil" ? "Mon cabinet" : n}
-              {n === "Courses" && activeMissions.length > 0 && (
-                <b>{activeMissions.length}</b>
-              )}
             </button>
           ))}
         </nav>
@@ -1777,15 +1689,7 @@ export default function ProSuite({
           />
         </Modal>
       )}
-      {modal === "mission" && (
-        <Modal title="Planifier une course" close={() => setModal("")}>
-          <MissionForm
-            appointments={appointments}
-            profile={profile}
-            save={(body) => act("mission-save", body, "Course planifiée.")}
-          />
-        </Modal>
-      )}
+
     </div>
   );
 }
