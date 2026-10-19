@@ -75,3 +75,35 @@
 .public-site .public-footer>div>span{display:block;font-size:14px;line-height:1.7}
 .public-site .public-footer-bottom{padding-top:24px!important;gap:16px;line-height:1.7;flex-wrap:wrap}
 @media(max-width:850px){.public-site .public-footer{padding-top:32px!important;row-gap:28px}}
+
+/* Continuous vertical steps: no scroll capture, no sticky section. */
+.public-site .process-loop{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(135deg,#fffdf9db,#ffffff55)!important;box-shadow:inset 0 1px #fff,0 20px 44px #70523714!important}
+.process-loop-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+.process-loop-heading .eyebrow{margin:0!important}
+.process-loop-heading button{flex-shrink:0;background:#ffffff70;border:1px solid #d8cbb8;border-radius:20px;padding:8px 12px;color:#695440;font-size:11px;cursor:pointer}
+.process-loop-heading button:focus-visible{outline:2px solid #8e7354;outline-offset:3px}
+.process-loop-window{height:292px;overflow:hidden;mask-image:linear-gradient(transparent,#000 7%,#000 93%,transparent);-webkit-mask-image:linear-gradient(transparent,#000 7%,#000 93%,transparent)}
+.public-site .process-loop-track>ol{margin:0!important;padding:12px 0!important;gap:24px!important;list-style:none}
+.public-site .process-loop-track li{min-height:76px;align-items:start}
+.process-loop-track{animation:sp-steps-loop 24s linear infinite;animation-play-state:paused;will-change:transform}
+.process-loop.is-visible .process-loop-track{animation-play-state:running}
+.process-loop:hover .process-loop-track,.process-loop:focus-within .process-loop-track{animation-play-state:paused}
+.process-loop.is-expanded .process-loop-window{height:auto;mask-image:none;-webkit-mask-image:none}
+.process-loop.is-expanded .process-loop-track{animation:none;transform:none;will-change:auto}
+.process-loop.is-expanded ol[aria-hidden]{display:none}
+@keyframes sp-steps-loop{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+@keyframes sp-service-arrive{from{opacity:.55;transform:translateY(22px)}to{opacity:1;transform:none}}
+.public-site .service-revealed>.home-service-copy{animation:sp-service-arrive .65s ease-out both}
+.public-site .service-revealed>.process-loop{animation:sp-service-arrive .8s ease-out both}
+@media(max-width:700px){.process-loop-heading{gap:10px;flex-wrap:wrap}.process-loop-window{height:290px}.public-site .process-loop-track li{min-height:94px}}
+@media(prefers-reduced-motion:reduce){.process-loop-track,.public-site .service-revealed>.home-service-copy,.public-site .service-revealed>.process-loop{animation:none!important;transform:none!important}.process-loop-window{height:auto;mask-image:none;-webkit-mask-image:none}.process-loop ol[aria-hidden],.process-loop-heading button{display:none}.process-loop-track{will-change:auto}}
+
+/* Native sticky storytelling: scroll advances steps, then releases the section. */
+.public-site .home-service-detail.scroll-service{min-height:190svh;align-items:start;overflow:visible!important}
+.public-site .scroll-service>.home-service-copy,.public-site .scroll-service>.scroll-process{position:sticky;top:128px;animation:none!important}
+.public-site .scroll-process .process-loop-window{height:220px;mask-image:linear-gradient(#000 88%,transparent);-webkit-mask-image:linear-gradient(#000 88%,transparent)}
+.public-site .process-scroll-track{margin:0!important;padding:8px 0!important;gap:28px!important;will-change:transform}
+.public-site .process-scroll-track>li{min-height:112px;align-items:start}
+.public-site .scroll-process.is-expanded .process-loop-window{height:auto;mask-image:none;-webkit-mask-image:none}
+@media(max-width:850px){.public-site .home-service-detail.scroll-service{display:block!important;min-height:210svh}.public-site .scroll-service>.home-service-copy{position:relative;top:auto;margin-bottom:28px}.public-site .scroll-service>.scroll-process{top:108px}.public-site .process-scroll-track>li{min-height:132px}.public-site .scroll-process .process-loop-window{height:240px}}
+@media(prefers-reduced-motion:reduce){.public-site .home-service-detail.scroll-service{min-height:0}.public-site .scroll-service>.home-service-copy,.public-site .scroll-service>.scroll-process{position:relative;top:auto}.public-site .scroll-process .process-loop-window{height:auto;mask-image:none;-webkit-mask-image:none}.process-scroll-track{transform:none!important;will-change:auto}}
