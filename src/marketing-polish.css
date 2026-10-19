@@ -68,3 +68,10 @@
 .public-site .service-tools-grid>article{min-width:0;overflow-wrap:anywhere}
 @media(min-width:851px){.public-site .service-tools-page{padding-top:80px;padding-bottom:80px}.public-site #application-smilepec{padding-bottom:80px}.public-site .home-contact{padding-top:80px!important;padding-bottom:80px!important;gap:64px;align-items:start}.public-site .home-contact-details{margin-top:32px}}
 @media(max-width:850px){.public-site .service-tools-grid{grid-template-columns:1fr}.public-site .service-tools-actions{gap:12px}.public-site .service-tools-actions .secondary{max-width:100%;white-space:normal}}
+/* Give footer dividers their own breathing room and align column headings. */
+.public-site .public-footer{padding-top:40px!important;row-gap:36px;align-items:start}
+.public-site .public-footer>div{min-width:0}
+.public-site .public-footer>div>strong{margin-top:0;line-height:1.5}
+.public-site .public-footer>div>span{display:block;font-size:14px;line-height:1.7}
+.public-site .public-footer-bottom{padding-top:24px!important;gap:16px;line-height:1.7;flex-wrap:wrap}
+@media(max-width:850px){.public-site .public-footer{padding-top:32px!important;row-gap:28px}}
