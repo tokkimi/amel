@@ -774,7 +774,6 @@ export default function Portal() {
       )}
       {view === "home" && (
         <>
-          <nav className="home-content-nav top-content-nav" aria-label="Rubriques du site">{[['preuve','Offres'],['optimisation','Optimisation'],['avantages','Avantages'],['reprise','Reprise'],['temoignages','Avis'],['outils-smilepec','Nos outils'],['application-smilepec','Application'],['contact','Contact']].map(([id,label])=><a key={id} href={'#'+id}>{label}</a>)}</nav>
           <section className="public-hero" id="hero">
             <div className="hero-copy">
               <span className="hero-kicker">

@@ -238,3 +238,24 @@
 @media(hover:hover) and (pointer:fine){.public-site :is(.primary,.secondary,.process-loop-heading button):hover{transform:translateY(-2px) scale(1.025);filter:brightness(1.04);box-shadow:inset 0 1px 1px #fff,0 10px 24px #503a2118,0 0 18px #ffffff8c!important}}
 @media(max-width:850px){.public-site .hero-actions>*{max-width:100%;width:fit-content!important}.public-site .public-header .primary{font-size:11px!important;padding:8px 12px!important;max-width:126px}.public-site .home-service-actions{flex-direction:row!important;align-items:center!important}.public-site .home-service-actions a{width:fit-content!important}.public-site .contact-form-panel button.primary{max-width:100%}}
 @media(prefers-reduced-motion:reduce){.public-site :is(.primary,.secondary,.process-loop-heading button){transition:none!important;transform:none!important}}
+/* Softer method section: champagne glass instead of a large black panel. */
+.public-site #avantages{background:linear-gradient(135deg,#e8dfd0,#f5efe5 58%,#eae2d6)!important;color:#40352b;border:1px solid #fff!important;box-shadow:inset 0 1px #fff,0 18px 42px #7052370a!important}
+.public-site #avantages :is(h2,h3){color:#40352b!important}
+.public-site #avantages h2 em{color:#93764f!important}
+.public-site #avantages .eyebrow{color:#786345!important}
+.public-site #avantages .home-advantages-grid>:is(article,div){background:linear-gradient(135deg,#fffffff0,#ffffffa3)!important;border:1px solid #fff!important;box-shadow:inset 0 1px #fff,0 8px 22px #70523708}
+.public-site #avantages .home-advantages-grid p,.public-site #avantages .home-report-note{color:#625547!important}
+.public-site #avantages svg{color:#96794f}
+.public-site #avantages .home-report-note{border-color:#ac916b}
+@media(hover:hover){.public-site #avantages .home-advantages-grid>:is(article,div):hover{background:#fff!important;box-shadow:inset 0 1px #fff,0 12px 28px #70523712}}
+/* Consistent subtle card zoom; informational cards keep the normal cursor. */
+.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card,.contact-form-panel,.home-recovery-value){cursor:default;transition:scale .3s ease,box-shadow .3s ease,background .3s ease;transform-origin:center}
+.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card,.home-recovery-value) :is(h3,p,blockquote,figcaption,span,strong){cursor:inherit}
+.public-site a.home-offer-card,.public-site :is(.home-service-process,.contact-form-panel) :is(button,a){cursor:pointer}
+.public-site .contact-form-panel :is(input,textarea){cursor:text}
+@media(hover:hover) and (pointer:fine){.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card.active,.home-recovery-value):hover{scale:1.018;transform:none;translate:none;box-shadow:inset 0 1px #fff,0 18px 36px #70523716!important}.public-site .connected-card.active:hover{transform:translateX(-50%)}.public-site .home-offer-card.is-featured:hover{box-shadow:inset 0 1px #ffffff44,0 18px 36px #24201c30!important}}
+@media(prefers-reduced-motion:reduce){.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card,.contact-form-panel,.home-recovery-value){scale:1!important;transition:none!important}}
+.public-site .connected-card{transition:transform .65s cubic-bezier(.22,.7,.2,1),opacity .65s ease,filter .65s ease,scale .3s ease,box-shadow .3s ease}
+@media(prefers-reduced-motion:reduce){.public-site .connected-card{transition:none!important}}
+@media(min-width:851px){.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card.active,.home-recovery-value):hover{scale:1.018;translate:none;box-shadow:inset 0 1px #fff,0 18px 36px #70523716!important}}
+@media(prefers-reduced-motion:reduce){.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card,.home-recovery-value):hover{scale:1!important}}
