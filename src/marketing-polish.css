@@ -259,3 +259,18 @@
 @media(prefers-reduced-motion:reduce){.public-site .connected-card{transition:none!important}}
 @media(min-width:851px){.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card.active,.home-recovery-value):hover{scale:1.018;translate:none;box-shadow:inset 0 1px #fff,0 18px 36px #70523716!important}}
 @media(prefers-reduced-motion:reduce){.public-site :is(.home-offer-card,.service-tools-grid>article,.home-service-process,.home-advantages-grid>article,.home-advantages-grid>div,.connected-card,.home-recovery-value):hover{scale:1!important}}
+/* Warm brown accents inspired by the reference, preserving SmilePec typography. */
+.public-site{--sp-action-brown:#60432c;--sp-action-brown-deep:#382719;--sp-accent-caramel:#a7865e}
+.public-site .primary,.public-site .hero-actions .primary,.public-site .public-header .primary,.public-site .contact-form-panel button.primary{background:linear-gradient(145deg,#795b40,#49301f)!important;border:1px solid #8a6b4d!important;color:#fffaf1!important;box-shadow:inset 0 1px 1px #ffffff45,inset 0 -1px 2px #291b1733,0 8px 20px #60432c21!important}
+.public-site .primary :is(span,svg){color:inherit!important}
+.public-site .secondary{background:linear-gradient(135deg,#fffdf5ed,#f7eee3c9)!important;color:#4b3524!important;border:1px solid #fffdf7!important;box-shadow:inset 0 1px #fff,0 6px 18px #73523310!important}
+.public-site .home-contact>div:first-child{background:linear-gradient(145deg,#70563d,#463323)!important}
+.public-site .home-contact>div:first-child .home-service-actions .primary{background:linear-gradient(135deg,#fff9ef,#ead9c2)!important;border-color:#f8ead6!important;color:#44301f!important}
+.public-site .home-contact>div:first-child .home-service-actions .secondary{background:#ffffff10!important;border-color:#ffffff65!important;color:#fffaf1!important}
+.public-site .process-scroll-track .step-current{background:linear-gradient(115deg,#e9d9c16b,#f8f2e95c)}
+.public-site .process-scroll-track .step-current .home-step-number{background:#795b40;border-color:#795b40;box-shadow:0 4px 10px #60432c1c}
+.public-site .home-service-tag{border-color:#c5ab87;color:#76583b!important;background:#ffffff55}
+.public-site .connected-dots button.active{background:#795b40!important}
+.public-site .contact-form-panel button.primary:hover{background:linear-gradient(145deg,#89694b,#583b27)!important}
+@media(hover:hover) and (pointer:fine){.public-site .primary:hover{filter:brightness(1.08);box-shadow:inset 0 1px #ffffff70,0 12px 24px #60432c28!important}}
+.public-site .home-contact>div:first-child .eyebrow{color:#f0d6af!important}
