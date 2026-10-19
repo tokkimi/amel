@@ -107,3 +107,20 @@
 .public-site .scroll-process.is-expanded .process-loop-window{height:auto;mask-image:none;-webkit-mask-image:none}
 @media(max-width:850px){.public-site .home-service-detail.scroll-service{display:block!important;min-height:210svh}.public-site .scroll-service>.home-service-copy{position:relative;top:auto;margin-bottom:28px}.public-site .scroll-service>.scroll-process{top:108px}.public-site .process-scroll-track>li{min-height:132px}.public-site .scroll-process .process-loop-window{height:240px}}
 @media(prefers-reduced-motion:reduce){.public-site .home-service-detail.scroll-service{min-height:0}.public-site .scroll-service>.home-service-copy,.public-site .scroll-service>.scroll-process{position:relative;top:auto}.public-site .scroll-process .process-loop-window{height:auto;mask-image:none;-webkit-mask-image:none}.process-scroll-track{transform:none!important;will-change:auto}}
+
+/* Rounded white glass testimonials, with a seamless, pausable horizontal loop. */
+.testimonial-controls{display:flex;justify-content:flex-end;margin:0 0 16px}
+.testimonial-controls button{border:1px solid #d8cbb8;background:#ffffff99;border-radius:24px;padding:10px 16px;font-size:12px;color:#695440;cursor:pointer}
+.testimonial-controls button:focus-visible{outline:2px solid #8e7354;outline-offset:3px}
+.testimonials-marquee{overflow:hidden;max-width:100%;padding:8px 0 30px;mask-image:linear-gradient(90deg,transparent,#000 2%,#000 98%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 2%,#000 98%,transparent)}
+.testimonials-track{display:flex;width:max-content;animation:sp-testimonials 42s linear infinite;animation-play-state:paused;will-change:transform}
+.testimonials-marquee.is-visible .testimonials-track{animation-play-state:running}
+.testimonials-marquee:hover .testimonials-track,.testimonials-marquee.is-paused .testimonials-track{animation-play-state:paused}
+.testimonials-group{display:flex;align-items:stretch;gap:20px;padding-right:20px}
+.public-site .testimonials-group figure{flex:0 0 350px;width:350px;min-width:0;display:flex;flex-direction:column;margin:0;padding:28px;border-radius:28px;background:linear-gradient(135deg,#ffffffed,#ffffffa8)!important;border:1px solid #fff;box-shadow:inset 0 1px #fff,0 12px 24px #7052370d;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.testimonials-group blockquote{font-family:Georgia,serif;font-size:18px;line-height:1.7;margin:0 0 24px;color:#594433}
+.testimonials-group blockquote:before{content:'“';display:block;color:#ad9475;font-size:38px;line-height:1;margin-bottom:12px}
+.testimonials-group figcaption{display:grid;gap:5px;margin-top:auto;font-size:13px}.testimonials-group figcaption span{font-size:11px;color:#7b6652}
+@keyframes sp-testimonials{to{transform:translateX(-50%)}}
+@media(max-width:700px){.public-site .testimonials-group figure{flex-basis:290px;width:290px;padding:24px}.testimonials-group blockquote{font-size:17px}.testimonials-track{animation-duration:48s}}
+@media(prefers-reduced-motion:reduce){.testimonials-track{animation:none;transform:none;will-change:auto;width:100%}.testimonials-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));padding:0;width:100%}.public-site .testimonials-group figure{width:auto}.testimonials-group[aria-hidden],.testimonial-controls{display:none}.testimonials-marquee{mask-image:none;-webkit-mask-image:none;overflow:visible}}
