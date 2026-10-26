@@ -1,3 +1,4 @@
+import {publicSlots} from '../server/contact-workflow.mjs';
 import {savePec,pecReport,presentTask} from '../server/pec.mjs';
 import { cabinetAccess, collaborationAction } from '../server/collaboration.mjs';
 import { draftAction } from '../server/drafts.mjs';
@@ -86,6 +87,7 @@ export default async function handler(req, res) {
       if (rows[0].count > max)
         throw fail(429, "Trop de tentatives. Réessayez dans 15 minutes.");
     };
+    if(action==='public-contact-slots'&&req.method==='GET')return send({slots:await publicSlots(sql)});
     if(action==='public-contact'){
       if(req.method!=='POST')throw fail(405,'Requête POST nécessaire.');
       const ip=String(req.headers['x-vercel-forwarded-for']||req.headers['x-forwarded-for']||'unknown').split(',')[0];
@@ -95,10 +97,13 @@ export default async function handler(req, res) {
       if(!name||!reason||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw fail(400,'Indiquez votre nom, votre e-mail et le motif du rendez-vous.');
       await limit('contact-email:'+hash(email),3);
       const id=randomUUID(),reference='SP-'+id.slice(0,8).toUpperCase();
+      const slotId=String(b.slot_id||'');if(!/^[0-9a-f-]{36}$/i.test(slotId))throw fail(400,'Choisissez un créneau disponible.');
       const value=JSON.stringify({id,reference,name,email,phone,reason,status:'new',created_at:new Date().toISOString()});
       const admins=await sql`SELECT a.id FROM accounts a LEFT JOIN admin_members m ON m.account_id=a.id WHERE a.role='admin' AND NOT a.suspended AND coalesce(m.internal_role,'platform_owner') IN('platform_owner','operations_admin','support_agent')`;
       if(!admins.length)throw fail(503,'Le formulaire est momentanément indisponible. Contactez-nous par WhatsApp ou téléphone.');
-      await sql.transaction([sql`INSERT INTO platform_state(key,value) VALUES(${'contact-request:'+id},${value}::jsonb)`,...admins.map(a=>sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${a.id},'support','Nouvelle demande de rendez-vous','Une demande du formulaire public est disponible.','/admin?tab=Demandes+SmilePec')`)]);
+      const booked=await sql`WITH slot AS (UPDATE platform_state SET value=value||jsonb_build_object('status','reserved','request_id',${id}::text),updated_at=now() WHERE key=${'contact-slot:'+slotId} AND value->>'status'='open' AND (value->>'starts_at')::timestamptz>now()+interval '1 hour' RETURNING value) INSERT INTO platform_state(key,value) SELECT ${'contact-request:'+id},${value}::jsonb||jsonb_build_object('slot_id',${slotId}::text,'starts_at',slot.value->>'starts_at','host_name',slot.value->>'host_name') FROM slot RETURNING value`;
+      if(!booked.length)throw fail(409,'Ce créneau vient d’être réservé. Choisissez-en un autre.');
+      await Promise.all(admins.map(a=>sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${a.id},'support','Nouvelle demande de rendez-vous','Une demande du formulaire public est disponible.','/admin?tab=Demandes+SmilePec')`));
       return send({ok:true,reference});
     }
     const cookie = (token, age = 604800) =>

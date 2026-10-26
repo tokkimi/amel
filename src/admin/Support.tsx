@@ -1,3 +1,4 @@
+import ContactWorkflow from './ContactWorkflow';
 import { useEffect, useState } from "react";
 import { Lock, Send } from "lucide-react";
 import DocumentPreview from "../DocumentPreview";
@@ -34,7 +35,7 @@ export default function Support() {
   const k = data?.kpis;
   return <div className="cc-stack">
     <header className="cc-page-head"><div><h1>Demandes SmilePec</h1><p>Demandes des cabinets, délais de réponse et échanges — réponses au cabinet et notes internes séparées.</p></div>{cc.can("support.reply") && <button className="cc-btn is-primary" onClick={() => setRequest(true)}><Send size={15} />Demander des informations</button>}</header>
-    {!!data?.contact_requests?.length&&<Card><h2>Demandes de rendez-vous — formulaire du site</h2><p>Ces visiteurs n’ont pas nécessairement de compte. Recontactez-les pour convenir du créneau ; aucun rendez-vous n’est confirmé automatiquement.</p>{data.contact_requests.map((r:any)=><article className="public-lead" key={r.id}><h3>{r.name}</h3><small>{r.reference} · {day(r.created_at)}</small><p style={{whiteSpace:'pre-wrap'}}>{r.reason}</p><div className="cc-inline"><a className="cc-btn" href={'mailto:'+encodeURIComponent(r.email)+'?subject='+encodeURIComponent('Votre demande de rendez-vous SmilePec — '+r.reference)}>Répondre par e-mail</a>{r.phone&&<a className="cc-btn" href={'tel:'+r.phone.replace(/[^+0-9]/g,'')}>Appeler {r.phone}</a>}</div><small>{r.email}</small></article>)}</Card>}
+    <ContactWorkflow settings={data?.followup_settings} requests={data?.contact_requests||[]} slots={data?.contact_slots||[]} reload={reload}/>
     {k && <div className="cc-kpis">
       <Kpi label="Nouveaux" value={k.new} tone={k.new ? "info" : "neutral"} onClick={() => setStatus("new")} />
       <Kpi label="En cours" value={k.open} onClick={() => setStatus("active")} />

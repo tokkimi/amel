@@ -1,3 +1,4 @@
+import {createContactSlot,saveContactFollowup,saveFollowupSettings,sendContactRecap} from './contact-workflow.mjs';
 import {smilepecFinance} from './smilepec-finance.mjs';
 import { queueCommunication } from './collaboration-mail.mjs';
 // Amelib Command Center — admin-only API actions (prefix "cc-").
@@ -31,7 +32,7 @@ const REQUIRED = {
   'cc-me': null, 'cc-badges': null, 'cc-home': null, 'cc-inbox': null, 'cc-event': null, 'cc-search': null, 'cc-notifications': null, 'cc-views': null, 'cc-ask': null,
   'cc-event-create': 'inbox.manage', 'cc-event-update': 'inbox.manage', 'cc-bulk': null, 'cc-note-add': null, 'cc-view-save': null, 'cc-view-delete': null,
   'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update', 'cc-cabinet-create': 'cabinet.update', 'cc-report': 'cabinet.read', 'cc-report-prepared': 'export.bulk',
-  'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
+  'cc-contact-recap-send': 'support.reply', 'cc-contact-settings': 'settings.update', 'cc-contact-slot': 'appointment.manage', 'cc-contact-followup': 'support.reply', 'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
   'cc-verifications': 'verification.read', 'cc-verification-update': null, 'cc-accounts': 'account.read',
   'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-pec-overview': 'pec.manage', 'cc-audit': 'audit.read',
   'cc-config': 'settings.read', 'cc-system': 'settings.read', 'cc-rule-update': 'settings.update', 'cc-automations-run': 'settings.update',
@@ -451,6 +452,10 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     return true;
   }
 
+  if(action==='cc-contact-recap-send'&&POST){const result=await sendContactRecap(sql,b);await audit({action:'contact_recap_sent',entityType:'contact_request',entityId:b.id,detail:'Récapitulatif envoyé au contact'});send(result);return true;}
+  if(action==='cc-contact-settings'&&POST){const settings=await saveFollowupSettings(sql,b);await audit({action:'contact_followup_settings_saved',entityType:'settings',entityId:'contact-followup-settings',detail:'Mode et délai des relances modifiés'});send({ok:true,settings});return true;}
+  if(action==='cc-contact-slot'&&POST){const slot=await createContactSlot(sql,account,b);await audit({action:'contact_slot_created',entityType:'contact_slot',entityId:slot.id,detail:'Créneau public ouvert'});send({ok:true,slot});return true;}
+  if(action==='cc-contact-followup'&&POST){const lead=await saveContactFollowup(sql,b,account);await audit({action:'contact_followup_saved',entityType:'contact_request',entityId:b.id,detail:'Suivi après rendez-vous enregistré'});send({ok:true,lead});return true;}
   // ── Support Center ──────────────────────────────────────────────────────────────────────────
   if (action === 'cc-support' && GET) {
     const contactRequests=await sql`SELECT value FROM platform_state WHERE key LIKE 'contact-request:%' ORDER BY updated_at DESC LIMIT 100`;
@@ -463,7 +468,9 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
       FROM support_tickets t JOIN accounts a ON a.id=t.account_id LEFT JOIN accounts o ON o.id=t.owner_id ORDER BY t.updated_at DESC LIMIT 500`;
     const tickets = rows.map((t) => ({ ...t, sla: slaState(t) }));
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    send({ tickets, contact_requests:contactRequests.map(r=>r.value), kpis: {
+    const contactSlots=await sql`SELECT value FROM platform_state WHERE key LIKE 'contact-slot:%' AND (value->>'starts_at')::timestamptz>now() ORDER BY value->>'starts_at' LIMIT 100`;
+    const [followupConfig]=await sql`SELECT value FROM platform_state WHERE key='contact-followup-settings'`;
+    send({ tickets, followup_settings:followupConfig?.value||{mode:'manual',delay_hours:48}, contact_slots:contactSlots.map(r=>r.value), contact_requests:contactRequests.map(r=>r.value), kpis: {
       new: tickets.filter((t) => t.status === 'new').length,
       open: tickets.filter((t) => ['open', 'in_progress'].includes(t.status)).length,
       waiting: tickets.filter((t) => t.status === 'waiting_customer').length,
