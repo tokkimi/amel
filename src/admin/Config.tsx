@@ -1,3 +1,4 @@
+import CalendarConnections from './CalendarConnections';
 import { useEffect, useState } from "react";
 import { Play, RefreshCw } from "lucide-react";
 import { api } from "../client";
@@ -15,7 +16,7 @@ export default function Config() {
     <Tabs label="Configuration" tabs={SUBS.map((s) => ({ key: s, label: s }))} value={tab} onChange={(s) => setSub(s === "Plateforme" ? "" : s, true)} />
     <Loadable loading={loading && !data} error={error} retry={reload} rows={8}>
       {data && <>
-        {tab === "Plateforme" && <Platform settings={data.settings} />}
+        {tab === "Plateforme" && <>{cc.can("appointment.manage")&&<CalendarConnections/>}<Platform settings={data.settings} /></>}
         {tab === "Automatisations" && <Automations data={data} />}
         {tab === "Feature flags" && <Flags flags={data.flags} />}
         {tab === "Équipe & rôles" && <Roles data={data} />}

@@ -477,3 +477,8 @@
 .cc-pec-cabinet-metrics em { font-style:normal; font-size:11px; padding:3px 7px; border-radius:999px; background:var(--cc-soft); border:1px solid var(--cc-border); white-space:nowrap; }.cc-pec-cabinet-metrics em.critical { color:var(--cc-critical); background:var(--cc-critical-bg); }.cc-pec-cabinet-metrics em.warn { color:var(--cc-warn); background:var(--cc-warn-bg); }
 .cc-message-files,.support-attachments { list-style:none; padding:0; margin:8px 0 0; display:flex; gap:6px; flex-wrap:wrap; }.cc-message-files a,.support-attachments a { display:inline-flex; max-width:100%; overflow-wrap:anywhere; padding:4px 8px; border-radius:7px; background:var(--cc-accent-soft); color:var(--cc-accent-strong); font-size:12px; font-weight:600; }
 @media (max-width:760px) { .cc-pec-pipeline { grid-template-columns:repeat(2,minmax(0,1fr)); }.cc-pec-cabinets .cc-list-row { align-items:flex-start; }.cc-pec-cabinet-metrics { justify-content:flex-start; } }
+
+/* Calendar connections belong to Platform settings; tabs wrap on touch screens. */
+.cc-calendar-settings{padding:24px;border:1px solid var(--cc-border);border-radius:20px;background:var(--cc-surface,#fff)}
+.cc-calendar-settings>h2{margin:0 0 12px}.cc-calendar-settings>p{line-height:1.7}
+@media(max-width:850px){.cc-app .cc-tabs{flex-wrap:wrap;overflow-x:visible;gap:4px;touch-action:pan-y}.cc-app .cc-tabs button{flex:0 1 auto;white-space:normal;min-height:44px;line-height:1.4}.cc-calendar-settings{padding:18px}.cc-calendar-settings .cc-inline{flex-wrap:wrap}.cc-calendar-settings select{max-width:100%}}
