@@ -12,14 +12,16 @@ export async function createContactSlot(sql,account,b){
 }
 export async function saveContactFollowup(sql,b,actor){
  const key='contact-request:'+String(b.id||'');const [row]=await sql`SELECT value FROM platform_state WHERE key=${key}`;if(!row)throw fail(404,'Demande introuvable.');
- const allowed=['new','appointment_completed','recap_prepared','quote_prepared','quote_sent','followup_due','closed'];if(!allowed.includes(b.status))throw fail(400,'Statut invalide.');
+ const allowed=['new','confirmed','appointment_completed','recap_prepared','quote_prepared','quote_sent','followup_due','closed'];if(!allowed.includes(b.status))throw fail(400,'Statut invalide.');
  const recap=String(b.recap||'').trim();if(recap.length>10000)throw fail(400,'Récapitulatif trop long.');
  const mode=b.mode==='recap_quote'?'recap_quote':'recap';const due=b.status==='quote_sent'&&row.value.status!=='quote_sent'?new Date(Date.now()+48*3600000).toISOString():row.value.followup_at||null;
  const [config]=await sql`SELECT value FROM platform_state WHERE key='contact-followup-settings'`;
  const settings=config?.value||{mode:'manual',delay_hours:48};
  const followupAt=b.status==='quote_sent'&&row.value.status!=='quote_sent'?new Date(Date.now()+Number(settings.delay_hours||48)*3600000).toISOString():due;
  const patch={status:b.status,recap,mode,followup_mode:settings.mode,followup_at:followupAt,updated_by:actor.id,updated_at:new Date().toISOString()};
- const [updated]=await sql`UPDATE platform_state SET value=value||${JSON.stringify(patch)}::jsonb,updated_at=now() WHERE key=${key} RETURNING value`;return updated.value;
+ const [updated]=await sql`UPDATE platform_state SET value=value||${JSON.stringify(patch)}::jsonb,updated_at=now() WHERE key=${key} RETURNING value`;
+ await sql`UPDATE operational_events SET status=${b.status==='closed'?'resolved':'open'},resolved_at=CASE WHEN ${b.status==='closed'} THEN now() ELSE NULL END,updated_at=now() WHERE entity_type='contact_request' AND entity_id=${String(b.id)}`;
+ return updated.value;
 }
 
 export async function saveFollowupSettings(sql,b){
@@ -37,4 +39,25 @@ export async function sendContactRecap(sql,b){
  const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+process.env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'contact-recap-'+digest},body:JSON.stringify({from:process.env.BILLING_FROM_EMAIL,to:[lead.email],subject:'Suite de notre rendez-vous SmilePec — '+lead.reference,text:lead.recap}),signal:AbortSignal.timeout(10000)});
  if(!response.ok)throw fail(502,'L’envoi a échoué. Le récapitulatif reste enregistré ; vous pouvez réessayer.');
  await sql`UPDATE platform_state SET value=value||${JSON.stringify({recap_sent_at:new Date().toISOString(),recap_sent_digest:digest})}::jsonb,updated_at=now() WHERE key=${key}`;return {ok:true};
+}
+
+// Contact mail delivery is independent of booking and admin notifications.
+export async function deliverContactNotice(sql,id){
+ const key='contact-mail:'+id;
+ const [row]=await sql`SELECT value FROM platform_state WHERE key=${'contact-request:'+id}`;
+ if(!row)return {status:'missing'};
+ if(!mailReady()){
+  await sql`UPDATE platform_state SET value=value||'{"status":"blocked","error":"Expéditeur e-mail non activé"}'::jsonb,updated_at=now() WHERE key=${key}`;
+  return {status:'blocked'};
+ }
+ const [claim]=await sql`UPDATE platform_state SET value=value||jsonb_build_object('status','sending','attempts',coalesce((value->>'attempts')::int,0)+1,'claimed_at',now()),updated_at=now() WHERE key=${key} AND (value->>'status' IN('pending','blocked','failed') OR (value->>'status'='sending' AND updated_at<now()-interval '2 minutes')) RETURNING value`;
+ if(!claim)return {status:'unchanged'};
+ const lead=row.value;
+ const admins=await sql`SELECT a.email FROM accounts a LEFT JOIN admin_members m ON m.account_id=a.id WHERE a.role='admin' AND NOT a.suspended AND coalesce(m.internal_role,'platform_owner') IN('platform_owner','operations_admin','support_agent')`;
+ let status='failed';
+ try{
+  const result=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+process.env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':'contact-notice-'+id},body:JSON.stringify({from:process.env.BILLING_FROM_EMAIL,to:[lead.email],bcc:[...new Set(admins.map(a=>a.email))].filter(email=>email!==lead.email),subject:'Votre demande de rendez-vous SmilePec — '+lead.reference,text:`Bonjour ${lead.name},\n\nVotre demande ${lead.reference} a bien été enregistrée dans SmilePec.\nCréneau : ${new Date(lead.starts_at).toLocaleString('fr-FR',{timeZone:'Europe/Paris'})} (heure de Paris).\nL’équipe vous confirmera les modalités du rendez-vous.\n\nL’équipe SmilePec`}),signal:AbortSignal.timeout(10000)});if(result.ok)status='sent';
+ }catch{}
+ await sql`UPDATE platform_state SET value=value||${JSON.stringify({status,error:status==='failed'?'Échec de livraison : réessayez depuis l’admin.':'',sent_at:status==='sent'?new Date().toISOString():null})}::jsonb,updated_at=now() WHERE key=${key}`;
+ return {status};
 }

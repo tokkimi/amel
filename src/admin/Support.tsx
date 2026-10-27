@@ -19,6 +19,7 @@ export default function Support() {
   const [sub, setSub] = useUrlParam("sub");
   const [status, setStatus] = useState("active"), [owner, setOwner] = useState(""), [priority, setPriority] = useState(""), [request, setRequest] = useState(false), [busy, setBusy] = useState(false), [requestError, setRequestError] = useState("");
   useEffect(() => { if (sub) { setStatus(sub); setSub("", true); } }, [sub]);
+  useEffect(()=>{const timer=setInterval(()=>{if(!document.hidden)reload()},15000);const focus=()=>reload();addEventListener('focus',focus);return()=>{clearInterval(timer);removeEventListener('focus',focus)}},[reload]);
   const tickets: Ticket[] = data?.tickets || [];
   const rows = tickets.filter((t) => (status === "active" ? !["resolved", "closed"].includes(t.status) : status === "all" ? true : status === "breached" ? t.sla.state === "breached" : t.status === status)
     && (!owner || (owner === "none" ? !t.owner_id : t.owner_id === owner)) && (!priority || t.priority === priority));
@@ -35,7 +36,7 @@ export default function Support() {
   const k = data?.kpis;
   return <div className="cc-stack">
     <header className="cc-page-head"><div><h1>Demandes SmilePec</h1><p>Demandes des cabinets, délais de réponse et échanges — réponses au cabinet et notes internes séparées.</p></div>{cc.can("support.reply") && <button className="cc-btn is-primary" onClick={() => setRequest(true)}><Send size={15} />Demander des informations</button>}</header>
-    <ContactWorkflow settings={data?.followup_settings} requests={data?.contact_requests||[]} slots={data?.contact_slots||[]} reload={reload}/>
+    <div className="cc-inline"><button className="cc-btn" onClick={reload} disabled={loading}>Actualiser les demandes</button>{error&&<p role="alert">{error}</p>}</div><ContactWorkflow settings={data?.followup_settings} requests={data?.contact_requests||[]} slots={data?.contact_slots||[]} reload={reload}/>
     {k && <div className="cc-kpis">
       <Kpi label="Nouveaux" value={k.new} tone={k.new ? "info" : "neutral"} onClick={() => setStatus("new")} />
       <Kpi label="En cours" value={k.open} onClick={() => setStatus("active")} />

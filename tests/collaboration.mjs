@@ -19,6 +19,21 @@ try{
  assert.equal((await call('new','public-contact',{name:'Cabinet',email:'missing@example.invalid',reason:'Test'})).status,400);
  const lead=await ok('new','public-contact',{name:'Cabinet fictif',email:'prospect@example.invalid',phone:'0102030405',reason:'Demande de visio de test',slot_id:slot.slot.id});
  assert(lead.reference.startsWith('SP-'));
+ const [saved]=await sql`SELECT value FROM platform_state WHERE key LIKE 'contact-request:%' LIMIT 1`;
+ const [notice]=await sql`SELECT count(*)::int AS n FROM notifications WHERE account_id=${users.admin.id} AND body LIKE ${lead.reference+'%'}`;assert.equal(notice.n,1);
+ const inbox=await ok('admin','cc-inbox');assert.ok(inbox.items.some(e=>e.entity_type==='contact_request'&&e.entity_id===saved.value.id));
+ const delivery=await ok('admin','cc-support');assert.equal(delivery.contact_requests.find(r=>r.id===saved.value.id).email_delivery,'blocked');
+ assert.equal((await ok('admin','cc-contact-notice-retry',{id:saved.value.id})).status,'blocked');
+ assert.equal((await call('new','cc-contact-notice-retry',{id:saved.value.id})).status,403);
+ const originalFetch=globalThis.fetch;const originalEnv={key:process.env.RESEND_API_KEY,from:process.env.BILLING_FROM_EMAIL,ready:process.env.SMILEPEC_MAIL_READY};let sentCalls=0;
+ try{process.env.RESEND_API_KEY='test';process.env.BILLING_FROM_EMAIL='test@example.invalid';process.env.SMILEPEC_MAIL_READY='1';globalThis.fetch=async()=>{sentCalls++;return {ok:false}};
+ assert.equal((await ok('admin','cc-contact-notice-retry',{id:saved.value.id})).status,'failed');
+ assert.ok((await ok('admin','cc-support')).contact_requests.some(r=>r.id===saved.value.id));
+ globalThis.fetch=async()=>{sentCalls++;return {ok:true}};
+ assert.equal((await ok('admin','cc-contact-notice-retry',{id:saved.value.id})).status,'sent');
+ assert.equal((await ok('admin','cc-contact-notice-retry',{id:saved.value.id})).status,'unchanged');assert.equal(sentCalls,2);
+ }finally{globalThis.fetch=originalFetch;for(const [key,value] of Object.entries({RESEND_API_KEY:originalEnv.key,BILLING_FROM_EMAIL:originalEnv.from,SMILEPEC_MAIL_READY:originalEnv.ready})){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
+
  const support=await ok('admin','cc-support');assert(support.contact_requests.some(r=>r.reference===lead.reference));
  assert.equal((await call('new','cc-support')).status,403);
  assert.equal((await call('new','public-contact',{name:'Autre',email:'other@example.invalid',reason:'Test',slot_id:slot.slot.id})).status,409);

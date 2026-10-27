@@ -1,4 +1,4 @@
-import {publicSlots} from '../server/contact-workflow.mjs';
+import {publicSlots,deliverContactNotice} from '../server/contact-workflow.mjs';
 import {savePec,pecReport,presentTask} from '../server/pec.mjs';
 import { cabinetAccess, collaborationAction } from '../server/collaboration.mjs';
 import { draftAction } from '../server/drafts.mjs';
@@ -101,9 +101,24 @@ export default async function handler(req, res) {
       const value=JSON.stringify({id,reference,name,email,phone,reason,status:'new',created_at:new Date().toISOString()});
       const admins=await sql`SELECT a.id FROM accounts a LEFT JOIN admin_members m ON m.account_id=a.id WHERE a.role='admin' AND NOT a.suspended AND coalesce(m.internal_role,'platform_owner') IN('platform_owner','operations_admin','support_agent')`;
       if(!admins.length)throw fail(503,'Le formulaire est momentanément indisponible. Contactez-nous par WhatsApp ou téléphone.');
-      const booked=await sql`WITH slot AS (UPDATE platform_state SET value=value||jsonb_build_object('status','reserved','request_id',${id}::text),updated_at=now() WHERE key=${'contact-slot:'+slotId} AND value->>'status'='open' AND (value->>'starts_at')::timestamptz>now()+interval '1 hour' RETURNING value) INSERT INTO platform_state(key,value) SELECT ${'contact-request:'+id},${value}::jsonb||jsonb_build_object('slot_id',${slotId}::text,'starts_at',slot.value->>'starts_at','host_name',slot.value->>'host_name') FROM slot RETURNING value`;
+      const booked=await sql`WITH slot AS (
+        UPDATE platform_state SET value=value||jsonb_build_object('status','reserved','request_id',${id}::text),updated_at=now()
+        WHERE key=${'contact-slot:'+slotId} AND value->>'status'='open' AND (value->>'starts_at')::timestamptz>now()+interval '1 hour' RETURNING value
+      ), lead AS (
+        INSERT INTO platform_state(key,value) SELECT ${'contact-request:'+id},${value}::jsonb||jsonb_build_object('slot_id',${slotId}::text,'starts_at',slot.value->>'starts_at','host_name',slot.value->>'host_name','email_status','pending') FROM slot RETURNING value
+      ), notices AS (
+        INSERT INTO notifications(id,account_id,kind,title,body,href,category)
+        SELECT md5(${id}::text||a.id::text)::uuid,a.id,'support','Nouvelle demande de rendez-vous',${reference+' · '+name},'/admin?tab=Demandes+SmilePec','support'
+        FROM accounts a LEFT JOIN admin_members m ON m.account_id=a.id CROSS JOIN lead
+        WHERE a.role='admin' AND NOT a.suspended AND coalesce(m.internal_role,'platform_owner') IN('platform_owner','operations_admin','support_agent') RETURNING id
+      ), event AS (
+        INSERT INTO operational_events(id,type,severity,entity_type,entity_id,title,description,dedupe_key)
+        SELECT ${id},'support','medium','contact_request',${id},${'Rendez-vous à valider — '+name},${reference+' · '+reason},${'contact-request:'+id} FROM lead RETURNING id
+      ), mail AS (
+        INSERT INTO platform_state(key,value) SELECT ${'contact-mail:'+id},jsonb_build_object('request_id',${id}::text,'status','pending','attempts',0,'created_at',now()) FROM lead RETURNING key
+      ) SELECT value FROM lead`;
       if(!booked.length)throw fail(409,'Ce créneau vient d’être réservé. Choisissez-en un autre.');
-      await Promise.all(admins.map(a=>sql`INSERT INTO notifications(id,account_id,kind,title,body,href) VALUES(${randomUUID()},${a.id},'support','Nouvelle demande de rendez-vous','Une demande du formulaire public est disponible.','/admin?tab=Demandes+SmilePec')`));
+      await deliverContactNotice(sql,id).catch(()=>null);
       return send({ok:true,reference});
     }
     const cookie = (token, age = 604800) =>

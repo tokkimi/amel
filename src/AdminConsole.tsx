@@ -70,7 +70,7 @@ export default function AdminConsole({ account, logout }: { account: Account; lo
   const loadMe = useCallback(() => api<Me>("cc-me").then(setMe).catch((e) => setMeError(e.message)), []);
   useEffect(() => { loadMe(); }, [loadMe]);
   const loadBadges = useCallback(() => api("cc-badges").then(setBadges).catch(() => {}), []);
-  useEffect(() => { loadBadges(); const t = setInterval(loadBadges, 60000); return () => clearInterval(t); }, [loadBadges, version]);
+  useEffect(() => { loadBadges(); const t = setInterval(()=>{if(!document.hidden)loadBadges()}, 15000); return () => clearInterval(t); }, [loadBadges, version]);
   useEffect(() => { if (LEGACY[tab]) { const [s, sub] = LEGACY[tab]; setTab(s === "Accueil" ? "" : s, true); if (sub) setSub(sub, true); } }, [tab]);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((p) => !p); } if (e.key === "Escape") setMenu(false); };

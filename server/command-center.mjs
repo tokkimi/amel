@@ -1,4 +1,4 @@
-import {createContactSlot,saveContactFollowup,saveFollowupSettings,sendContactRecap} from './contact-workflow.mjs';
+import {createContactSlot,saveContactFollowup,saveFollowupSettings,sendContactRecap,deliverContactNotice} from './contact-workflow.mjs';
 import {smilepecFinance} from './smilepec-finance.mjs';
 import { queueCommunication } from './collaboration-mail.mjs';
 // Amelib Command Center — admin-only API actions (prefix "cc-").
@@ -32,7 +32,7 @@ const REQUIRED = {
   'cc-me': null, 'cc-badges': null, 'cc-home': null, 'cc-inbox': null, 'cc-event': null, 'cc-search': null, 'cc-notifications': null, 'cc-views': null, 'cc-ask': null,
   'cc-event-create': 'inbox.manage', 'cc-event-update': 'inbox.manage', 'cc-bulk': null, 'cc-note-add': null, 'cc-view-save': null, 'cc-view-delete': null,
   'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update', 'cc-cabinet-create': 'cabinet.update', 'cc-report': 'cabinet.read', 'cc-report-prepared': 'export.bulk',
-  'cc-contact-recap-send': 'support.reply', 'cc-contact-settings': 'settings.update', 'cc-contact-slot': 'appointment.manage', 'cc-contact-followup': 'support.reply', 'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
+  'cc-contact-notice-retry': 'support.reply', 'cc-contact-recap-send': 'support.reply', 'cc-contact-settings': 'settings.update', 'cc-contact-slot': 'appointment.manage', 'cc-contact-followup': 'support.reply', 'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
   'cc-verifications': 'verification.read', 'cc-verification-update': null, 'cc-accounts': 'account.read',
   'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-pec-overview': 'pec.manage', 'cc-audit': 'audit.read',
   'cc-config': 'settings.read', 'cc-system': 'settings.read', 'cc-rule-update': 'settings.update', 'cc-automations-run': 'settings.update',
@@ -452,13 +452,14 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     return true;
   }
 
+  if(action==='cc-contact-notice-retry'&&POST){if(!isUuid(b.id))throw fail(400,'Demande invalide.');send(await deliverContactNotice(sql,b.id));return true;}
   if(action==='cc-contact-recap-send'&&POST){const result=await sendContactRecap(sql,b);await audit({action:'contact_recap_sent',entityType:'contact_request',entityId:b.id,detail:'Récapitulatif envoyé au contact'});send(result);return true;}
   if(action==='cc-contact-settings'&&POST){const settings=await saveFollowupSettings(sql,b);await audit({action:'contact_followup_settings_saved',entityType:'settings',entityId:'contact-followup-settings',detail:'Mode et délai des relances modifiés'});send({ok:true,settings});return true;}
   if(action==='cc-contact-slot'&&POST){const slot=await createContactSlot(sql,account,b);await audit({action:'contact_slot_created',entityType:'contact_slot',entityId:slot.id,detail:'Créneau public ouvert'});send({ok:true,slot});return true;}
   if(action==='cc-contact-followup'&&POST){const lead=await saveContactFollowup(sql,b,account);await audit({action:'contact_followup_saved',entityType:'contact_request',entityId:b.id,detail:'Suivi après rendez-vous enregistré'});send({ok:true,lead});return true;}
   // ── Support Center ──────────────────────────────────────────────────────────────────────────
   if (action === 'cc-support' && GET) {
-    const contactRequests=await sql`SELECT value FROM platform_state WHERE key LIKE 'contact-request:%' ORDER BY updated_at DESC LIMIT 100`;
+    const contactRequests=await sql`SELECT p.value||jsonb_build_object('email_delivery',coalesce(m.value->>'status','pending'),'email_error',coalesce(m.value->>'error','')) AS value FROM platform_state p LEFT JOIN platform_state m ON m.key='contact-mail:'||(p.value->>'id') WHERE p.key LIKE 'contact-request:%' ORDER BY p.updated_at DESC LIMIT 200`;
     const rows = await sql`SELECT t.id,t.subject,t.status,t.priority,t.category,t.owner_id,t.due_at,t.first_response_at,t.resolved_at,t.reopened_count,t.last_reply_at,t.created_at,t.updated_at,
       a.name AS requester,a.email AS requester_email,o.name AS owner_name,
       coalesce((SELECT cm.owner_id FROM clinic_members cm WHERE cm.member_id=a.id AND cm.active AND cm.accepted LIMIT 1),a.id) AS cabinet_id,

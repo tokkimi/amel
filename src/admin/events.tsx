@@ -15,6 +15,7 @@ const PRIMARY: Record<string, string> = { verification: "Examiner", finance: "Vo
 export function usePrimary() {
   const cc = useCC();
   return (e: OpEvent) => {
+    if (e.entity_type === "contact_request") return cc.go("Support");
     if (e.entity_type === "ticket" && e.entity_id) return cc.open("ticket", e.entity_id);
     if (e.type === "verification" && e.entity_id) return cc.go("Réseau", "Vérifications:" + e.entity_id);
     if (e.cabinet_id && ["finance", "onboarding", "appointment", "document"].includes(e.type)) return cc.open("cabinet", e.cabinet_id);
