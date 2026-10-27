@@ -1,7 +1,8 @@
+import {filterCalendarSlots,refreshAvailableCalendars} from './calendar-connections.mjs';
 import {mailReady} from './collaboration-mail.mjs';
 import {createHash} from 'node:crypto';
 const fail=(status,message)=>Object.assign(new Error(message),{status});
-export async function publicSlots(sql){return sql`SELECT value->>'id' AS id,value->>'starts_at' AS starts_at,value->>'host_name' AS host_name FROM platform_state WHERE key LIKE 'contact-slot:%' AND value->>'status'='open' AND (value->>'starts_at')::timestamptz>now()+interval '1 hour' ORDER BY value->>'starts_at' LIMIT 80`;}
+export async function publicSlots(sql){await refreshAvailableCalendars(sql);const slots=await sql`SELECT value->>'id' AS id,value->>'starts_at' AS starts_at,value->>'host_name' AS host_name,value->>'host_id' AS host_id FROM platform_state WHERE key LIKE 'contact-slot:%' AND value->>'status'='open' AND (value->>'starts_at')::timestamptz>now()+interval '1 hour' ORDER BY value->>'starts_at' LIMIT 80`;return (await filterCalendarSlots(sql,slots)).map(({host_id,...slot})=>slot);}
 export async function createContactSlot(sql,account,b){
  const date=new Date(b.starts_at);if(!Number.isFinite(+date)||+date<Date.now()+3600000||+date>Date.now()+180*86400000)throw fail(400,'Choisissez un créneau entre une heure et six mois à partir de maintenant.');
  if(date.getUTCMinutes()%30||date.getUTCSeconds()||date.getUTCMilliseconds())throw fail(400,'Les créneaux commencent à l’heure ou à la demi-heure.');

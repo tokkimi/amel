@@ -1,3 +1,4 @@
+import {calendarStatus,startCalendar,syncCalendar,disconnectCalendar,chooseCalendarType} from './calendar-connections.mjs';
 import {createContactSlot,saveContactFollowup,saveFollowupSettings,sendContactRecap,deliverContactNotice} from './contact-workflow.mjs';
 import {smilepecFinance} from './smilepec-finance.mjs';
 import { queueCommunication } from './collaboration-mail.mjs';
@@ -32,7 +33,7 @@ const REQUIRED = {
   'cc-me': null, 'cc-badges': null, 'cc-home': null, 'cc-inbox': null, 'cc-event': null, 'cc-search': null, 'cc-notifications': null, 'cc-views': null, 'cc-ask': null,
   'cc-event-create': 'inbox.manage', 'cc-event-update': 'inbox.manage', 'cc-bulk': null, 'cc-note-add': null, 'cc-view-save': null, 'cc-view-delete': null,
   'cc-cabinets': 'cabinet.read', 'cc-cabinet': 'cabinet.read', 'cc-timeline': null, 'cc-crm-update': 'cabinet.update', 'cc-cabinet-create': 'cabinet.update', 'cc-report': 'cabinet.read', 'cc-report-prepared': 'export.bulk',
-  'cc-contact-notice-retry': 'support.reply', 'cc-contact-recap-send': 'support.reply', 'cc-contact-settings': 'settings.update', 'cc-contact-slot': 'appointment.manage', 'cc-contact-followup': 'support.reply', 'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
+  'cc-calendar-status':'appointment.manage','cc-calendar-connect':'appointment.manage','cc-calendar-sync':'appointment.manage','cc-calendar-disconnect':'appointment.manage','cc-calendar-type':'appointment.manage', 'cc-contact-notice-retry': 'support.reply', 'cc-contact-recap-send': 'support.reply', 'cc-contact-settings': 'settings.update', 'cc-contact-slot': 'appointment.manage', 'cc-contact-followup': 'support.reply', 'cc-support': 'support.read', 'cc-ticket': 'support.read', 'cc-ticket-create': 'support.reply', 'cc-ticket-reply': 'support.reply', 'cc-ticket-update': 'support.reply', 'cc-pec-report-send': 'pec.manage',
   'cc-verifications': 'verification.read', 'cc-verification-update': null, 'cc-accounts': 'account.read',
   'cc-finance': 'billing.read', 'cc-operations': 'cabinet.read', 'cc-analytics': 'analytics.read', 'cc-pec-overview': 'pec.manage', 'cc-audit': 'audit.read',
   'cc-config': 'settings.read', 'cc-system': 'settings.read', 'cc-rule-update': 'settings.update', 'cc-automations-run': 'settings.update',
@@ -452,6 +453,11 @@ export async function commandCenterAction({ action, req, b, sql, account, send, 
     return true;
   }
 
+  if(action==='cc-calendar-status'&&GET){send({connections:await calendarStatus(sql,account.id)});return true;}
+  if(action==='cc-calendar-connect'&&POST){const session=String(req.headers.cookie||'').split(';').map(x=>x.trim()).find(x=>x.startsWith('amelib_session='))?.slice(15)||'';send(await startCalendar(sql,account.id,b.provider,session));return true;}
+  if(action==='cc-calendar-sync'&&POST){send(await syncCalendar(sql,account.id,b.provider));return true;}
+  if(action==='cc-calendar-type'&&POST){send(await chooseCalendarType(sql,account.id,b.event_type));return true;}
+  if(action==='cc-calendar-disconnect'&&POST){send(await disconnectCalendar(sql,account.id,b.provider));await audit({action:'calendar_disconnected',entityType:'account',entityId:account.id,detail:'Connexion agenda retirée'});return true;}
   if(action==='cc-contact-notice-retry'&&POST){if(!isUuid(b.id))throw fail(400,'Demande invalide.');send(await deliverContactNotice(sql,b.id));return true;}
   if(action==='cc-contact-recap-send'&&POST){const result=await sendContactRecap(sql,b);await audit({action:'contact_recap_sent',entityType:'contact_request',entityId:b.id,detail:'Récapitulatif envoyé au contact'});send(result);return true;}
   if(action==='cc-contact-settings'&&POST){const settings=await saveFollowupSettings(sql,b);await audit({action:'contact_followup_settings_saved',entityType:'settings',entityId:'contact-followup-settings',detail:'Mode et délai des relances modifiés'});send({ok:true,settings});return true;}

@@ -14,6 +14,9 @@ try{
  assert.equal((await ok('existing','collaboration')).access.active,true);
  assert.equal((await ok('new','collaboration')).access.active,false);
  assert.equal((await call('new','profile',{clinic_name:'Blocked'})).status,403);
+ assert.equal((await call('new','cc-calendar-status')).status,403);
+ const calendar=await ok('admin','cc-calendar-status');assert.equal(calendar.connections.length,2);assert.equal(calendar.connections[0].connected,false);
+ assert.equal((await call('admin','cc-calendar-connect',{provider:'invalid'})).status,400);
  const slot=await ok('admin','cc-contact-slot',{starts_at:new Date(Math.ceil((Date.now()+3*86400000)/1800000)*1800000).toISOString()});
  assert.equal((await call('new','cc-contact-slot',{starts_at:new Date(Date.now()+4*86400000).toISOString()})).status,403);
  assert.equal((await call('new','public-contact',{name:'Cabinet',email:'missing@example.invalid',reason:'Test'})).status,400);

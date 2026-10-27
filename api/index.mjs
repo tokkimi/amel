@@ -1,3 +1,4 @@
+import {filterCalendarSlots} from '../server/calendar-connections.mjs';
 import {publicSlots,deliverContactNotice} from '../server/contact-workflow.mjs';
 import {savePec,pecReport,presentTask} from '../server/pec.mjs';
 import { cabinetAccess, collaborationAction } from '../server/collaboration.mjs';
@@ -87,7 +88,7 @@ export default async function handler(req, res) {
       if (rows[0].count > max)
         throw fail(429, "Trop de tentatives. Réessayez dans 15 minutes.");
     };
-    if(action==='public-contact-slots'&&req.method==='GET')return send({slots:await publicSlots(sql)});
+    if(action==='public-contact-slots'&&req.method==='GET'){const ip=String(req.headers['x-vercel-forwarded-for']||req.headers['x-forwarded-for']||'unknown').split(',')[0];await limit('calendar-slots:'+hash(ip),60);return send({slots:await publicSlots(sql)});}
     if(action==='public-contact'){
       if(req.method!=='POST')throw fail(405,'Requête POST nécessaire.');
       const ip=String(req.headers['x-vercel-forwarded-for']||req.headers['x-forwarded-for']||'unknown').split(',')[0];
@@ -98,6 +99,8 @@ export default async function handler(req, res) {
       await limit('contact-email:'+hash(email),3);
       const id=randomUUID(),reference='SP-'+id.slice(0,8).toUpperCase();
       const slotId=String(b.slot_id||'');if(!/^[0-9a-f-]{36}$/i.test(slotId))throw fail(400,'Choisissez un créneau disponible.');
+      const [selectedSlot]=await sql`SELECT value FROM platform_state WHERE key=${'contact-slot:'+slotId} AND value->>'status'='open'`;
+      if(!selectedSlot||(await filterCalendarSlots(sql,[selectedSlot.value],{refresh:true})).length!==1)throw fail(409,'Ce créneau n’est plus disponible. Choisissez un autre horaire.');
       const value=JSON.stringify({id,reference,name,email,phone,reason,status:'new',created_at:new Date().toISOString()});
       const admins=await sql`SELECT a.id FROM accounts a LEFT JOIN admin_members m ON m.account_id=a.id WHERE a.role='admin' AND NOT a.suspended AND coalesce(m.internal_role,'platform_owner') IN('platform_owner','operations_admin','support_agent')`;
       if(!admins.length)throw fail(503,'Le formulaire est momentanément indisponible. Contactez-nous par WhatsApp ou téléphone.');
