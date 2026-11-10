@@ -907,6 +907,7 @@ export default function Portal() {
           </span>
           <span>Pensé dans les moindres détails.</span>
         </div>
+        <p style={{ fontSize: "9px", opacity: 0.5, textAlign: "center", margin: 0, padding: "0 0 8px" }}>Made by Alexia Naudy</p>
       </footer>
       {modal&&modal!=='booking'&&<Dialog title="Votre espace SmilePec" close={close}>{modal==='info'?<><h2>Vos informations</h2><p>{info}</p></>:authContent}</Dialog>}
     </div>
